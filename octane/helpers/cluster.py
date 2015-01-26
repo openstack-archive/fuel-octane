@@ -98,6 +98,15 @@ class NailgunClient(object):
         return requests.put(endpoint, headers=self.headers,
                             data=json.dumps(data))
 
+    def get_releases(self):
+        endpoint = urlparse.urljoin(self.url, "api/releases")
+        return requests.get(endpoint, headers=self.headers)
+
+    def get_release_details(self, release_id):
+        endpoint = urlparse.urljoin(self.url, "api/releases/{}".format(
+            release_id))
+        return requests.get(endpoint, headers=self.headers)
+
 
 def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
                  tenant="admin"):
@@ -149,7 +158,7 @@ def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
 
 
 def restore_cluster(folder, fuel_node, user="admin", password="admin",
-                    tenant="admin"):
+                    tenant="admin", upgrade=None):
     client = NailgunClient(fuel_node, username=user, password=password,
                            tenant_name=tenant)
 
@@ -157,9 +166,21 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
         with open("{}/cluster.json".format(folder)) as cluster:
             cluster_data = json.load(cluster)
 
+        needed_version = cluster_data["release_id"]
+
+        if upgrade:
+            restore_cluster_os_version = client.get_release_details(
+                cluster_data["release_id"]).json()["name"].split()[:3]
+            for release in [i for i in client.get_releases().json()
+                            if int(i["id"]) > int(cluster_data["release_id"])]:
+                os_ver = release["name"].split()
+                if restore_cluster_os_version[0] != os_ver[0] and \
+                        restore_cluster_os_version[2] == os_ver[2]:
+                    needed_version = release["id"]
+
         new_cluster_data = {
             "name": cluster_data["name"],
-            "release": cluster_data["release_id"],
+            "release": needed_version,
             "mode": cluster_data["mode"],
             "net_provider": cluster_data["net_provider"]
         }
