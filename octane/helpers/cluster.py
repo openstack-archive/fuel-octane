@@ -49,23 +49,23 @@ class NailgunClient(object):
 
     def list_cluster_nodes(self, cluster_id):
         endpoint = urlparse.urljoin(
-            self.url, "api/nodes/?cluster_id={}".format(cluster_id))
+            self.url, "api/nodes/?cluster_id={0}".format(cluster_id))
         return requests.get(endpoint, headers=self.headers).json()
 
     def update_cluster_attributes(self, cluster_id, attrs):
         endpoint = urlparse.urljoin(
-            self.url, "api/clusters/{}/attributes".format(cluster_id))
+            self.url, "api/clusters/{0}/attributes".format(cluster_id))
         return requests.put(endpoint, headers=self.headers,
                             data=json.dumps(attrs))
 
     def update_node(self, node_id, data):
-        endpoint = urlparse.urljoin(self.url, "api/nodes/{}".format(node_id))
+        endpoint = urlparse.urljoin(self.url, "api/nodes/{0}".format(node_id))
         return requests.put(endpoint, headers=self.headers,
                             data=json.dumps(data))
 
     def get_node_interfaces(self, node_id):
         endpoint = urlparse.urljoin(self.url,
-                                    "api/nodes/{}/interfaces".format(node_id))
+                                    "api/nodes/{0}/interfaces".format(node_id))
         return requests.get(endpoint, headers=self.headers).json()
 
     def put_node_interfaces(self, data):
@@ -82,19 +82,19 @@ class NailgunClient(object):
         net_provider = self._get_cluster(cluster_id)["net_provider"]
         endpoint = urlparse.urljoin(
             self.url,
-            "api/clusters/{}/network_configuration/{}".format(cluster_id,
-                                                              net_provider))
+            "api/clusters/{0}/network_configuration/{1}".format(cluster_id,
+                                                                net_provider))
         return requests.put(endpoint, headers=self.headers,
                             data=json.dumps(data))
 
     def get_node_disks(self, node_id):
         endpoint = urlparse.urljoin(self.url,
-                                    "api/nodes/{}/disks".format(node_id))
+                                    "api/nodes/{0}/disks".format(node_id))
         return requests.get(endpoint, headers=self.headers).json()
 
     def put_node_disks(self, node_id, data):
         endpoint = urlparse.urljoin(self.url,
-                                    "api/nodes/{}/disks".format(node_id))
+                                    "api/nodes/{0}/disks".format(node_id))
         return requests.put(endpoint, headers=self.headers,
                             data=json.dumps(data))
 
@@ -103,7 +103,7 @@ class NailgunClient(object):
         return requests.get(endpoint, headers=self.headers)
 
     def get_release_details(self, release_id):
-        endpoint = urlparse.urljoin(self.url, "api/releases/{}".format(
+        endpoint = urlparse.urljoin(self.url, "api/releases/{0}".format(
             release_id))
         return requests.get(endpoint, headers=self.headers)
 
@@ -123,35 +123,35 @@ def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
     cluster_id = get_cluster_id(cluster_name)
     os.makedirs(cluster_name)
 
-    with open("{}/cluster.json".format(cluster_name), "w") as cluster:
+    with open("{0}/cluster.json".format(cluster_name), "w") as cluster:
         json.dump(client._get_cluster(cluster_id), cluster, sort_keys=False,
                   indent=4)
 
-    with open("{}/cluster_attributes.json".format(cluster_name),
+    with open("{0}/cluster_attributes.json".format(cluster_name),
               "w") as cluster_attrs:
         json.dump(client._get_cluster_attributes(cluster_id), cluster_attrs,
                   sort_keys=False, indent=4)
 
-    with open("{}/cluster_networks.json".format(
+    with open("{0}/cluster_networks.json".format(
             cluster_name), "w") as cluster_net:
         json.dump(client._get_list_networks(cluster_id), cluster_net,
                   sort_keys=False, indent=4)
 
     for node in client.list_cluster_nodes(cluster_id):
-        with open("{}/node-{}.json".format(cluster_name, node["id"]),
+        with open("{0}/node-{1}.json".format(cluster_name, node["id"]),
                   "w") as node_cfg:
             json.dump(node, node_cfg, sort_keys=False, indent=4)
 
         with open(
-                "{}/node-{}-networks.json".format(cluster_name,
-                                                  node["id"]),
+                "{0}/node-{1}-networks.json".format(cluster_name,
+                                                    node["id"]),
                 "w") as node_net:
             json.dump(client.get_node_interfaces(node["id"]), node_net,
                       sort_keys=False, indent=4)
 
         with open(
-                "{}/node-{}-disks.json".format(cluster_name,
-                                               node["id"]),
+                "{0}/node-{1}-disks.json".format(cluster_name,
+                                                 node["id"]),
                 "w") as node_disks:
             json.dump(client.get_node_disks(node["id"]), node_disks,
                       sort_keys=False, indent=4)
@@ -162,8 +162,8 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
     client = NailgunClient(fuel_node, username=user, password=password,
                            tenant_name=tenant)
 
-    if os.path.isfile("{}/cluster.json".format(folder)):
-        with open("{}/cluster.json".format(folder)) as cluster:
+    if os.path.isfile("{0}/cluster.json".format(folder)):
+        with open("{0}/cluster.json".format(folder)) as cluster:
             cluster_data = json.load(cluster)
 
         needed_version = cluster_data["release_id"]
@@ -187,9 +187,10 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
         if cluster_data.get("net_segment_type"):
             new_cluster_data["net_segment_type"] = cluster_data[
                 "net_segment_data"]
-        elif os.path.isfile("{}/cluster_networks.json".format(folder)):
+        elif os.path.isfile("{0}/cluster_networks.json".format(folder)):
             with open(
-                    "{}/cluster_networks.json".format(folder)) as cluster_nets:
+                    "{0}/cluster_networks.json".format(folder)
+            ) as cluster_nets:
                 cluster_nets_data = json.load(cluster_nets)
                 if cluster_data["net_provider"] == "neutron":
                     new_cluster_data["net_segment_type"] = \
@@ -204,9 +205,9 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
     else:
         raise NameError("Can not find cluster.json")
 
-    if os.path.isfile("{}/cluster_attributes.json".format(folder)):
+    if os.path.isfile("{0}/cluster_attributes.json".format(folder)):
         with open(
-                "{}/cluster_attributes.json".format(folder)) as cluster_attrs:
+                "{0}/cluster_attributes.json".format(folder)) as cluster_attrs:
             cluster_attrs_data = json.load(cluster_attrs)
         restore_cluster_attrs = client._get_cluster_attributes(new_clust["id"])
         for k, _ in cluster_attrs_data["editable"].items():
@@ -225,8 +226,8 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
         client.update_cluster_attributes(new_clust["id"],
                                          restore_cluster_attrs)
 
-    if os.path.isfile("{}/cluster_networks.json".format(folder)):
-        with open("{}/cluster_networks.json".format(folder)) as cluster_nets:
+    if os.path.isfile("{0}/cluster_networks.json".format(folder)):
+        with open("{0}/cluster_networks.json".format(folder)) as cluster_nets:
             cluster_nets_data = json.load(cluster_nets)
 
         restore_cluster_nets_data = client._get_list_networks(new_clust["id"])
