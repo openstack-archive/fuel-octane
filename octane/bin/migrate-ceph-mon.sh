@@ -85,7 +85,7 @@ for ctrl_host in ${dst_controllers}; do
 	mon_hosts="$mon_hosts $ip_match"
 done
 
-DST_BASE_DIR="/tmp"
+DST_BASE_DIR="/"
 for ctrl_host in ${mon_initial_members}; do
 	echo $ctrl_host
 	ssh $SSH_ARGS $ctrl_host "tar cvf /root/ceph_conf_backup.tar $ceph_conf_dir"
