@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#set -x
+set -x
 set -e
 SOURCE_ENV_ID=$1
 DST_ENV_ID=$2
@@ -39,6 +39,14 @@ test -z "$controller1" && {
 	exit 1
 } 
 
+controller1_hostname=$(ssh $SSH_ARGS $controller1 hostname | cut -d. -f1)
+controller1_db_path=/var/lib/ceph/mon/ceph-${controller1_hostname} 
+
+ssh $SSH_ARGS $controller1 test -d $controller1_db_path  || {
+  echo "$controller1_db_path not found at $controller1"
+  exit 1
+} 
+
 ceph_args=$(ssh $SSH_ARGS $controller1 "pgrep 'ceph-mon' | xargs ps -fp | grep -m1 '^root '")
 
 test -z "$ceph_args" && {
@@ -70,7 +78,7 @@ test -z "$dst_controllers" && {
 } 
 
 dst_controllers_hostnames=$(echo -n $dst_controllers | xargs -I{} ssh $SSH_ARGS {} hostname | cut -d. -f1)
-source_controllers=$(ssh $controller1 cat $config_path | awk -F= '$1 = /mon_host/ {print gensub("^ ", "", "", $2)}')
+source_controllers=$(ssh $SSH_AGS $controller1 cat $config_path | awk -F= '$1 = /mon_host/ {print gensub("^ ", "", "", $2)}')
 
 source_controllers_mask=$(echo ${source_controllers} | sed 's/ /|/g')
 
@@ -87,12 +95,11 @@ done
 
 DST_BASE_DIR="/"
 for ctrl_host in ${mon_initial_members}; do
-	echo $ctrl_host
-	ssh $SSH_ARGS $ctrl_host "tar cvf /root/ceph_conf_backup.tar $ceph_conf_dir"
-	ssh $SSH_ARGS $controller1 "tar cvf - $ceph_conf_dir" | ssh $SSH_ARGS $ctrl_host "tar xvf - -C $DST_BASE_DIR; \
-		sed -i'' \"s/^mon_initial_members =.*/mon_initial_members =$mon_initial_members/g;s/^mon_host =.*/mon_host =$mon_hosts/g\" $DST_BASE_DIR/${ceph_conf_dir}/ceph.conf
-		/etc/init.d/ceph restart mon
-	"
+  ctrl_host_db_path="/var/lib/ceph/mon/ceph-${ctrl_host}"
+  ssh $SSH_ARGS $ctrl_host "rm -rf /etc/ceph; mkdir /etc/ceph; test -d $ctrl_host_db_path && rm -rf $ctrl_host_db_path; mkdir -p /var/lib/ceph/mon/ceph-${ctrl_host}"
+
+  ssh $SSH_ARGS $controller1 "tar cvf - $ceph_conf_dir $controller1_db_path" | ssh $SSH_ARGS $ctrl_host "tar xvf - -C / && mv $controller1_db_path $ctrl_host_db_path"
+  ssh $SSH_ARGS $ctrl_host "sed -i'' 's/^mon_initial_members =.*/mon_initial_members =$mon_initial_members/g;s/^mon_host =.*/mon_host =$mon_hosts/g;s/^host =.*/host = ${ctrl_host}/g' $DST_BASE_DIR/${ceph_conf_dir}/ceph.conf && /etc/init.d/ceph restart mon"
 done
 
 
