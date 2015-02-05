@@ -96,10 +96,41 @@ done
 DST_BASE_DIR="/"
 for ctrl_host in ${mon_initial_members}; do
   ctrl_host_db_path="/var/lib/ceph/mon/ceph-${ctrl_host}"
-  ssh $SSH_ARGS $ctrl_host "rm -rf /etc/ceph; mkdir /etc/ceph; test -d $ctrl_host_db_path && rm -rf $ctrl_host_db_path; mkdir -p /var/lib/ceph/mon/ceph-${ctrl_host}"
+  ssh $SSH_ARGS $ctrl_host "rm -rf /etc/ceph; mkdir /etc/ceph; test -d $ctrl_host_db_path && rm -rf $ctrl_host_db_path;  :"
 
-  ssh $SSH_ARGS $controller1 "tar cvf - $ceph_conf_dir $controller1_db_path" | ssh $SSH_ARGS $ctrl_host "tar xvf - -C / && mv $controller1_db_path $ctrl_host_db_path"
-  ssh $SSH_ARGS $ctrl_host "sed -i'' 's/^mon_initial_members =.*/mon_initial_members =$mon_initial_members/g;s/^mon_host =.*/mon_host =$mon_hosts/g;s/^host =.*/host = ${ctrl_host}/g' $DST_BASE_DIR/${ceph_conf_dir}/ceph.conf && /etc/init.d/ceph restart mon"
+  ssh $SSH_ARGS $controller1 "tar cvf - $ceph_conf_dir $controller1_db_path" | ssh $SSH_ARGS $ctrl_host "
+	  tar xvf - -C / && 
+	  set -e
+	  mv $controller1_db_path $ctrl_host_db_path
+	  sed -i'' 's/^mon_initial_members =.*/mon_initial_members =$mon_initial_members/g;
+		  s/^mon_host =.*/mon_host =$mon_hosts/g;
+		  s/^host =.*/host = ${ctrl_host}/g' $DST_BASE_DIR/${ceph_conf_dir}/ceph.conf 
+
+    # amazing awk script generate output like:
+    # monmaptool --fsid <FSID> --clobber --create --add <node0_hostname> <node0_ip> --add <node1_hostname> <node1_ip> --add .... /tmp/monmap
+    
+	  cat /etc/ceph/ceph.conf | awk -F= '
+		  \$1 ~ /^fsid/ {
+			  fsid = \$2
+		  } 
+		  \$1 ~ /^mon_initial_members/ {
+			  gsub(\"^[ ]+?\", \"\", \$2)
+			  split(\$2, members)
+		  }
+		  \$1 ~ /^mon_host/ {
+			  gsub(\"^[ ]+?\", \"\", \$2)
+			  split(\$2, host)
+		  }
+		  END {
+			  printf(\"monmaptool --fsid %s --clobber --create \", fsid)
+			  for (i in members) {
+				  printf(\"--add %s %s\", members[i], host[i]);
+			  } 
+			  printf(\" /tmp/monmap\n\")
+ 		}' | sh -
+
+	  ceph-mon -i ${ctrl_host} --inject-monmap /tmp/monmap 
+	  /etc/init.d/ceph restart
+  " 
+	
 done
-
-
