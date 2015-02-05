@@ -63,15 +63,16 @@ EOF
 
 set_upgrade_levels() {
     local version
+    local command
     version=${1:-icehouse}
-    upgrade_levels=$(cat <<EOF
+    command=$(cat <<EOF >> /etc/nova/nova.conf
 [upgrade_levels]
 compute=icehouse
 conductor=icehouse
 scheduler=icehouse
 EOF
 )
-    $pssh_run "echo $upgrade_levels >> /etc/nova/nova.conf"
+    $pssh_run "$command"
 }
 
 display_help_message() {
