@@ -22,8 +22,9 @@ echo -n \$services \
         | grep -Ev override \
         | sed -E "s,.*/([^\.]+)(\.conf|override)?$,\1," \
         | sort -u | xargs -I@ sh -c "status @ \
-        | grep -v stop >/dev/null 2>&1 && echo @"' > services;
-    for s in \$(<services);
+        | grep start/running >/dev/null 2>&1 && echo @"' \
+        | tee services;
+    for s in \$(cat services);
         do
             stop \$s;
         done
