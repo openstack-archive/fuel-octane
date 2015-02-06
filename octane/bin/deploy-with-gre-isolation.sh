@@ -77,10 +77,6 @@ replace_ip_addresses() {
     sed -i "s%$new_vip%$orig_vip%" $dirname/*.yaml
 }
 
-remove_patch_transformation() {
-
-}
-
 prepare_deployment_info() {
 # Prepare deployment configuration of Fuel environment.
     local br_name
@@ -90,7 +86,10 @@ prepare_deployment_info() {
     for br_name in br-ex br-mgmt
         do
             replace_ip_addresses $br_name $discard_ips
-            remove_patch_transformation $br_name
+# TODO(ogelbukh): implement function to remove patch port create action from
+# transformations section of deployment config. These actions must be stored
+# somewhere to create those patch ports when lift isolation.
+#            remove_patch_transformation $br_name
         done
     upload_deployment_info
 }
@@ -143,7 +142,7 @@ tunnel_from_to() {
         echo "Tunnel remote $dst_node not found"
         exit 1
     }
-    gre_port=gre-$_dstnode
+    gre_port=$br_name--gre-$dst_node
     ssh root@$src_node ovs-vsctl add-port $br_name $gre_port -- \
         set Interface $gre_port type=gre options:remote_ip=$remote_ip
 }
@@ -200,7 +199,6 @@ case $1 in
         create_ovs_bridges
         ;;
     start)
-        activate_arp_isolation
         primary_controller=$(start_controller_deployment)
         for br_name in br-ex br-mgmt
             do
