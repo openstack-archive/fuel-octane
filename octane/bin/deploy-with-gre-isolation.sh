@@ -171,7 +171,7 @@ start_controller_deployment() {
     fuel --env ${ENV} deployment upload
     node_id=`ls deployment_${ENV} \
         | grep primary-controller \
-	grep -Eo "[0-9]+?"`
+	    | grep -Eo "[0-9]+?"`
 
     fuel node --env ${ENV} --deploy --node $node_id
     echo "node-$node_id"
