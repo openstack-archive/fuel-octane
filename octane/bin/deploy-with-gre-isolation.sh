@@ -178,7 +178,7 @@ start_controller_deployment() {
 
 set -x
 
-ENV="$1"
+ENV="$2"
 if [ -z $ENV ]
 then
     echo "No env ID specified!" && exit 1
