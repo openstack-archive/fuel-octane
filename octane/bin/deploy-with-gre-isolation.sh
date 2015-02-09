@@ -62,14 +62,16 @@ replace_ip_addresses() {
     local orig_vip
     local new_ip
     br_name=$1
+    shift
     dirname=deployment_${ENV}
     orig_ips=$(get_orig_ips $br_name)
     for orig_ip in $orig_ips
         do
             if [ -n "$*" ]
                 then
-                    new_ip=$2
+                    new_ip=$1
                     sed -i "s%$new_ip%$orig_ip%" $dirname/*.yaml
+                    shift
                 fi
         done
     orig_vip=$(get_orig_vip $br_name)
