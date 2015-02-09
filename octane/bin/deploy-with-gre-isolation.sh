@@ -178,18 +178,14 @@ start_controller_deployment() {
 
 set -x
 
-ENV="$2"
+ENV="$1"
 if [ -z $ENV ]
 then
     echo "No env ID specified!" && exit 1
 fi
 
-NS_NAME=haproxy
-NS_RUN="ip netns exec ${NS_NAME}"
 PSSH_RUN="pssh --inline-stdout -h controllers"
 PSCP_RUN="pscp.pssh -h controllers"
-pub_vip_if=hapr-p
-mgmt_vip_if=hapr-m
 
 
 case $1 in 
