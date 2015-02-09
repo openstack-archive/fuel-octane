@@ -68,7 +68,7 @@ replace_ip_addresses() {
         do
             if [ -n "$*" ]
                 then
-                    new_ip=$1
+                    new_ip=$2
                     sed -i "s%$new_ip%$orig_ip%" $dirname/*.yaml
                 fi
         done
@@ -171,7 +171,8 @@ start_controller_deployment() {
     fuel --env ${ENV} deployment upload
     node_id=`ls deployment_${ENV} \
         | grep primary-controller \
-        | sed -re "s%primary-controller_([^\.]{2,}).yaml%\1%"`
+	grep -Eo "[0-9]+?"`
+
     fuel node --env ${ENV} --deploy --node $node_id
     echo "node-$node_id"
 }
@@ -188,10 +189,10 @@ PSSH_RUN="pssh --inline-stdout -h controllers"
 PSCP_RUN="pscp.pssh -h controllers"
 
 
-case $1 in 
+case $1 in
     prepare)
         prepare_deployment_info
-        prepare_static_files
+	prepare_static_files
         create_ovs_bridges
         ;;
     start)
