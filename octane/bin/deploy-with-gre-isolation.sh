@@ -79,6 +79,10 @@ replace_ip_addresses() {
     sed -i "s%$new_vip%$orig_vip%" $dirname/*.yaml
 }
 
+remove_patch_transformations() {
+    python ../helpers/transformations.py deployment_${ENV}
+}
+
 prepare_deployment_info() {
 # Prepare deployment configuration of Fuel environment.
     local br_name
@@ -93,6 +97,7 @@ prepare_deployment_info() {
 # somewhere to create those patch ports when lift isolation.
 #            remove_patch_transformation $br_name
         done
+    remove_patch_transformations
     upload_deployment_info
 }
 
@@ -194,16 +199,16 @@ PSCP_RUN="pscp.pssh -h controllers"
 case $1 in
     prepare)
         prepare_deployment_info
-	prepare_static_files
+	    prepare_static_files
         create_ovs_bridges
         ;;
     start)
-        primary_controller=$(start_controller_deployment)
         for br_name in br-ex br-mgmt
             do
                 create_tunnels $br_name
             done
         ;;
+        start_controller_deployment
 esac
 
 exit 0
