@@ -209,8 +209,8 @@ case $1 in
             do
                 create_tunnels $br_name
             done
-        ;;
         start_controller_deployment
+        ;;
 esac
 
 exit 0
