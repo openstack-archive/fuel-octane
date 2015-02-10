@@ -181,6 +181,63 @@ start_controller_deployment() {
     echo "node-$node_id"
 }
 
+check_deployment_status() {
+    local status
+    status=`fuel env --env ${ENV} \
+        | grep -Eo "^${ENV} \| [^\|]" \
+        | cut -d' ' -f3`
+    [ $status -eq 'operational' ] || {
+        echo "Environment status is: $status"
+        exit 1
+    }
+}
+
+delete_tunnel() {
+}
+
+remove_tunnels() {
+    local br_name
+    local primary
+    local nodes
+    [ -z $1 ] && {
+        echo "Bridge name required"
+        exit 1
+    }
+    br_name=$1
+    primary=$(head -1 ./controllers)
+    nodes=$(grep -v $primary ./controllers)
+    for node in $nodes
+        do
+            delete_tunnel $primary $node $br_name
+            delete_tunnel $node $primary $br_name
+        done
+}
+
+create_patch() {
+    local br_name
+    local ph_name
+    local nodes
+    [ -z $1 ] && {
+        echo "Bridge name required for patch"
+        exit 1
+    }
+    br_name=$1
+    node_ids=$(fuel node --env $ENV | awk '/controller/ {print $1}')
+# TODO(ogelbukh): Parse original configurations for all controllers, not only
+# primary, to identify pairing bridge/physical interface
+    for node_id in $node_ids
+        do
+            ph_name=$(cat deployment_${ENV}.orig/*_$node_id.yaml \
+                | sed -n '/- br-ex/{g;1!p;};h' \
+                | sed -re 's,.*- (.*),\1,')
+
+            ssh root@node-${node_id} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
+                -- set interface type=patch
+            ssh root@node-${node_id} ovs-vsctl add-port br-${ph_name} br-${ph_name}--${br_name} \
+                -- set interface type=patch
+        done
+}
+
 set -x
 
 ORIG_ENV="$2"
@@ -211,6 +268,14 @@ case $1 in
             done
         ;;
         start_controller_deployment
+    stop)
+        check_deployment_status
+        for br_name in br-ex br-mgmt
+            do
+                remove_tunnels $br_name
+                create_patch $br_name
+            done
+        ;;
 esac
 
 exit 0
