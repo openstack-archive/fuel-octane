@@ -17,7 +17,7 @@ get_orig_vip() {
     br_name=$(echo ${1:-br-mgmt} \
         | awk '/br-ex/ {print "hapr-p"} \
         /br-mgmt/ {print "hapr-m"}')
-    [ -n "$br_name" ] && echo $(fuel nodes --env-id 1 \
+    [ -n "$br_name" ] && echo $(fuel nodes --env-id $ORIG_VIP \
             | grep controller \
             | cut -d\| -f5  \
             | xargs -I{} ssh root@{} ip netns exec haproxy ip addr\
@@ -88,14 +88,10 @@ prepare_deployment_info() {
     local br_name
     local discard_ips
     get_deployment_info
-    discard_ips=$(get_new_ips)
     for br_name in br-ex br-mgmt
         do
+            discard_ips=$(get_new_ips $br_name)
             replace_ip_addresses $br_name $discard_ips
-# TODO(ogelbukh): implement function to remove patch port create action from
-# transformations section of deployment config. These actions must be stored
-# somewhere to create those patch ports when lift isolation.
-#            remove_patch_transformation $br_name
         done
     remove_patch_transformations
     upload_deployment_info
