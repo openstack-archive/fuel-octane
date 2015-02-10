@@ -3,7 +3,7 @@
 get_orig_ips() {
     local br_name
     br_name=${1:-br-mgmt}
-    echo $(fuel nodes --env-id 1 \
+    echo $(fuel nodes --env-id $ORIG_ENV \
         | grep controller \
         | cut -d\| -f5  \
         | xargs -I{} ssh root@{} ip addr\
@@ -186,10 +186,15 @@ start_controller_deployment() {
 
 set -x
 
-ENV="$2"
+ORIG_ENV="$2"
+if [ -z $ORIG_ENV ]
+then
+    echo "No original env ID specified!" && exit 1
+fi
+ENV="$3"
 if [ -z $ENV ]
 then
-    echo "No env ID specified!" && exit 1
+    echo "No upgraded env ID specified!" && exit 1
 fi
 
 PSSH_RUN="pssh --inline-stdout -h controllers"
