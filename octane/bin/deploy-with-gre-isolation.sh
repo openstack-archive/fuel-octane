@@ -17,7 +17,7 @@ get_orig_vip() {
     br_name=$(echo ${1:-br-mgmt} \
         | awk '/br-ex/ {print "hapr-p"} \
         /br-mgmt/ {print "hapr-m"}')
-    [ -n "$br_name" ] && echo $(fuel nodes --env-id $ORIG_VIP \
+    [ -n "$br_name" ] && echo $(fuel nodes --env-id $ORIG_ENV \
             | grep controller \
             | cut -d\| -f5  \
             | xargs -I{} ssh root@{} ip netns exec haproxy ip addr\
@@ -266,8 +266,8 @@ case $1 in
             do
                 create_tunnels $br_name
             done
-        ;;
         start_controller_deployment
+        ;;
     stop)
         check_deployment_status
         for br_name in br-ex br-mgmt
