@@ -35,7 +35,6 @@ def remove_patch_port(host_config, bridge_name):
 
 def update_host_deployment_info(host_file, bridges):
     host_config = load_yaml_file(host_file)
-    dump_yaml_file(host_config, "{0}.orig".format(host_file))
     removed_actions = []
     for bridge_name in bridges:
         host_config, removed_action = remove_patch_port(host_config,

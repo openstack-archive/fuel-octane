@@ -80,6 +80,7 @@ replace_ip_addresses() {
 }
 
 remove_patch_transformations() {
+    cp -R deployment_${ENV} deployment_${ENV}.orig
     python ../helpers/transformations.py deployment_${ENV}
 }
 
