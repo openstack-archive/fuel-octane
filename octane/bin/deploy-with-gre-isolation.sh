@@ -193,6 +193,28 @@ check_deployment_status() {
 }
 
 delete_tunnel() {
+    local src_node
+    local dst_node
+    local br_name
+    local remote_ip
+    local gre_port
+    [ -z $1 ] && {
+        echo "Empty tunnel source hostname"
+        exit 1
+    }
+    src_node=$1
+    [ -z $2 ] && {
+        echo "Empty tunnel destination hostname"
+        exit 1
+    }
+    dst_node=$2
+    [ -z $3 ] && {
+        echo "Bridge name not specified"
+        exit 1
+    }
+    br_name=$3
+    gre_port=$br_name--gre-$dst_node
+    ssh root@$src_node ovs-vsctl del-port $br_name $gre_port
 }
 
 remove_tunnels() {
