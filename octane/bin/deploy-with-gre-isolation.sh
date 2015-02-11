@@ -157,12 +157,10 @@ tunnel_from_to() {
 create_tunnels() {
     local br_name
     local primary
-    local key
     [ -z $1 ] && {
         echo "Bridge name required"
         exit 1
     }
-    key=0
     br_name=$1
     primary_id=$(ls deployment_${ENV}/primary-controller_*.yaml\
         | sed -re 's/.*primary-controller_([0-9]+).yaml/\1/')
@@ -171,9 +169,9 @@ create_tunnels() {
         | awk '/(controller|compute)/ {print "node-" $1}')
     for node in $nodes
         do
-            tunnel_from_to $primary $node $br_name $key
-            tunnel_from_to $node $primary $br_name $key
-            key=$(expr $key + 1)
+            tunnel_from_to $primary $node $br_name $KEY
+            tunnel_from_to $node $primary $br_name $KEY
+            KEY=$(expr $KEY + 1)
         done
 }
 
@@ -192,6 +190,7 @@ start_controller_deployment() {
 
 set -x
 
+KEY=0
 ORIG_ENV="$2"
 if [ -z $ORIG_ENV ]
 then
