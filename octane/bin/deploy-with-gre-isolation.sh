@@ -43,7 +43,7 @@ get_new_vip() {
     br_name=$(echo ${1:-br-mgmt} \
         | awk '/br-ex/ {print "public_vip:"} \
         /br-mgmt/ {print "management_vip:"}')
-    [ -n $br_name ] && echo $(grep $br_name ./deployment_${ENV}/*controller* \
+    [ -n $br_name ] && echo $(grep $br_name ./deployment_${ENV}/primary-controller* \
         | awk '{print $2}')
 }
 
