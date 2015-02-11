@@ -173,7 +173,7 @@ create_tunnels() {
         do
             tunnel_from_to $primary $node $br_name $key
             tunnel_from_to $node $primary $br_name $key
-            key=expr $key + 1
+            key=$(expr $key + 1)
         done
 }
 
