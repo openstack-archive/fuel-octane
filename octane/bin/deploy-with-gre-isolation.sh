@@ -134,6 +134,7 @@ tunnel_from_to() {
     local br_name
     local remote_ip
     local gre_port
+    local key
     [ -z $1 ] && {
         echo "Empty tunnel source node hostname"
         exit 1
@@ -141,6 +142,7 @@ tunnel_from_to() {
     src_node=$1
     dst_node=$2
     br_name=$3
+    key=${4:-0}
     remote_ip=$(host $dst_node | grep -Eo '([0-9\.]+)$')
     [ -z $remote_ip ] && {
         echo "Tunnel remote $dst_node not found"
@@ -148,16 +150,19 @@ tunnel_from_to() {
     }
     gre_port=$br_name--gre-$dst_node
     ssh root@$src_node ovs-vsctl add-port $br_name $gre_port -- \
-        set Interface $gre_port type=gre options:remote_ip=$remote_ip
+        set Interface $gre_port type=gre options:remote_ip=$remote_ip \
+        options:key=$key
 }
 
 create_tunnels() {
     local br_name
     local primary
+    local key
     [ -z $1 ] && {
         echo "Bridge name required"
         exit 1
     }
+    key=0
     br_name=$1
     primary_id=$(ls deployment_${ENV}/primary-controller_*.yaml\
         | sed -re 's/.*primary-controller_([0-9]+).yaml/\1/')
@@ -166,8 +171,9 @@ create_tunnels() {
         | awk '/(controller|compute)/ {print "node-" $1}')
     for node in $nodes
         do
-            tunnel_from_to $primary $node $br_name
-            tunnel_from_to $node $primary $br_name
+            tunnel_from_to $primary $node $br_name $key
+            tunnel_from_to $node $primary $br_name $key
+            key=expr $key + 1
         done
 }
 
