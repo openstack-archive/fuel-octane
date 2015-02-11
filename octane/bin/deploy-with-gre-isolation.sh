@@ -101,7 +101,7 @@ prepare_deployment_info() {
 create_controllers_file() {
 # This is the list of controller nodes for environment ENV. It is used to run
 # parallel SSH commands on controllers.
-    fuel node --env $ENV | grep controller | awk '{print "node-" $1}' \
+    fuel node --env $ENV | awk '/(controller|compute)/ {print "node-" $1}' \
         > controllers
 }
 
