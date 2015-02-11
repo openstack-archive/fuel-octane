@@ -45,7 +45,7 @@ def update_host_deployment_info(host_file, bridges):
 
 
 def update_env_deployment_info(dirname):
-    pattern = "^\w*-?controller_\d+.yaml$"
+    pattern = "^[-\w]+_\d+.yaml$"
     bridges = ['br-ex', 'br-mgmt']
     host_files = os.listdir(dirname)
     for filename in host_files:
