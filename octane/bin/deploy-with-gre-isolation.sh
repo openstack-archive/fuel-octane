@@ -162,7 +162,7 @@ create_tunnels() {
     primary_id=$(ls deployment_${ENV}/primary-controller_*.yaml\
         | sed -re 's/.*primary-controller_([0-9]+).yaml/\1/')
     primary="node-$primary_id"
-    nodes=$(fuel node --env ${ENV} | grep -v $primary_id \
+    nodes=$(fuel node --env ${ENV} | grep -v "^$primary_id" \
         | awk '/(controller|compute)/ {print "node-" $1}')
     for node in $nodes
         do
