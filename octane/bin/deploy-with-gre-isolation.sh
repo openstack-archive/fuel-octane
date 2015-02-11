@@ -183,8 +183,14 @@ start_controller_deployment() {
     node_id=`ls deployment_${ENV} \
         | grep primary-controller \
 	    | grep -Eo "[0-9]+?"`
-
-    fuel node --env ${ENV} --deploy --node $node_id
+    node_ids=`fuel node --env ${ENV} \
+        | awk 'BEGIN {f = ""}
+        /(controller|compute|ceph)/ {
+            if (f == "") {f = $1}
+            else {printf f","; f = $1}
+        }
+        END {printf f}'`
+    fuel node --env ${ENV} --deploy --node $node_ids
     echo "node-$node_id"
 }
 
