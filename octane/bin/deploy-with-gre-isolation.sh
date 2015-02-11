@@ -253,10 +253,10 @@ create_patch() {
                 | sed -n '/- br-ex/{g;1!p;};h' \
                 | sed -re 's,.*- (.*),\1,')
 
-            ssh root@node-${node_id} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
-                -- set interface type=patch
+            ssh root@node-${node_id} ovs-vsctl add-port $br_name ${br_name}--br-${ph_name} \
+                -- set interface type=patch options:peer=br-${ph_name}
             ssh root@node-${node_id} ovs-vsctl add-port br-${ph_name} br-${ph_name}--${br_name} \
-                -- set interface type=patch
+                -- set interface type=patch options:peer=${br_name}
         done
 }
 
