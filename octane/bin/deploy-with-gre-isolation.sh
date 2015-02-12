@@ -115,6 +115,7 @@ create_bridge() {
     local br_name
     br_name=$1
     $PSSH_RUN "ovs-vsctl add-br $br_name"
+    $PSSH_RUN "ip link set dev $br_name mtu 1450"
 }
 
 create_ovs_bridges() {
