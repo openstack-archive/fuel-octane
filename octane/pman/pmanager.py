@@ -1331,12 +1331,18 @@ example = """
 """
 
 if __name__ == "__main__":
-    pmanager = PreseedPManager(example, keep_ceph_volumes=True)
+    import sys
+    example = sys.stdin.read().strip()
+    pmanager = PreseedPManager(example, keep_ceph_volumes=(len(sys.argv) > 1))
     try:
         pmanager.eval()
+        print "early"
         print pmanager.expose_early()
+        print "disks"
         print pmanager.expose_disks()
+        print "recipe"
         print pmanager.expose_recipe()
+        print "late"
         print pmanager.expose_late()
     except Exception:
         import pdb; pdb.post_mortem()
