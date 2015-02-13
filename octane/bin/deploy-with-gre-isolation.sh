@@ -5,16 +5,16 @@ clone_env() {
 # helper Python script `clone-env'
     local env_id
     env_name=$(fuel env --env $1 | awk '/operational/ {print $5}')
-    [ -n $env_name ] || {
+    [ -n "$env_name" ] || {
         echo "No environment found with ID of $1"
         exit 1
     }
-    [ -d $env_name ] && {
+    [ -d "$env_name" ] && {
         echo "Directory $env_name exists"
         exit 1
     }
     env_id=$(./clone-env --upgrade $env_name)
-    [ -n $env_name ] || {
+    [ -n "$env_name" ] || {
         echo "Cannot clone environment $env_name"
         exit 1
     }
@@ -172,7 +172,7 @@ tunnel_from_to() {
     local remote_ip
     local gre_port
     local key
-    [ -z $1 ] && {
+    [ -z "$1" ] && {
         echo "Empty tunnel source node hostname"
         exit 1
     }
@@ -181,7 +181,7 @@ tunnel_from_to() {
     br_name=$3
     key=${4:-0}
     remote_ip=$(host $dst_node | grep -Eo '([0-9\.]+)$')
-    [ -z $remote_ip ] && {
+    [ -z "$remote_ip" ] && {
         echo "Tunnel remote $dst_node not found"
         exit 1
     }
@@ -197,7 +197,7 @@ create_tunnels() {
 # in the 6.0 environment.
     local br_name
     local primary
-    [ -z $1 ] && {
+    [ -z "$1" ] && {
         echo "Bridge name required"
         exit 1
     }
@@ -234,14 +234,26 @@ start_controller_deployment() {
     echo "node-$node_id"
 }
 
+display_help() {
+    echo "Usage: $0 COMMAND ORIG_ENV_ID [SEED_ENV_ID]
+COMMAND:
+    clone           - create seed env by cloning settings from env identified
+                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command.
+    prepare         - prepare configuration of seed env for deployment with
+                      network isolation.
+    provision       - configure nodes in the seed env and start provisioning.
+    deploy          - activate network isolation and start deployment to the
+                      environment.
+    help            - display this message and exit"
+}
 set -x
 
 KEY=0
 ORIG_ENV="$2"
-if [ -z $ORIG_ENV ]
-then
-    echo "No original env ID specified!" && exit 1
-fi
+[ -z "$ORIG_ENV" ] && {
+    echo "No original env ID specified!"
+    exit 1
+}
 ENV="$3"
 if [ -z $ENV ]
 then
