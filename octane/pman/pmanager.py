@@ -673,15 +673,24 @@ class PreseedPManager(object):
     def num_ceph_osds(self):
         return self.get_partition_count('ceph')
 
-    def with_ceph_volume(self, disk):
-        for volume in disk["volumes"]:
-	    if volume.get("name") == "ceph" and volume["type"] == "partition" and volume["size"] > 0:
-	        return True
-        return False
+    def contains_ceph(self, disk=None, part=None):
+        def is_ceph_partition(part):
+            return (part.get("name") == "ceph" and
+                        part["type"] == "partition" and
+                        part["size"] > 0)
+        if disk is not None:
+            for volume in disk["volumes"]:
+                if is_ceph_partition(volume):
+                    return True
+            return False
+        elif part is not None:
+            return is_ceph_partition(part)
 
     def erase_partition_table(self):
         for disk in self.iterdisks():
-            if self.keep_ceph_volumes and self.with_ceph_volume(disk):
+            if self.keep_ceph_volumes and self.contains_ceph(disk=disk):
+                self.early("parted -s {0} print free"
+                           .format(self._disk_dev(disk)))
                 continue
             self.early("test -e {0} && "
                        "dd if=/dev/zero of={0} "
@@ -777,13 +786,11 @@ class PreseedPManager(object):
         self._umount_target()
         cephjournal_guid_commands = []
         for disk in self.iterdisks():
-            # nk means not keep ceph partitions
-            nk = not (self.keep_ceph_volumes and self.with_ceph_volume(disk))
             for part in self.non_boot_partitions(disk["volumes"]):
 
                 if self.pcount(self._disk_dev(disk)) == 0:
                     self.late("parted -s {0} mklabel gpt"
-                              "".format(self._disk_dev(disk)), udev_settle=True) if nk else None
+                              "".format(self._disk_dev(disk)), udev_settle=True)
                     self.late("parted -a none -s {0} "
                         "unit {3} mkpart primary {1} {2}".format(
                             self._disk_dev(disk),
@@ -793,14 +800,14 @@ class PreseedPManager(object):
                             self.unit
                         ),
                         udev_settle=True
-                    ) if nk else None
+                    )
                     self.late("parted -s {0} set {1} "
                               "bios_grub on".format(
                                   self._disk_dev(disk),
                                   self.pcount(self._disk_dev(disk), 1)
                         ),
                         udev_settle=True
-                    )# if nk else self.pcount(self._disk_dev(disk), 1)
+                    )
                     self.late("parted -s {0} print free".format(self._disk_dev(disk)))
                 if part.get('name') == 'cephjournal':
                     # We need to allocate a journal partition for each ceph OSD
@@ -835,8 +842,7 @@ class PreseedPManager(object):
                                            size * self.factor),
                                 self.unit),
                             udev_settle=True
-                        ) if nk else self.psize(self._disk_dev(disk),
-                                                size * self.factor)
+                        )
                         # We don't want to append late command right here because
                         # we need sgdisk to be run in-target so the target must be mounted.
                         # Instead of additional mounting and unmounting we just
@@ -847,7 +853,7 @@ class PreseedPManager(object):
                                 part["partition_guid"],
                                 self._disk_dev(disk)
                             )
-                        ) if nk else None
+                        )
                         self.late("parted -s {0} print free".format(self._disk_dev(disk)))
                     continue
 
@@ -862,26 +868,27 @@ class PreseedPManager(object):
                              self.psize(self._disk_dev(disk),
                                         part["size"] * self.factor),
                              self.unit),
-                          udev_settle=True) if nk else self.psize(self._disk_dev(disk),
-                                                                  part["size"] * self.factor)
-                if nk:
-                    self.late("sleep 10")
-                    self.late("hdparm -z {0}"
-                              "".format(self._disk_dev(disk)))
-                    self.late("parted -s {0} print free".format(self._disk_dev(disk)))
-                    self.late("find /dev \( -type l -o -type b \) -exec ls -l {} \;")
-                    self.late("mount")
-                    self.late("cat /proc/swaps")
-                    self.late("cat /proc/mdstat")
-                    self.late("cat /proc/partitions")
-    
-                    # clear any fs info that may remain on newly created partition
-                    self.late("dd if=/dev/zero of={0}{1}{2} bs=1M count=10"
-                              "".format(self._disk_dev(disk),
-                                        self._pseparator(disk["id"]),
+                          udev_settle=True)
+                self.late("sleep 10")
+                self.late("hdparm -z {0}"
+                          "".format(self._disk_dev(disk)))
+                self.late("parted -s {0} print free".format(self._disk_dev(disk)))
+                self.late("find /dev \( -type l -o -type b \) -exec ls -l {} \;")
+                self.late("mount")
+                self.late("cat /proc/swaps")
+                self.late("cat /proc/mdstat")
+                self.late("cat /proc/partitions")
+
+                if self.keep_ceph_volumes and self.contains_ceph(part=part):
+                    continue
+
+                # clear any fs info that may remain on newly created partition
+                self.late("dd if=/dev/zero of={0}{1}{2} bs=1M count=10"
+                          "".format(self._disk_dev(disk),
+                                    self._pseparator(disk["id"]),
                                     pcount))
 
-                if nk and part.get("file_system", "xfs") not in ("swap", None, "none"):
+                if part.get("file_system", "xfs") not in ("swap", None, "none"):
                     disk_label = self._getlabel(part.get("disk_label"))
                     self.late("mkfs.{0} {1} {2}{3}{4} {5}"
                               "".format(part.get("file_system", "xfs"),
