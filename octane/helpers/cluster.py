@@ -248,3 +248,5 @@ def restore_cluster(folder, fuel_node, user="admin", password="admin",
 
         client.update_cluster_networks(new_clust["id"],
                                        restore_cluster_nets_data)
+
+    return new_clust["id"]
