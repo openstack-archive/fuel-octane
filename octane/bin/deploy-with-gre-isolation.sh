@@ -1,6 +1,29 @@
 #!/bin/bash
 
+clone_env() {
+# Clone settings of the environment specified by ID in the first argument using
+# helper Python script `clone-env'
+    local env_id
+    env_name=$(fuel env --env $1 | awk '/operational/ {print $5}')
+    [ -n $env_name ] || {
+        echo "No environment found with ID of $1"
+        exit 1
+    }
+    [ -d $env_name ] && {
+        echo "Directory $env_name exists"
+        exit 1
+    }
+    env_id=$(./clone-env --upgrade $env_name)
+    [ -n $env_name ] || {
+        echo "Cannot clone environment $env_name"
+        exit 1
+    }
+    echo $env_id
+}
+
 get_orig_ips() {
+# Return a list of addresses assigned to the bridge identified by its name in
+# the first argument on nodes in the original environment.
     local br_name
     br_name=${1:-br-mgmt}
     echo $(fuel nodes --env-id $ORIG_ENV \
