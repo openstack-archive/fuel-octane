@@ -35,6 +35,8 @@ get_orig_ips() {
 }
 
 get_orig_vip() {
+# Return VIP of the given type (management or external) assgined to the original
+# environment.
     local br_name
     local orig_vip
     br_name=$(echo ${1:-br-mgmt} \
@@ -55,6 +57,9 @@ get_deployment_info() {
 }
 
 get_new_ips() {
+# Returns a list of addresses that Fuel wants to assign to nodes in the 6.0
+# deployment. These addresses must be replaced with addresses from the original
+# environment.
     local br_name
     br_name=${1:-br-mgmt}
     echo $(grep -A2 $br_name: ./deployment_${ENV}/*controller* \
@@ -62,6 +67,8 @@ get_new_ips() {
 }
 
 get_new_vip() {
+# Returns a VIP of given type that Fuel wants to assign to the 6.0 environment
+# and that we want to replace with original VIP.
     local br_name
     br_name=$(echo ${1:-br-mgmt} \
         | awk '/br-ex/ {print "public_vip:"} \
@@ -103,6 +110,9 @@ replace_ip_addresses() {
 }
 
 remove_patch_transformations() {
+# Remove add-patch actions for br-ex, br-mgmt bridges. Required to isolate new
+# controllers from original environment while physically connected to the same
+# L2 segment.
     cp -R deployment_${ENV} deployment_${ENV}.orig
     python ../helpers/transformations.py deployment_${ENV}
 }
@@ -153,6 +163,9 @@ create_ovs_bridges() {
 }
 
 tunnel_from_to() {
+# Configure GRE tunnels between 2 nodes. Nodes are specified by their hostnames
+# (e.g. node-2). Every tunnel must have unique key to avoid conflicting
+# configurations.
     local src_node
     local dst_node
     local br_name
@@ -179,6 +192,9 @@ tunnel_from_to() {
 }
 
 create_tunnels() {
+# Create tunnels between nodes in the new environment to ensure isolation from
+# management and public network of original environment and retain connectivity
+# in the 6.0 environment.
     local br_name
     local primary
     [ -z $1 ] && {
