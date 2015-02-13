@@ -269,10 +269,10 @@ deploy_env() {
 
 check_deployment_status() {
     local status
-    status=`fuel env --env ${ENV} \
-        | grep -Eo "^${ENV} \| [^\|]" \
-        | cut -d' ' -f3`
-    [ $status -eq 'operational' ] || {
+    status=$(fuel env --env ${ENV} \
+        | grep -Eo "^${ENV} \| [^\|]+" \
+        | cut -d' ' -f3)
+    [ "$status" -eq 'operational' ] || {
         echo "Environment status is: $status"
         exit 1
     }
@@ -340,9 +340,9 @@ create_patch() {
                 | sed -re 's,.*- (.*),\1,')
 
             ssh root@node-${node_id} ovs-vsctl add-port $br_name ${br_name}--br-${ph_name} \
-                -- set interface type=patch options:peer=br-${ph_name}
+                -- set interface ${br_name}--br-${ph_name} type=patch options:peer=br-${ph_name}
             ssh root@node-${node_id} ovs-vsctl add-port br-${ph_name} br-${ph_name}--${br_name} \
-                -- set interface type=patch options:peer=${br_name}
+                -- set interface br-${ph_name}--${br_name} type=patch options:peer=${br_name}
         done
 }
 
