@@ -350,12 +350,14 @@ display_help() {
     echo "Usage: $0 COMMAND ORIG_ENV_ID [SEED_ENV_ID]
 COMMAND:
     clone           - create seed env by cloning settings from env identified
-                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command.
+                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command
     prepare         - prepare configuration of seed env for deployment with
-                      network isolation.
-    provision       - configure nodes in the seed env and start provisioning.
+                      network isolation
+    provision       - configure nodes in the seed env and start provisioning
     deploy          - activate network isolation and start deployment to the
-                      environment.
+                      environment
+    upgrade         - replace original CICs with seed CICs for public and
+                      management networks
     help            - display this message and exit"
 }
 
@@ -395,6 +397,14 @@ case $1 in
             done
         deploy_env
         ;;
+    upgrade)
+        check_deployment_status
+        for br_name in br-ex br-mgmt
+            do
+                remove_tunnels $br_name
+                create_patch $br_name
+            done
+        ;;
      help)
         display_help
         ;;
@@ -402,14 +412,6 @@ case $1 in
         echo "Invalid command: $1"
         display_help
         exit 1
-        ;;
-    stop)
-        check_deployment_status
-        for br_name in br-ex br-mgmt
-            do
-                remove_tunnels $br_name
-                create_patch $br_name
-            done
         ;;
 esac
 
