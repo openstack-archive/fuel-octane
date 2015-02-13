@@ -3,9 +3,33 @@
 set -x
 
 action=${1:-help}
-version=${2:-icehouse}
-hosts_file=${3:-controllers}
+test -z "$2" && {
+    display_help_message
+    exit 1
+}
+env_id=${2}
+version=${3:-icehouse}
+hosts_file=${4}
+test -z "$hosts_file" && {
+    fuel node --env $env_id \
+        | awk '/controller/ {print "node-" $1}' \
+        > /tmp/controllers
+    hosts_file=/tmp/controllers
+}
 pssh_run="pssh -i -h $hosts_file"
+
+disable_apis() {
+    $pssh_run "echo 'backend maintenance' >> /etc/haproxy.cfg"
+    $pssh_run "for f in \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*); \
+        do echo '  use_backend maintenance if TRUE' >> \$; done"
+    $pssh_run "pkill haproxy"
+}
+
+enable_apis() {
+    $pssh_run "sed -i '/use_backend maintenance if TRUE/d' \
+        \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*)"
+    $pss_run "pkill haproxy"
+}
 
 stop_corosync_services() {
     $pssh_run "crm status | awk '/clone/ {print \$4}' \
@@ -75,17 +99,27 @@ scheduler=$version\" >> /etc/nova/nova.conf"
 }
 
 display_help_message() {
-    echo "Usage: $0 COMMAND
-COMMANDS:
+    echo "Usage: $0 COMMAND ENV_ID [VERSION] [HOSTS]
+COMMAND:
     stop    - stop all openstack services on controller nodes
     start   - start all openstack services on controller nodes
     config VERSION  - update nova.conf with upgrade_levels configuration, VERSION
                       defines original version of OpenStack (defaults to
                       'icehouse')
-    help    - show this message"
+    help    - show this message
+
+ENV_ID      identifier of env in Fuel
+VERSION     version of OpenStack Compute RPC
+HOSTS       a name of file with list of CIC nodes, overrides ENV_ID"
 }
 
 case $action in 
+    disable)
+        disable_apis
+        ;;
+    enable)
+        enable_apis
+        ;;
     stop)
         stop_corosync_services
         stop_upstart_services
