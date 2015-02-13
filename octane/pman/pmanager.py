@@ -517,7 +517,7 @@ class PreseedPManager(object):
 
         self.data = self.pm_data['ks_spaces']
         self.kernel_params = self.pm_data['kernel_params']
-        self.keep_ceph_volumes = keep_ceph_volumes
+        self.keep_ceph_volumes = bool(keep_ceph_volumes)
 
         self.validate()
         self.factor = 1
@@ -894,8 +894,6 @@ class PreseedPManager(object):
         # Partition guids must be set in-target, which requires target to be mounted.
         # But for cephjournal we have a separate collection of late commands.
         for disk in self.iterdisks():
-            #if self.keep_ceph_volumes and self.with_ceph_volume(disk):
-            #    continue
             for part in self.non_boot_partitions(disk["volumes"]):
                 if part.get("partition_guid") and part.get("name") != "cephjournal":
                     self.late("sgdisk --typecode={0}:{1} {2}"
