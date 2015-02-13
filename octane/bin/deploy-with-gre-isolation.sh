@@ -215,7 +215,40 @@ create_tunnels() {
         done
 }
 
-start_controller_deployment() {
+get_nailgun_db_pass() {
+# Parse nailgun configuration to get DB password for 'nailgun' database. Return
+# the password.
+    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
+        | awk 'BEGIN {out=""}
+               /DATABASE/ {out=$0;next}
+               /passwd:/ {if(out!=""){out="";print $2}}' \
+        | tr -d '"')
+}
+
+copy_generated_settings() {
+# Update configuration of 6.0 environment in Nailgun DB to preserve generated
+# parameters values from the original environmen.
+    local command
+    local db_pass
+    db_pass=$(get_nailgun_db_pass)
+    [ -n "${ENV}" ] || {
+        echo "Environment ID unknown, exiting"
+        exit 1
+    }
+    generated=$(echo "select generated from attributes where cluster_id = ${ENV};
+select generated from attributes where cluster_id = ${ORIG_ENV};" \
+        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun \
+        | grep -v ^$ \
+        | python ../helpers/join-jsons.py);
+    [ -n "$generated" ] || {
+        echo "No generated attributes found for env $ENV"
+        exit 1
+    }
+    echo "update attributes set generated = '$generated' where cluster_id = ${ENV}" \
+        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun
+}
+
+deploy_env() {
 # Start deployment of primary controller in the upgraded environment. This will
 # cause other controllers to begin deployment as well.
     local node_id
@@ -255,27 +288,40 @@ ORIG_ENV="$2"
     exit 1
 }
 ENV="$3"
-if [ -z $ENV ]
-then
-    echo "No upgraded env ID specified!" && exit 1
-fi
 
 PSSH_RUN="pssh --inline-stdout -h controllers"
 PSCP_RUN="pscp.pssh -h controllers"
 
 
 case $1 in
+    clone)
+        ENV="$(clone_env $ORIG_ENV)"
+        copy_generated_settings
+        echo "6.0 seed environment ID is $ENV"
+        ;;
+    provision)
+        apply_node_settings
+        provision_env
+        ;;
     prepare)
         prepare_deployment_info
 	    prepare_static_files
         create_ovs_bridges
         ;;
-    start)
+    deploy)
         for br_name in br-ex br-mgmt
             do
                 create_tunnels $br_name
             done
-        start_controller_deployment
+        deploy_env
+        ;;
+     help)
+        display_help
+        ;;
+     *)
+        echo "Invalid command: $1"
+        display_help
+        exit 1
         ;;
 esac
 
