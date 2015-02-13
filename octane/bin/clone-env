@@ -57,14 +57,17 @@ def main():
         json.dump(cluster_config, f, indent=1)
 
     try:
-        cluster.restore_cluster(args.environment,
-                                args.endpoint,
-                                user=args.user,
-                                password=args.password,
-                                tenant=args.tenant,
-                                upgrade=args.upgrade)
+        new_id = cluster.restore_cluster(args.environment,
+                                         args.endpoint,
+                                         user=args.user,
+                                         password=args.password,
+                                         tenant=args.tenant,
+                                         upgrade=args.upgrade)
     except Exception:
         raise
+    else:
+        print new_id
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
