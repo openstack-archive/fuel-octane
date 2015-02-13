@@ -1,0 +1,63 @@
+#!/usr/bin/python
+
+import sys
+
+import yaml
+
+
+def copy_ifaces(src, dst):
+    def pull(ifaces):
+        for iface in ifaces:
+            yield (iface['name'],
+                   iface['assigned_networks'])
+
+    def push(ifaces, assignments):
+        for iface in ifaces:
+            networks = assignments.get(iface['name'], [])
+            yield dict(iface,
+                       assigned_networks=networks,
+                       )
+
+    assignments = pull(src)
+    ifaces = push(dst, dict(assignments))
+
+    yaml.dump(list(ifaces), stream=sys.stdout, default_flow_style=False)
+
+
+def copy_disks(src, fixture):
+    def pull(disks):
+        for disk in disks:
+            yield (disk['name'],
+                   disk['volumes'])
+
+    def push(disks1, disks2):
+        def to_dict(attrs):
+            return dict((attr["name"], attr) for attr in attrs)
+
+        dict_disks1 = to_dict(disks1)
+        for name, volumes in disks2:
+            dict_disks1[name].update(volumes=volumes)
+            yield dict_disks1[name]
+
+    fixture_disks = pull(fixture)
+    disks = push(src, fixture_disks)
+
+    yaml.dump(list(disks), stream=sys.stdout, default_flow_style=False)
+
+
+FUNCTIONS = {
+    'disk': copy_disks,
+    'ifaces': copy_ifaces
+}
+
+
+def main():
+    function = FUNCTIONS[sys.argv[1]]
+    source = yaml.load(open(sys.argv[2]))
+    fixture = yaml.load(open(sys.argv[3]))
+    function(source, fixture)
+
+
+if __name__ == '__main__':
+    main()
+

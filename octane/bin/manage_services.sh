@@ -66,13 +66,11 @@ set_upgrade_levels() {
     local version
     local command
     version=${1:-icehouse}
-    command=$(cat <<EOF >> /etc/nova/nova.conf
+    command="echo \"
 [upgrade_levels]
-compute=icehouse
-conductor=icehouse
-scheduler=icehouse
-EOF
-)
+compute=$version
+conductor=$version
+scheduler=$version\" >> /etc/nova/nova.conf"
     $pssh_run "$command"
 }
 

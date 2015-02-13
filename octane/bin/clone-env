@@ -1,0 +1,73 @@
+#!/usr/bin/python
+
+import sys
+import os
+sys.path.append(os.path.normpath("{0}/../../helpers/".format(__file__)))
+import cluster
+import argparse
+import json
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(description="Clone environment settings "
+                                                 "to upgrade seed")
+    parser.add_argument("environment",
+                        help="A name of environment picked for upgrade")
+    parser.add_argument("--endpoint",
+                        default="127.0.0.1",
+                        help="Address of Fuel API endpoint")
+    parser.add_argument("--user",
+                        default="admin",
+                        help="Fuel auth user name, defaults to 'admin'")
+    parser.add_argument("--tenant",
+                        default="admin",
+                        help="Fuel auth tenant name, defaults to 'admin'")
+    parser.add_argument("--password",
+                        default="admin",
+                        help="Fuel password for auth user, defaults to "
+                             "'admin'")
+    parser.add_argument("--seed",
+                        default=None,
+                        help="Name of upgrade seed environment")
+    parser.add_argument("--upgrade",
+                        action="store_true",
+                        help="Translate cluster settings into new version "
+                             "format")
+    return parser
+
+
+def main():
+    args = get_parser().parse_args()
+
+    cluster.dump_cluster(args.environment,
+                         args.endpoint,
+                         user=args.user,
+                         password=args.password,
+                         tenant=args.tenant)
+    if args.seed:
+        seed_name = args.seed
+    else:
+        seed_name = "{0}_upgrade".format(args.environment)
+
+    cluster_json = "{0}/cluster.json".format(args.environment)
+    with open(cluster_json, "r") as f:
+        cluster_config = json.load(f)
+    cluster_config.update(name=seed_name)
+    with open(cluster_json, "w") as f:
+        json.dump(cluster_config, f, indent=1)
+
+    try:
+        new_id = cluster.restore_cluster(args.environment,
+                                         args.endpoint,
+                                         user=args.user,
+                                         password=args.password,
+                                         tenant=args.tenant,
+                                         upgrade=args.upgrade)
+    except Exception:
+        raise
+    else:
+        print new_id
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()
