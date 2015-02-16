@@ -131,17 +131,19 @@ prepare_deployment_info() {
     upload_deployment_info
 }
 
-create_controllers_file() {
+create_hosts_file() {
 # This is the list of controller nodes for environment ENV. It is used to run
 # parallel SSH commands on controllers.
+    local hosts
+    hosts=${1:-controllers}
     fuel node --env $ENV | awk '/(controller|compute)/ {print "node-" $1}' \
-        > controllers
+        > $hosts
 }
 
 prepare_static_files() {
 # Prepare static configuration files for controllers, and the list of
 # controllers in the environment.
-    create_controllers_file
+    create_hosts_file
 }
 
 create_bridge() {
@@ -346,6 +348,20 @@ create_patch() {
         done
 }
 
+isolate_old_controllers() {
+    local br_name
+    [ -n "$1" ] || {
+        echo "No bridge name supplied, exiting"
+        exit 1
+    }
+    br_name=$1
+    create_hosts_file controllers.orig
+    orig_pssh_run=$PSSH_RUN
+    PSSH_RUN="pssh --inline-stdout -h controllers.orig"
+    create_tunnels $br_name
+    PSSH_RUN=$orig_pssh_run
+}
+
 display_help() {
     echo "Usage: $0 COMMAND ORIG_ENV_ID [SEED_ENV_ID]
 COMMAND:
@@ -371,7 +387,8 @@ ORIG_ENV="$2"
 }
 ENV="$3"
 
-PSSH_RUN="pssh --inline-stdout -h controllers"
+HOSTS_FILE="controllers"
+PSSH_RUN="pssh --inline-stdout -h $HOSTS_FILE"
 PSCP_RUN="pscp.pssh -h controllers"
 
 
@@ -401,6 +418,7 @@ case $1 in
         check_deployment_status
         for br_name in br-ex br-mgmt
             do
+                isolate_old_controllers $br_name
                 remove_tunnels $br_name
                 create_patch $br_name
             done
