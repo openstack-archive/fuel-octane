@@ -1,0 +1,368 @@
+#!/bin/bash
+
+die() {
+    echo $1
+    exit ${2:-1}
+}
+
+clone_env() {
+# Clone settings of the environment specified by ID in the first argument using
+# helper Python script `clone-env'
+    local env_name
+    [ -z $1 ] && die "Cannot clone environment with empty ID, exiting"
+    env_name=$(fuel env --env $1 | awk '/(new|operational)/ {print $5}')
+    [ -n "$env_name" ] || die "No environment found with ID $1, exiting"
+    [ -d "$env_name" ] && die "Directory $env_name exists"
+    echo $(./clone-env --upgrade $env_name)
+}
+
+get_orig_ips() {
+# Return a list of addresses assigned to the bridge identified by its name in
+# the first argument on nodes in the original environment.
+    [ -z "$1" ] && die "No environment ID and bridge name, exiting"
+    [ -z "$2" ] && die "No bridge name, exiting"
+    echo $(fuel nodes --env-id $1 \
+        | grep controller \
+        | cut -d\| -f5  \
+        | xargs -I{} ssh root@{} ip addr\
+        | awk '/'$2':/ {getline; getline; print $2}' \
+        | sed -re 's%([^/]+)/[0-9]{2}%\1%')
+}
+
+get_orig_vip() {
+# Return VIP of the given type (management or external) assgined to the original
+# environment.
+    br_name=$(echo ${2:-br-mgmt} \
+        | awk '/br-ex/ {print "hapr-p"} \
+        /br-mgmt/ {print "hapr-m"}')
+    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
+    [ -n "$1" ] && echo $(fuel nodes --env-id $1 \
+            | grep controller \
+            | cut -d\| -f5  \
+            | xargs -I{} ssh root@{} ip netns exec haproxy ip addr\
+            | awk '/'$br_name':/ {getline; getline; print $2}' \
+            | sed -re 's%([^/]+)/[0-9]{2}%\1%')
+}
+
+get_deployment_info() {
+# Download deployment config from Fuel master for environment ENV to subdir in
+# current directory. Skip download if the directory already exists.
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    test -d ./deployment_$1 || fuel --env $1 deployment default
+}
+
+get_new_ips() {
+# Returns a list of addresses that Fuel wants to assign to nodes in the 6.0
+# deployment. These addresses must be replaced with addresses from the original
+# environment.
+    local br_name
+    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
+    [ -z "$2" ] && die "No bridge name provided, exiting"
+    echo $(grep -A2 $2: ./deployment_$1/*controller* \
+        | sed -nre 's%.*- (([0-9]{1,3}\.){3}[0-9]{1,3})/[0-9]{1,2}.*%\1%p')
+}
+
+get_new_vip() {
+# Returns a VIP of given type that Fuel wants to assign to the 6.0 environment
+# and that we want to replace with original VIP.
+    local br_name
+    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
+    br_name=$(echo ${2:-br-mgmt} \
+        | awk '/br-ex/ {print "public_vip:"} \
+        /br-mgmt/ {print "management_vip:"}')
+    [ -z "$br_name" ] && die "No bridge name provided, exiting"
+    [ -n "$br_name" ] && echo $(grep $br_name ./deployment_$1/primary-controller* \
+        | awk '{print $2}')
+}
+
+upload_deployment_info() {
+# Upload deployment configration with modifications to Fuel master for
+# environment ENV.
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "./deployment_$1" ] && fuel --env $1 deployment upload
+}
+
+replace_ip_addresses() {
+# Replace IP addresses assigned to new env's controllers and VIPs with addresses
+# of the original environment in deployment config dump.
+    local dirname
+    local orig_ips
+    local orig_vip
+    local new_ip
+    local env_id
+    local br_name
+    [ -z "$1" ] && die "No env ID, bridge name and IP addresses provided, exiting"
+    env_id=$1
+    dirname=deployment_${env_id}
+    [ -z "$2" ] && die "No bridge name and IP addresses provided, exiting"
+    br_name=$2
+    orig_ips=$(get_orig_ips $env_id $br_name)
+    shift 2
+    for orig_ip in $orig_ips
+        do
+            if [ -n "$*" ]
+                then
+                    new_ip=$1
+                    sed -i "s%$new_ip%$orig_ip%" $dirname/*.yaml
+                    shift
+                fi
+        done
+    orig_vip=$(get_orig_vip $br_name)
+    new_vip=$(get_new_vip $br_name)
+    sed -i "s%$new_vip%$orig_vip%" $dirname/*.yaml
+}
+
+remove_patch_transformations() {
+# Remove add-patch actions for br-ex, br-mgmt bridges. Required to isolate new
+# controllers from original environment while physically connected to the same
+# L2 segment.
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    cp -R deployment_$1 deployment_$1.orig
+    python ../helpers/transformations.py deployment_$1
+}
+
+prepare_deployment_info() {
+# Prepare deployment configuration of Fuel environment.
+    local br_name
+    local discard_ips
+    [ -z "$1" ] && "No env ID provided, exiting"
+    get_deployment_info $1
+    for br_name in br-ex br-mgmt
+        do
+            discard_ips=$(get_new_ips $1 $br_name)
+            replace_ip_addresses $1 $br_name $discard_ips
+        done
+    remove_patch_transformations $1
+    upload_deployment_info $1
+}
+
+list_nodes() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    $roles_re=${2:-controller}
+    echo $(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')
+}
+
+create_hosts_file() {
+# This is the list of controller nodes for environment ENV. It is used to run
+# parallel SSH commands on controllers.
+    local hosts
+    local nodes
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    hosts=hosts.$1
+    list_nodes $1 > /tmp/$hosts
+}
+
+prepare_static_files() {
+# Prepare static configuration files for controllers, and the list of
+# controllers in the environment.
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    create_hosts_file $1 '(controllers|compute)'
+}
+
+create_ovs_bridges() {
+# Install openvswitch to controller nodes and create bridges to ensure fixed MAC
+# addresses are known in advance before deployment starts.
+    local br_name
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    create_hosts_file $1 $2
+    [ -f "hosts.$1" ] || die "Hosts file not ready, exiting"
+    PSSH_ARGS="$PSSH_ARGS -h hosts.$1"
+    pssh $PSSH_ARGS "apt-get -y install openvswitch-switch"
+    for br_name in br-ex br-mgmt
+        do
+            pssh $PSSH_ARGS "ovs-vsctl add-br $1"
+            pssh $PSSH_ARGS "ip link set dev $1 mtu 1450"
+        done
+}
+
+tunnel_from_to() {
+# Configure GRE tunnels between 2 nodes. Nodes are specified by their hostnames
+# (e.g. node-2). Every tunnel must have unique key to avoid conflicting
+# configurations.
+    local src_node
+    local dst_node
+    local br_name
+    local remote_ip
+    local gre_port
+    local key
+    [ -z "$1" ] && die "No tunnel paramters provided, exiting"
+    src_node=$1
+    [ -z "$2" ] && die "No tunnel remote parameters provided, exiting"
+    dst_node=$2
+    [ -z "$3" ] && die "No bridge name provided, exiting"
+    br_name=$3
+    key=${4:-0}
+    remote_ip=$(host $dst_node | grep -Eo '([0-9\.]+)$')
+    [ -z "$remote_ip" ] && die "Tunnel remote host $dst_node not found, exiting"
+    gre_port=$br_name--gre-$dst_node
+    ssh root@$src_node ovs-vsctl add-port $br_name $gre_port -- \
+        set Interface $gre_port type=gre options:remote_ip=$remote_ip \
+        options:key=$key
+}
+
+create_tunnels() {
+# Create tunnels between nodes in the new environment to ensure isolation from
+# management and public network of original environment and retain connectivity
+# in the 6.0 environment.
+    local br_name
+    local primary
+    local nodes
+    local node
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    br_name=$2
+    nodes=$(list_nodes $1 '(controller|ceph-osd)')
+    primary=$(echo $nodes | cut -d ' ' -f1)
+    for node in $nodes
+        do
+            [ "$node" == "$primary" ] || {
+                tunnel_from_to $primary $node $br_name $KEY
+                tunnel_from_to $node $primary $br_name $KEY
+                KEY=$(expr $KEY + 1)
+            }
+        done
+}
+
+get_nailgun_db_pass() {
+# Parse nailgun configuration to get DB password for 'nailgun' database. Return
+# the password.
+    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
+        | awk 'BEGIN {out=""}
+               /DATABASE/ {out=$0;next}
+               /passwd:/ {if(out!=""){out="";print $2}}' \
+        | tr -d '"')
+}
+
+copy_generated_settings() {
+# Update configuration of 6.0 environment in Nailgun DB to preserve generated
+# parameters values from the original environmen.
+    local db_pass
+    db_pass=$(get_nailgun_db_pass)
+    [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    generated=$(echo "select generated from attributes where cluster_id = $1;
+select generated from attributes where cluster_id = $2;" \
+        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun \
+        | grep -v ^$ \
+        | python ../helpers/join-jsons.py);
+    [ -z "$generated" ] && die "No generated attributes found for env $1"
+    echo "update attributes set generated = '$generated' where cluster_id = $2" \
+        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun
+}
+
+deploy_env() {
+# Start deployment of primary controller in the upgraded environment. This will
+# cause other controllers to begin deployment as well.
+    local node_ids
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    [ -d "./deployment_$1" ] || die "No deployment info for env $1, exiting"
+    fuel --env $1 deployment upload
+    [ $? -ne 0 ] && die "Cannot upload deployment info for env $1, exiting" 2
+    node_ids=$(fuel node --env $1 \
+        | awk 'BEGIN {f = ""}
+        /(controller|compute|ceph)/ {
+            if (f == "") {f = $1}
+            else {printf f","; f = $1}
+        }
+        END {printf f}')
+    fuel node --env $1 --deploy --node $node_ids
+    [ $? -ne 0 ] && die "Cannot start deployment for env $1, exiting" 2
+}
+
+check_deployment_status() {
+# Verify operational status of environment.
+    local status
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    status=$(fuel env --env $1 \
+        | grep -Eo "^$1 \| [^\|]+" \
+        | cut -d' ' -f3)
+    [ "$status" == 'operational' ] || die "Environment is not operational, exiting"
+}
+
+delete_tunnel() {
+# Delete tunnel between src_node and dst_node.
+    local src_node
+    local dst_node
+    local br_name
+    local gre_port
+    [ -z "$1" ] && die "No tunnel parameters provided, exiting"
+    src_node=$1
+    [ -z "$2" ] && die "Bridge name not specified"
+    br_name=$2
+    gre_port=$br_name--gre-
+    ssh root@$src_node ovs-vsctl show \
+        | awk '/Port "?'$gre_port'/ {print $2}' \
+        | xargs -I{} ssh root@$src_node ovs-vsctl del-port $br_name {}
+    [ $? -ne 0 ] && die "Cannot delete GRE port, exiting"
+}
+
+remove_tunnels() {
+# Delete tunnels from 6.0 CICs to replace 5.1 controllers.
+    local br_name
+    local nodes
+    local node
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    br_name=$2
+    nodes=$(list_nodes $1 '(controller|ceph-osd)')
+    for node in $nodes
+        do
+            delete_tunnel $node $br_name
+        done
+}
+
+create_patch_ports() {
+# Create patch interface to connect logical interface to Public or Management
+# network to the physical interface to that network.
+    local br_name
+    local ph_name
+    local nodes
+    local node
+    local node_id
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    br_name=$2
+    nodes=$(list_nodes $1 controller)
+    for node in $nodes
+        do
+            node_id=$(echo $node | awk -f"-" '{print $2}')
+            [ -d ./deployment_$1.orig ] || die "Deployment information not found for env $1, exiting"
+            ph_name=$(cat deployment_$1.orig/*_$node_id.yaml \
+                | sed -n '/- '$br_name'/{g;1!p;};h' \
+                | sed -re 's,.*- (.*),\1,')
+
+            ssh root@${node} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
+                -- set interface ${br_name}--${ph_name} type=patch options:peer=${ph_name}
+            ssh root@${node} ovs-vsctl add-port ${ph_name} ${ph_name}--${br_name} \
+                -- set interface ${ph_name}--${br_name} type=patch options:peer=${br_name}
+        done
+}
+
+delete_patch() {
+    local br_name
+    local ph_name
+    local node_ids
+    local node_id
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    br_name=$2
+    nodes=$(list_nodes $1 controller)
+    for node in $nodes
+        do
+            ph_name=$(ssh root@${node} ovs-vsctl show \
+                | awk 'BEGIN {br=""}
+                       /Bridge '$br_name'/ {br=$0;next}
+                       /Port/ {if(br!=""){print $2}}
+                       /Bridge/ {if(br!=""){br=""}}' \
+                | tr -d '"' \
+                | sed -re "s/$br_name[-]*//;")
+
+            ssh root@${node} ovs-vsctl del-port $br_name ${br_name}--${ph_name}
+            ssh root@${node} ovs-vsctl del-port $ph_name ${ph_name}--${br_name}
+        done
+}
+
+isolate_old_controllers() {
+# Apply isolation to old controllers in a similar fashion as to new controllers.
+    local br_name
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    br_name=$2
+    create_hosts_file $1
+    create_tunnels $1 $br_name
+}
