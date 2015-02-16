@@ -356,20 +356,25 @@ create_patch() {
 
 delete_patch() {
     local br_name
-    local node
-    [ -z "$1"] && {
+    local ph_name
+    local node_ids
+    local node_id
+    [ -z "$1" ] && {
         echo "Patch name required to delete patch"
         exit 1
     }
-    ph_name=$(ovs-vsctl show \
-        | awk 'BEGIN {br=""}
-               /Bridge br-mgmt/ {br=$0;next}
-               /Port/ {if(br!=""){print $2}}
-               /Bridge/ {if(br!=""){br=""}}' \
-        | tr -d '"' \
-        | sed -re "s/br-mgmt[-]*//;")
-    for node in $(cat controllers.orig)
+    br_name=$1
+    node_ids=$(fuel node --env $ENV | awk '/controller/ {print $1}')
+    for node_id in $node_ids
         do
+            ph_name=$(ssh root@node-${node_id} ovs-vsctl show \
+                | awk 'BEGIN {br=""}
+                       /Bridge br-mgmt/ {br=$0;next}
+                       /Port/ {if(br!=""){print $2}}
+                       /Bridge/ {if(br!=""){br=""}}' \
+                | tr -d '"' \
+                | sed -re "s/br-mgmt[-]*//;")
+
             ssh root@node-${node_id} ovs-vsctl del-port \
                 $br_name ${br_name}--${ph_name}
             ssh root@node-${node_id} ovs-vsctl del-port \
