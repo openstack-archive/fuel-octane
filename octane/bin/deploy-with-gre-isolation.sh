@@ -275,7 +275,7 @@ check_deployment_status() {
     status=$(fuel env --env ${ENV} \
         | grep -Eo "^${ENV} \| [^\|]+" \
         | cut -d' ' -f3)
-    [ "$status" -eq 'operational' ] || {
+    [ "$status" == 'operational' ] || {
         echo "Environment status is: $status"
         exit 1
     }
