@@ -327,6 +327,7 @@ create_patch() {
     local br_name
     local ph_name
     local nodes
+    local node_id
     [ -z "$1" ] && {
         echo "Bridge name required for patch"
         exit 1
@@ -345,6 +346,29 @@ create_patch() {
                 -- set interface ${br_name}--${ph_name} type=patch options:peer=br-${ph_name}
             ssh root@node-${node_id} ovs-vsctl add-port ${ph_name} ${ph_name}--${br_name} \
                 -- set interface ${ph_name}--${br_name} type=patch options:peer=${br_name}
+        done
+}
+
+delete_patch() {
+    local br_name
+    local node
+    [ -z "$1"] && {
+        echo "Patch name required to delete patch"
+        exit 1
+    }
+    ph_name=$(ovs-vsctl show \
+        | awk 'BEGIN {br=""}
+               /Bridge br-mgmt/ {br=$0;next}
+               /Port/ {if(br!=""){print $2}}
+               /Bridge/ {if(br!=""){br=""}}' \
+        | tr -d '"' \
+        | sed -re "s/br-mgmt[-]*//;")
+    for node in $(cat controllers.orig)
+        do
+            ssh root@node-${node_id} ovs-vsctl del-port \
+                $br_name ${br_name}--${ph_name}
+            ssh root@node-${node_id} ovs-vsctl del-port \
+                $ph_name ${ph_name}--${br_name}
         done
 }
 
@@ -418,6 +442,7 @@ case $1 in
         check_deployment_status
         for br_name in br-ex br-mgmt
             do
+                delete_patch $br_name
                 isolate_old_controllers $br_name
                 remove_tunnels $br_name
                 create_patch $br_name
