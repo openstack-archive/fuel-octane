@@ -19,7 +19,7 @@ Environments with the following configuration can be upgraded with Octane:
 This is an optional step. Select nodes in your environment and use live
 migration to evacuate all virtual instances from the node. Delete the node from
 environment. Repeat for at least 2 nodes (CIC and Compute/Ceph OSD in 6.0 Seed
-environment). Wait for nodes to be discovered in Fuel as 'unallocated'.
+environment). Wait for nodes to be discovered in Fuel as `unallocated'.
 
 ## Install 6.0 Seed environment
 
@@ -30,7 +30,7 @@ Master node and run:
 
 ```
 fuel env
-```
+````
 
 Find the environment you selected for upgrade and remember its ID. We will refer
 to it as `ORIG_ID` below.
@@ -97,13 +97,13 @@ Use Octane script to shut off OpenStack services on CICs in 5.1
 environment:
 
 ```
-
+octane/bin/manage_services.sh disable ORIG_ID
 ```
 
 Shut off OpenStack services on 6.0 CIC:
 
 ```
-octane/bin/manage_services.sh stop
+octane/bin/manage_services.sh stop SEED_ID
 ```
 
 ### Configure 6.0 CIC
@@ -111,7 +111,7 @@ octane/bin/manage_services.sh stop
 Modify configuration of 6.0 CIC to ensure compatibility with 5.1 Computes:
 
 ```
-octane/bin/manage_services.sh config icehouse
+octane/bin/manage_services.sh config SEED_ID icehouse
 ```
 
 ### Upgrade State Database
@@ -120,8 +120,20 @@ State Database contains all metadata and status data of virtual resources in
 your cloud environment. Octane transfers that data to 6.0 environment as a part
 of upgrade of CIC.
 
-Use Octane script to upgrade databases:
+Run Octane script to upgrade databases:
 
 ```
 octane/bin/upgrade-db.sh ORIG_ID SEED_ID
 ```
+
+### Update 6.0 Ceph cluster configuration
+
+### Start 6.0 CIC services
+
+### Replace CICs 5.1 with 6.0
+
+### Move Neutron resources to 6.0 CICs
+
+## Upgrade Compute to 6.0
+
+
