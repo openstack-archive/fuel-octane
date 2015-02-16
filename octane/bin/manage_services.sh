@@ -57,7 +57,7 @@ crm_services=\$(pcs resource \
 for s in \$(<services);
 do
     for cs in \$crm_services; do
-        if [ \$cs -eq \$s ]; then
+        if [ "\$cs" == "\$s" ]; then
             break 2;
         fi;
     done;
