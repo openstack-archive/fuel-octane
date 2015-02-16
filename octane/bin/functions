@@ -142,36 +142,20 @@ list_nodes() {
     echo $(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')
 }
 
-create_hosts_file() {
-# This is the list of controller nodes for environment ENV. It is used to run
-# parallel SSH commands on controllers.
-    local hosts
-    local nodes
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    hosts=hosts.$1
-    list_nodes $1 > /tmp/$hosts
-}
-
-prepare_static_files() {
-# Prepare static configuration files for controllers, and the list of
-# controllers in the environment.
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    create_hosts_file $1 '(controllers|compute)'
-}
-
 create_ovs_bridges() {
-# Install openvswitch to controller nodes and create bridges to ensure fixed MAC
-# addresses are known in advance before deployment starts.
-    local br_name
+    local nodes
+    local node
     [ -z "$1" ] && die "No env ID provided, exiting"
-    create_hosts_file $1 $2
-    [ -f "hosts.$1" ] || die "Hosts file not ready, exiting"
-    PSSH_ARGS="$PSSH_ARGS -h hosts.$1"
-    pssh $PSSH_ARGS "apt-get -y install openvswitch-switch"
-    for br_name in br-ex br-mgmt
+    nodes=$(list_nodes $1 '(controller|ceph-osd|compute)')
+    for node in $nodes
         do
-            pssh $PSSH_ARGS "ovs-vsctl add-br $1"
-            pssh $PSSH_ARGS "ip link set dev $1 mtu 1450"
+            ssh root@$node apt-get -y install openvswitch-switch
+            [ $? -ne 0 ] && die "Cannot install openvswitch, exiting"
+            for br_name in br-ex br-mgmt
+                do
+                    ssh root@$node ovs-vsctl add-br $1
+                    ssh root@$node ip link set dev $1 mtu 1450
+                done
         done
 }
 
@@ -210,7 +194,8 @@ create_tunnels() {
     local node
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    nodes=$(list_nodes $1 '(controller|ceph-osd)')
+    roles_re=${3:-(controller|ceph-osd)}
+    nodes=$(list_nodes $1 "$roles_re")
     primary=$(echo $nodes | cut -d ' ' -f1)
     for node in $nodes
         do
@@ -249,14 +234,12 @@ select generated from attributes where cluster_id = $2;" \
         | psql -t postgresql://nailgun:$db_pass@localhost/nailgun
 }
 
-deploy_env() {
-# Start deployment of primary controller in the upgraded environment. This will
-# cause other controllers to begin deployment as well.
+env_action() {
+# Start deployment or provisioning of all nodes in the environment, depending on
+# second argument. First argument is an ID of env.
     local node_ids
+    local mode
     [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
-    [ -d "./deployment_$1" ] || die "No deployment info for env $1, exiting"
-    fuel --env $1 deployment upload
-    [ $? -ne 0 ] && die "Cannot upload deployment info for env $1, exiting" 2
     node_ids=$(fuel node --env $1 \
         | awk 'BEGIN {f = ""}
         /(controller|compute|ceph)/ {
@@ -264,8 +247,8 @@ deploy_env() {
             else {printf f","; f = $1}
         }
         END {printf f}')
-    fuel node --env $1 --deploy --node $node_ids
-    [ $? -ne 0 ] && die "Cannot start deployment for env $1, exiting" 2
+    fuel node --env $1 --$2 --node $node_ids
+    [ $? -ne 0 ] && die "Cannot start $2 for env $1, exiting" 2
 }
 
 check_deployment_status() {
@@ -275,7 +258,7 @@ check_deployment_status() {
     status=$(fuel env --env $1 \
         | grep -Eo "^$1 \| [^\|]+" \
         | cut -d' ' -f3)
-    [ "$status" == 'operational' ] || die "Environment is not operational, exiting"
+    [ "$status" == 'new' ] || die "Environment is not operational, exiting"
 }
 
 delete_tunnel() {
@@ -319,7 +302,7 @@ create_patch_ports() {
     local node_id
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    nodes=$(list_nodes $1 controller)
+    nodes=$(list_nodes $1 'controller')
     for node in $nodes
         do
             node_id=$(echo $node | awk -f"-" '{print $2}')
@@ -363,6 +346,15 @@ isolate_old_controllers() {
     local br_name
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    create_hosts_file $1
-    create_tunnels $1 $br_name
+    create_tunnels $1 $br_name 'controller'
+}
+
+apply_node_settings() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    for conf in disk network
+        do
+            fuel node --node $1 --$conf --download
+            [ -f ./{$conf}.fixture.yaml ] || die "No $conf data fixtures found, exiting"
+            ./copy_node_settings $conf ./node_$1/${conf}.yaml ./${conf}.fixture.yaml
+        done
 }
