@@ -1,23 +1,5 @@
 #!/bin/bash
 
-set -x
-
-action=${1:-help}
-test -z "$2" && {
-    display_help_message
-    exit 1
-}
-env_id=${2}
-version=${3:-icehouse}
-hosts_file=${4}
-test -z "$hosts_file" && {
-    fuel node --env $env_id \
-        | awk '/controller/ {print "node-" $1}' \
-        > /tmp/controllers
-    hosts_file=/tmp/controllers
-}
-pssh_run="pssh -i -h $hosts_file"
-
 disable_apis() {
     $pssh_run "echo 'backend maintenance' >> /etc/haproxy.cfg"
     $pssh_run "for f in \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*); \
@@ -112,6 +94,24 @@ ENV_ID      identifier of env in Fuel
 VERSION     version of OpenStack Compute RPC
 HOSTS       a name of file with list of CIC nodes, overrides ENV_ID"
 }
+
+set -x
+
+action=${1:-help}
+test -z "$2" && {
+    display_help_message
+    exit 1
+}
+env_id=${2}
+version=${3:-icehouse}
+hosts_file=${4}
+test -z "$hosts_file" && {
+    fuel node --env $env_id \
+        | awk '/controller/ {print "node-" $1}' \
+        > /tmp/controllers
+    hosts_file=/tmp/controllers
+}
+pssh_run="pssh -i -h $hosts_file"
 
 case $action in 
     disable)
