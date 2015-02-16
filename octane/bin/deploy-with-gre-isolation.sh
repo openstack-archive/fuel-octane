@@ -135,15 +135,21 @@ create_hosts_file() {
 # This is the list of controller nodes for environment ENV. It is used to run
 # parallel SSH commands on controllers.
     local hosts
+    local env_id
     hosts=${1:-controllers}
-    fuel node --env $ENV | awk '/(controller|compute)/ {print "node-" $1}' \
+    [ -n "$2" ] || {
+        echo "No environment ID specified"
+        exit 1
+    }
+    env_id=$2
+    fuel node --env $env_id | awk '/(controller|compute)/ {print "node-" $1}' \
         > $hosts
 }
 
 prepare_static_files() {
 # Prepare static configuration files for controllers, and the list of
 # controllers in the environment.
-    create_hosts_file
+    create_hosts_file controllers $ENV
 }
 
 create_bridge() {
@@ -364,7 +370,7 @@ delete_patch() {
         exit 1
     }
     br_name=$1
-    node_ids=$(fuel node --env $ENV | awk '/controller/ {print $1}')
+    node_ids=$(fuel node --env $ORIG_ENV | awk '/controller/ {print $1}')
     for node_id in $node_ids
         do
             ph_name=$(ssh root@node-${node_id} ovs-vsctl show \
@@ -390,7 +396,7 @@ isolate_old_controllers() {
         exit 1
     }
     br_name=$1
-    create_hosts_file controllers.orig
+    create_hosts_file controllers.orig $ORIG_ENV
     orig_pssh_run=$PSSH_RUN
     PSSH_RUN="pssh --inline-stdout -h controllers.orig"
     create_tunnels $br_name
