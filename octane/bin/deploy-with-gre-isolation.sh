@@ -267,18 +267,100 @@ deploy_env() {
     echo "node-$node_id"
 }
 
+check_deployment_status() {
+    local status
+    status=$(fuel env --env ${ENV} \
+        | grep -Eo "^${ENV} \| [^\|]+" \
+        | cut -d' ' -f3)
+    [ "$status" -eq 'operational' ] || {
+        echo "Environment status is: $status"
+        exit 1
+    }
+}
+
+delete_tunnel() {
+    local src_node
+    local dst_node
+    local br_name
+    local remote_ip
+    local gre_port
+    [ -z "$1" ] && {
+        echo "Empty tunnel source hostname"
+        exit 1
+    }
+    src_node=$1
+    [ -z "$2" ] && {
+        echo "Empty tunnel destination hostname"
+        exit 1
+    }
+    dst_node=$2
+    [ -z "$3" ] && {
+        echo "Bridge name not specified"
+        exit 1
+    }
+    br_name=$3
+    gre_port=$br_name--gre-$dst_node
+    ssh root@$src_node ovs-vsctl del-port $br_name $gre_port
+}
+
+remove_tunnels() {
+    local br_name
+    local primary
+    local nodes
+    [ -z "$1" ] && {
+        echo "Bridge name required"
+        exit 1
+    }
+    br_name=$1
+    primary=$(head -1 ./controllers)
+    nodes=$(grep -v $primary ./controllers)
+    for node in $nodes
+        do
+            delete_tunnel $primary $node $br_name
+            delete_tunnel $node $primary $br_name
+        done
+}
+
+create_patch() {
+    local br_name
+    local ph_name
+    local nodes
+    [ -z "$1" ] && {
+        echo "Bridge name required for patch"
+        exit 1
+    }
+    br_name=$1
+    node_ids=$(fuel node --env $ENV | awk '/controller/ {print $1}')
+# TODO(ogelbukh): Parse original configurations for all controllers, not only
+# primary, to identify pairing bridge/physical interface
+    for node_id in $node_ids
+        do
+            ph_name=$(cat deployment_${ENV}.orig/*_$node_id.yaml \
+                | sed -n '/- br-ex/{g;1!p;};h' \
+                | sed -re 's,.*- (.*),\1,')
+
+            ssh root@node-${node_id} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
+                -- set interface ${br_name}--${ph_name} type=patch options:peer=br-${ph_name}
+            ssh root@node-${node_id} ovs-vsctl add-port ${ph_name} ${ph_name}--${br_name} \
+                -- set interface ${ph_name}--${br_name} type=patch options:peer=${br_name}
+        done
+}
+
 display_help() {
     echo "Usage: $0 COMMAND ORIG_ENV_ID [SEED_ENV_ID]
 COMMAND:
     clone           - create seed env by cloning settings from env identified
-                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command.
+                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command
     prepare         - prepare configuration of seed env for deployment with
-                      network isolation.
-    provision       - configure nodes in the seed env and start provisioning.
+                      network isolation
+    provision       - configure nodes in the seed env and start provisioning
     deploy          - activate network isolation and start deployment to the
-                      environment.
+                      environment
+    upgrade         - replace original CICs with seed CICs for public and
+                      management networks
     help            - display this message and exit"
 }
+
 set -x
 
 KEY=0
@@ -314,6 +396,14 @@ case $1 in
                 create_tunnels $br_name
             done
         deploy_env
+        ;;
+    upgrade)
+        check_deployment_status
+        for br_name in br-ex br-mgmt
+            do
+                remove_tunnels $br_name
+                create_patch $br_name
+            done
         ;;
      help)
         display_help
