@@ -270,6 +270,7 @@ deploy_env() {
 }
 
 check_deployment_status() {
+# Verify operational status of environment.
     local status
     status=$(fuel env --env ${ENV} \
         | grep -Eo "^${ENV} \| [^\|]+" \
@@ -281,6 +282,7 @@ check_deployment_status() {
 }
 
 delete_tunnel() {
+# Delete tunnel between src_node and dst_node.
     local src_node
     local dst_node
     local br_name
@@ -306,6 +308,7 @@ delete_tunnel() {
 }
 
 remove_tunnels() {
+# Delete tunnels from 6.0 CICs to replace 5.1 controllers.
     local br_name
     local primary
     local nodes
@@ -324,6 +327,8 @@ remove_tunnels() {
 }
 
 create_patch() {
+# Create patch interface to connect logical interface to Public or Management
+# network to the physical interface to that network.
     local br_name
     local ph_name
     local nodes
@@ -373,6 +378,7 @@ delete_patch() {
 }
 
 isolate_old_controllers() {
+# Apply isolation to old controllers in a similar fashion as to new controllers.
     local br_name
     [ -n "$1" ] || {
         echo "No bridge name supplied, exiting"
