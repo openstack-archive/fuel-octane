@@ -83,6 +83,8 @@ scheduler=$version\" >> /etc/nova/nova.conf"
 display_help_message() {
     echo "Usage: $0 COMMAND ENV_ID [VERSION] [HOSTS]
 COMMAND:
+    disable - disable API servers in environment via haproxy configuration
+    enable  - enable API servers in environment via haproxy configuration
     stop    - stop all openstack services on controller nodes
     start   - start all openstack services on controller nodes
     config VERSION  - update nova.conf with upgrade_levels configuration, VERSION
