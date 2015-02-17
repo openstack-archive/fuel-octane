@@ -159,8 +159,8 @@ create_ovs_bridges() {
             [ $? -ne 0 ] && die "Cannot install openvswitch, exiting"
             for br_name in br-ex br-mgmt
                 do
-                    ssh root@$node ovs-vsctl add-br $1
-                    ssh root@$node ip link set dev $1 mtu 1450
+                    ssh root@$node ovs-vsctl add-br $br_name
+                    ssh root@$node ip link set dev $br_name mtu 1450
                 done
         done
 }
