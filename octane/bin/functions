@@ -21,7 +21,7 @@ get_orig_ips() {
 # the first argument on nodes in the original environment.
     [ -z "$1" ] && die "No environment ID and bridge name, exiting"
     [ -z "$2" ] && die "No bridge name, exiting"
-    echo $(fuel nodes --env-id $1 \
+    echo $(fuel nodes --env $1 \
         | grep controller \
         | cut -d\| -f5  \
         | xargs -I{} ssh root@{} ip addr\
@@ -107,8 +107,8 @@ replace_ip_addresses() {
                     shift
                 fi
         done
-    orig_vip=$(get_orig_vip $br_name)
-    new_vip=$(get_new_vip $br_name)
+    orig_vip=$(get_orig_vip $env_id $br_name)
+    new_vip=$(get_new_vip $env_id $br_name)
     sed -i "s%$new_vip%$orig_vip%" $dirname/*.yaml
 }
 
@@ -312,9 +312,11 @@ create_patch_ports() {
                 | sed -re 's,.*- (.*),\1,')
 
             ssh root@${node} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
-                -- set interface ${br_name}--${ph_name} type=patch options:peer=${ph_name}
+                -- set interface ${br_name}--${ph_name} type=patch \
+                options:peer=${ph_name}--${br_name}
             ssh root@${node} ovs-vsctl add-port ${ph_name} ${ph_name}--${br_name} \
-                -- set interface ${ph_name}--${br_name} type=patch options:peer=${br_name}
+                -- set interface ${ph_name}--${br_name} type=patch \
+                options:peer=${br_name}--${ph_name}
         done
 }
 
