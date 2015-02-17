@@ -138,7 +138,7 @@ prepare_deployment_info() {
 
 list_nodes() {
     [ -z "$1" ] && die "No env ID provided, exiting"
-    $roles_re=${2:-controller}
+    roles_re=${2:-controller}
     echo $(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')
 }
 
@@ -194,7 +194,7 @@ create_tunnels() {
     local node
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    roles_re=${3:-(controller|ceph-osd)}
+    roles_re=${3:-'(controller|ceph-osd)'}
     nodes=$(list_nodes $1 "$roles_re")
     primary=$(echo $nodes | cut -d ' ' -f1)
     for node in $nodes
