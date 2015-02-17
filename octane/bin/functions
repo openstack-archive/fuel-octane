@@ -88,28 +88,33 @@ replace_ip_addresses() {
     local dirname
     local orig_ips
     local orig_vip
-    local new_ip
-    local env_id
+    local seed_vip
+    local orig_ip
+    local seed_ip
+    local orig_id
+    local seed_id
     local br_name
-    [ -z "$1" ] && die "No env ID, bridge name and IP addresses provided, exiting"
-    env_id=$1
-    dirname=deployment_${env_id}
-    [ -z "$2" ] && die "No bridge name and IP addresses provided, exiting"
-    br_name=$2
-    orig_ips=$(get_orig_ips $env_id $br_name)
-    shift 2
+    [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
+    orig_id=$1
+    [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
+    seed_id=$2
+    dirname=deployment_${seed_id}
+    [ -z "$3" ] && die "No bridge name and IP addresses provided, exiting"
+    br_name=$3
+    orig_ips=$(get_orig_ips $orig_id $br_name)
+    shift 3
     for orig_ip in $orig_ips
         do
             if [ -n "$*" ]
                 then
-                    new_ip=$1
-                    sed -i "s%$new_ip%$orig_ip%" $dirname/*.yaml
+                    seed_ip=$1
+                    sed -i "s%$seed_ip%$orig_ip%" $dirname/*.yaml
                     shift
                 fi
         done
-    orig_vip=$(get_orig_vip $env_id $br_name)
-    new_vip=$(get_new_vip $env_id $br_name)
-    sed -i "s%$new_vip%$orig_vip%" $dirname/*.yaml
+    orig_vip=$(get_orig_vip $orig_id $br_name)
+    seed_vip=$(get_new_vip $seed_id $br_name)
+    sed -i "s%$seed_vip%$orig_vip%" $dirname/*.yaml
 }
 
 remove_patch_transformations() {
@@ -125,15 +130,16 @@ prepare_deployment_info() {
 # Prepare deployment configuration of Fuel environment.
     local br_name
     local discard_ips
-    [ -z "$1" ] && "No env ID provided, exiting"
-    get_deployment_info $1
+    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+    [ -z "$2" ] && "No seed env ID provided, exiting"
+    get_deployment_info $2
     for br_name in br-ex br-mgmt
         do
-            discard_ips=$(get_new_ips $1 $br_name)
-            replace_ip_addresses $1 $br_name $discard_ips
+            discard_ips=$(get_new_ips $2 $br_name)
+            replace_ip_addresses $1 $2 $br_name $discard_ips
         done
-    remove_patch_transformations $1
-    upload_deployment_info $1
+    remove_patch_transformations $2
+    upload_deployment_info $2
 }
 
 list_nodes() {
