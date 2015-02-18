@@ -50,8 +50,9 @@ case $1 in
     provision)
         for node in $(list_nodes $SEED_ENV)
             do
-                node_id=$(echo $node | awk -F'-' '{print $2}')
-                apply_node_settings $node_id
+                node_id=$(echo $node | cut -d '-' -f2)
+                [ -f ./interfaces.fixtures.yaml ] && apply_network_settings $node_id
+                [ -f ./disks.fixtures.yaml ] && apply_disk_settings $node_id
             done
         env_action $SEED_ENV provision
         ;;

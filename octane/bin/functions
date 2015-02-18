@@ -357,12 +357,14 @@ isolate_old_controllers() {
     create_tunnels $1 $br_name 'controller'
 }
 
-apply_node_settings() {
+apply_disk_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    for conf in disks interfaces
-        do
-            fuel node --node $1 --$conf --download
-            [ -f ./{$conf}.fixture.yaml ] || die "No $conf data fixtures found, exiting"
-            ./copy_node_settings $conf ./node_$1/${conf}.yaml ./${conf}.fixture.yaml
-        done
+    fuel node --node $1 --disk --download
+    ./copy-node-settings disks ./node_$1/disks.yaml ./disks.fixture.yaml
+}
+
+apply_network_settings() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    fuel node --node $1 --network --download
+    ./copy-node-settings interfaces ./node_$1/interfaces.yaml ./interfaces.fixture.yaml
 }
