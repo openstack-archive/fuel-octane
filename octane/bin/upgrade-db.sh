@@ -33,7 +33,7 @@ update ports set admin_state_up=0 where device_owner in ('none:compute',
 }
 
 get_ctrl() {
-    [ -n "$1" ] && exit 1
+    [ -z "$1" ] && exit 1
     echo $(fuel node --env $1 | awk '/controller/ {print $1;exit}')
 }
 
