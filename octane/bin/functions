@@ -360,11 +360,13 @@ isolate_old_controllers() {
 apply_disk_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     fuel node --node $1 --disk --download
-    ./copy-node-settings disks ./node_$1/disks.yaml ./disks.fixture.yaml
+    ./copy-node-settings disks ./node_$1/disks.yaml ./disks.fixture.yaml \
+        > ./node_$1/disks.yaml
 }
 
 apply_network_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     fuel node --node $1 --network --download
-    ./copy-node-settings interfaces ./node_$1/interfaces.yaml ./interfaces.fixture.yaml
+    ./copy-node-settings interfaces ./node_$1/interfaces.yaml \
+        ./interfaces.fixture.yaml > ./node_$1/interfaces.yaml
 }
