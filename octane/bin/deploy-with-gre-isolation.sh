@@ -51,8 +51,8 @@ case $1 in
         for node in $(list_nodes $SEED_ENV)
             do
                 node_id=$(echo $node | cut -d '-' -f2)
-                [ -f ./interfaces.fixtures.yaml ] && apply_network_settings $node_id
-                [ -f ./disks.fixtures.yaml ] && apply_disk_settings $node_id
+                [ -f ./interfaces.fixture.yaml ] && apply_network_settings $node_id
+                [ -f ./disks.fixture.yaml ] && apply_disk_settings $node_id
             done
         env_action $SEED_ENV provision
         ;;

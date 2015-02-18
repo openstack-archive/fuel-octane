@@ -24,7 +24,7 @@ def copy_ifaces(src, dst):
     yaml.dump(list(ifaces), stream=sys.stdout, default_flow_style=False)
 
 
-def copy_disks(src, fixture):
+def copy_disks(src, dst):
     def pull(disks):
         for disk in disks:
             yield (disk['name'],
@@ -39,8 +39,8 @@ def copy_disks(src, fixture):
             dict_disks1[name].update(volumes=volumes)
             yield dict_disks1[name]
 
-    fixture_disks = pull(fixture)
-    disks = push(src, fixture_disks)
+    fixture_disks = pull(src)
+    disks = push(dst, fixture_disks)
 
     yaml.dump(list(disks), stream=sys.stdout, default_flow_style=False)
 
@@ -53,9 +53,9 @@ FUNCTIONS = {
 
 def main():
     function = FUNCTIONS[sys.argv[1]]
-    source = yaml.load(open(sys.argv[2]))
+    settings = yaml.load(open(sys.argv[2]))
     fixture = yaml.load(open(sys.argv[3]))
-    function(source, fixture)
+    function(fixture, settings)
 
 
 if __name__ == '__main__':
