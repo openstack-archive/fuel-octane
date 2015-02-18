@@ -11,7 +11,7 @@ main() {
         exit 1
     }
     src_node=$1
-    [ -n "$2" ] && {
+    [ -n "$2" ] || {
         echo "No destination DB node"
         exit 1
     }
