@@ -44,7 +44,7 @@ SEED_ENV=$3
 case $1 in
     clone)
         SEED_ENV="$(clone_env $ORIG_ENV)"
-        copy_generated_settings
+        copy_generated_settings $ORIG_ENV $SEED_ENV
         echo "6.0 seed environment ID is $SEED_ENV"
         ;;
     provision)
