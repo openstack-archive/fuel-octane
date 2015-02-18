@@ -67,7 +67,7 @@ case $1 in
         env_action $SEED_ENV deploy
         ;;
     upgrade)
-        check_deployment_status
+        check_deployment_status $SEED_ENV
         for br_name in br-ex br-mgmt
             do
                 delete_patch $ORIG_ENV $br_name
