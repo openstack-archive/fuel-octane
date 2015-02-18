@@ -56,7 +56,7 @@ case $1 in
         env_action $SEED_ENV provision
         ;;
     prepare)
-        prepare_deployment_info $SEED_ENV
+        prepare_deployment_info $ORIG_ENV $SEED_ENV
         create_ovs_bridges $SEED_ENV
         ;;
     deploy)
