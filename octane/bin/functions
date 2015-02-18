@@ -359,7 +359,7 @@ isolate_old_controllers() {
 
 apply_node_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    for conf in disk network
+    for conf in disks interfaces
         do
             fuel node --node $1 --$conf --download
             [ -f ./{$conf}.fixture.yaml ] || die "No $conf data fixtures found, exiting"

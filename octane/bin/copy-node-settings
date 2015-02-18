@@ -46,8 +46,8 @@ def copy_disks(src, fixture):
 
 
 FUNCTIONS = {
-    'disk': copy_disks,
-    'network': copy_ifaces
+    'disks': copy_disks,
+    'interfaces': copy_ifaces
 }
 
 
