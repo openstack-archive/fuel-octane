@@ -17,7 +17,7 @@ main() {
     }
     dst_node=$2
     dbs="keystone nova heat neutron glance cinder"
-    ssh $src_node "myqldump --lock-all-tables --add-drop-database --databases $dbs \
+    ssh $src_node "mysqldump --lock-all-tables --add-drop-database --databases $dbs \
         | gzip | tee dbs.original.sql.gz \
         | ssh $dst_node 'zcat | mysql'"
     ssh $dst_node "keystone-manage db_sync;
@@ -34,7 +34,7 @@ update ports set admin_state_up=0 where device_owner in ('none:compute',
 
 get_ctrl() {
     [ -z "$1" ] && exit 1
-    echo $(fuel node --env $1 | awk '/controller/ {print $1;exit}')
+    echo $(fuel node --env $1 | awk '/controller/ {print "node-" $1;exit}')
 }
 
 orig_ctrl=$(get_ctrl $1)
