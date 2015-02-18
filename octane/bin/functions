@@ -359,14 +359,20 @@ isolate_old_controllers() {
 
 apply_disk_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
+    disk_file="./node_$1/disks.yaml"
     fuel node --node $1 --disk --download
-    ./copy-node-settings disks ./node_$1/disks.yaml ./disks.fixture.yaml \
-        > ./node_$1/disks.yaml
+    ./copy-node-settings disks $disk_file ./disks.fixture.yaml \
+        > /tmp/disks_$1.yaml
+    mv /tmp/disks_$1.yaml $disk_file
+    fuel node --node $1 --disk --upload
 }
 
 apply_network_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
+    iface_file="./node_$1/interfaces.yaml"
     fuel node --node $1 --network --download
-    ./copy-node-settings interfaces ./node_$1/interfaces.yaml \
-        ./interfaces.fixture.yaml > ./node_$1/interfaces.yaml
+    ./copy-node-settings interfaces $iface_file \
+        ./interfaces.fixture.yaml > /tmp/interfaces_$1.yaml
+    mv /tmp/interfaces_$1.yaml $iface_file
+    fuel node --node $1 --network --upload
 }
