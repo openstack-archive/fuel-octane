@@ -106,6 +106,12 @@ Shut off OpenStack services on 6.0 CIC:
 octane/bin/manage_services.sh stop SEED_ID
 ```
 
+Disable OpenStack API servers on 6.0 CICs:
+
+```
+octane/bin/manage_services.sh disable SEED_ID
+```
+
 ### Configure 6.0 CIC
 
 Modify configuration of 6.0 CIC to ensure compatibility with 5.1 Computes:
@@ -126,9 +132,31 @@ Run Octane script to upgrade databases:
 octane/bin/upgrade-db.sh ORIG_ID SEED_ID
 ```
 
+### Remove 6.0 CICs isolation
+
+At this point, we need to lift isolation from 6.0 CICs. Before that, bring down
+VIPs of 6.0 environment to avoid IP address conflicts:
+
+```
+octane/bin/manage_services.sh stop_vips SEED_ID
+```
+
 ### Update 6.0 Ceph cluster configuration
 
+Use Octane script to configure Ceph Monitors to work with original Ceph cluster:
+
+```
+octane/bin/migrate-ceph-mon.sh ORIG_ID SEED_ID
+```
+
 ### Start 6.0 CIC services
+
+Once DB upgraded and Ceph MONs reconfigured, run Octane script to start services
+on 6.0 CICs:
+
+```
+octane/bin/manage_services.sh start SEED_ID
+```
 
 ### Replace CICs 5.1 with 6.0
 
