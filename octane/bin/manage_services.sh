@@ -41,7 +41,12 @@ EOF
 
 stop_vip_resources() {
     $pssh_run "echo vip__management vip__public \
-        | xargs -I{} -d \ sh -c 'crm resource stop {}'"
+        | xargs -I{} -d \  sh -c 'crm resource stop {}'"
+}
+
+start_vip_resources() {
+    $pssh_run "echo vip__management vip__public \
+        | xargs -I{} -d \  sh -c 'crm resource stop {}'"
 }
 
 start_corosync_services() {
@@ -93,6 +98,7 @@ COMMAND:
     stop        - stop all openstack services on controller nodes
     start       - start all openstack services on controller nodes
     stop_vips   - shutdown Virtual IP corosync resources on CIC nodes
+    start_vips  - restore Virtual IP corosync resoucres on CIC nodes
     config VERSION  - update nova.conf with upgrade_levels configuration, VERSION
                       defines original version of OpenStack (defaults to
                       'icehouse')
@@ -134,6 +140,9 @@ case $action in
         ;;
     stop_vips)
         stop_vip_resources
+        ;;
+    start_vips)
+        start_vip_resources
         ;;
     config)
         set_upgrade_levels $version
