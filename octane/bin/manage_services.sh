@@ -39,6 +39,11 @@ EOF
     $pssh_run "$command"
 }
 
+stop_vip_resources() {
+    $pssh_run "echo vip__management vip__public \
+        | xargs -I{} -d \ sh -c 'crm resource stop {}'"
+}
+
 start_corosync_services() {
     $pssh_run "pcs resource \
     | awk '/Clone Set:/ {print \$4; getline; print \$1}' \
@@ -83,14 +88,15 @@ scheduler=$version\" >> /etc/nova/nova.conf"
 display_help_message() {
     echo "Usage: $0 COMMAND ENV_ID [VERSION] [HOSTS]
 COMMAND:
-    disable - disable API servers in environment via haproxy configuration
-    enable  - enable API servers in environment via haproxy configuration
-    stop    - stop all openstack services on controller nodes
-    start   - start all openstack services on controller nodes
+    disable     - disable API servers in environment via haproxy configuration
+    enable      - enable API servers in environment via haproxy configuration
+    stop        - stop all openstack services on controller nodes
+    start       - start all openstack services on controller nodes
+    stop_vips   - shutdown Virtual IP corosync resources on CIC nodes
     config VERSION  - update nova.conf with upgrade_levels configuration, VERSION
                       defines original version of OpenStack (defaults to
                       'icehouse')
-    help    - show this message
+    help        - show this message
 
 ENV_ID      identifier of env in Fuel
 VERSION     version of OpenStack Compute RPC
@@ -125,6 +131,9 @@ case $action in
     stop)
         stop_corosync_services
         stop_upstart_services
+        ;;
+    stop_vips)
+        stop_vip_resources
         ;;
     config)
         set_upgrade_levels $version
