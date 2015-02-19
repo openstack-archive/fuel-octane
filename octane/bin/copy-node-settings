@@ -11,15 +11,21 @@ def copy_ifaces(src, dst):
             yield (iface['name'],
                    iface['assigned_networks'])
 
-    def push(ifaces, assignments):
+    def push(ifaces, assignments, nets):
         for iface in ifaces:
             networks = assignments.get(iface['name'], [])
+            networks = [{'id': nets[net['name']],
+                         'name': net['name']} for net in networks]
             yield dict(iface,
                        assigned_networks=networks,
                        )
 
+    nets = {}
+    for iface in dst:
+        nets.update(dict([(net['name'], net['id'])
+                          for net in iface['assigned_networks']]))
     assignments = pull(src)
-    ifaces = push(dst, dict(assignments))
+    ifaces = push(dst, dict(assignments), nets)
 
     yaml.dump(list(ifaces), stream=sys.stdout, default_flow_style=False)
 
