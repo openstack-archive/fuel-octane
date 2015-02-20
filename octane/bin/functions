@@ -361,18 +361,15 @@ delete_patch() {
     local ph_name
     local node_ids
     local node_id
-    [ -z "$1" ] && die "No env ID provided, exiting"
+    local node
+    [ -z "$1" ] && die "No env ID and bridge name provided, exiting"
+    [ -z "$2" ] && die "No bridge name provided, exiting"
     br_name=$2
-    nodes=$(list_nodes $1 controller)
-    for node in $nodes
+    for node in $(list_nodes $1 controller)
         do
-            ph_name=$(ssh root@${node} ovs-vsctl show \
-                | awk 'BEGIN {br=""}
-                       /Bridge '$br_name'/ {br=$0;next}
-                       /Port/ {if(br!=""){print $2}}
-                       /Bridge/ {if(br!=""){br=""}}' \
+            ph_name=$(list_ports $node $br_name \
                 | tr -d '"' \
-                | sed -re "s/$br_name[-]*//;")
+                | sed -nre 's/'$br_name'--(.*)/\1/p')
 
             ssh root@${node} ovs-vsctl del-port $br_name ${br_name}--${ph_name}
             ssh root@${node} ovs-vsctl del-port $ph_name ${ph_name}--${br_name}
