@@ -54,6 +54,15 @@ def update_env_deployment_info(dirname):
             update_host_deployment_info(host_file, bridges)
 
 
+def patch_port_params(host_file, bridge_name):
+    host_config = load_yaml_file(host_file)
+    transformations = host_config['network_scheme']['transformations']
+    patches = [action for action in transformations
+               if (action['action'] == 'add-patch')
+               and (bridge_name in action['bridges'])]
+    return([(patch['bridges'], patch['trunks']) for patch in patches])
+
+
 def main():
     args = get_parser().parse_args()
 
