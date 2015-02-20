@@ -299,6 +299,14 @@ remove_tunnels() {
         done
 }
 
+list_ports() {
+# On the host identified by first argument, list ports in bridge, identified by
+# second argument.
+    [ -z "$1" ] && die "No hostname and bridge name provided, exiting"
+    [ -z "$2" ] && die "No bridge name provided, exiting"
+    echo $(ssh root@$1 ovs-vsctl list-ports $2)
+}
+
 create_patch_ports() {
 # Create patch interface to connect logical interface to Public or Management
 # network to the physical interface to that network.
