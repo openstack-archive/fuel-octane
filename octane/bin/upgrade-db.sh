@@ -17,9 +17,9 @@ main() {
     }
     dst_node=$2
     dbs="keystone nova heat neutron glance cinder"
-    ssh $src_node "mysqldump --lock-all-tables --add-drop-database --databases $dbs \
+    ssh $src_node "mysqldump --lock-all-tables --add-drop-database --databases $dbs" \
         | gzip | tee dbs.original.sql.gz \
-        | ssh $dst_node 'zcat | mysql'"
+        | ssh $dst_node "zcat | mysql"
     ssh $dst_node "keystone-manage db_sync;
 nova-manage db sync;
 heat-manage db_sync;
