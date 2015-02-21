@@ -336,23 +336,15 @@ create_patch_ports() {
     local nodes
     local node
     local node_id
+    [ -d ./deployment_$1.orig ] || die "Deployment information not found for env $1, exiting"
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
     nodes=$(list_nodes $1 'controller')
     for node in $nodes
         do
             node_id=$(echo $node | awk -f"-" '{print $2}')
-            [ -d ./deployment_$1.orig ] || die "Deployment information not found for env $1, exiting"
-            ph_name=$(cat deployment_$1.orig/*_$node_id.yaml \
-                | sed -n '/- '$br_name'/{g;1!p;};h' \
-                | sed -re 's,.*- (.*),\1,')
-
-            ssh root@${node} ovs-vsctl add-port $br_name ${br_name}--${ph_name} \
-                -- set interface ${br_name}--${ph_name} type=patch \
-                options:peer=${ph_name}--${br_name}
-            ssh root@${node} ovs-vsctl add-port ${ph_name} ${ph_name}--${br_name} \
-                -- set interface ${ph_name}--${br_name} type=patch \
-                options:peer=${br_name}--${ph_name}
+            ./create-patch-ports deployment_$1.orig/*_$node_id.yaml $br_name \
+                | xargs -I {} ssh root@$node {}
         done
 }
 
