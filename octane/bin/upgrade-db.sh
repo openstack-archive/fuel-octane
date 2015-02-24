@@ -26,10 +26,6 @@ heat-manage db_sync;
 neutron-db-manage --config-file=/etc/neutron/neutron.conf upgrade head;
 glance-manage db upgrade;
 cinder-manage db sync"
-    ssh $dst_node "echo \"update routers set admin_state_up=0;
-update ports set admin_state_up=0 where device_owner in ('none:compute',
-'network:router_interface', 'network:dhcp', 'network:router_gateway');\" \
-| mysql neutron"
 }
 
 get_ctrl() {
