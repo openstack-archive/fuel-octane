@@ -125,7 +125,6 @@ for ctrl_host in ${mon_initial_members}; do
  		}' | sh -
 
 	ceph-mon -i ${ctrl_host} --inject-monmap /tmp/monmap 
-	/etc/init.d/ceph restart mon
   " 
 	
 done
