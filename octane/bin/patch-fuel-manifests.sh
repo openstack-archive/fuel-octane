@@ -14,4 +14,4 @@ sed -ie "s%(\$run_ping_checker) = .*$%\1 = false%" \
     $modulepath/osnailyfacter/mainfests/cluster_ha.pp
 
 dockerctl shell astute sed -i "94s%^%#%" $deploy_actions_path
-dockerctl shell astute supervisord restart astute
+dockerctl shell astute supervisorctl restart astute
