@@ -153,7 +153,7 @@ create_ovs_bridges() {
     local nodes
     local node
     [ -z "$1" ] && die "No env ID provided, exiting"
-    nodes=$(list_nodes $1 '(controller|ceph-osd|compute)')
+    nodes=$(list_nodes $1 '(controller)')
     for node in $nodes
         do
             ssh root@$node apt-get -y install openvswitch-switch
@@ -201,7 +201,7 @@ create_tunnels() {
     local node
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    roles_re=${3:-'(controller|ceph-osd)'}
+    roles_re=${3:-'(controller)'}
     nodes=$(list_nodes $1 "$roles_re")
     primary=$(echo $nodes | cut -d ' ' -f1)
     for node in $nodes
@@ -313,7 +313,7 @@ remove_tunnels() {
     local node
     [ -z "$1" ] && die "No env ID provided, exiting"
     br_name=$2
-    nodes=$(list_nodes $1 '(controller|ceph-osd)')
+    nodes=$(list_nodes $1 '(controller)')
     for node in $nodes
         do
             delete_tunnel $node $br_name
