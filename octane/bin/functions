@@ -232,8 +232,8 @@ copy_generated_settings() {
     db_pass=$(get_nailgun_db_pass)
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    generated=$(echo "select generated from attributes where cluster_id = $1;
-select generated from attributes where cluster_id = $2;" \
+    generated=$(echo "select generated from attributes where cluster_id = $2;
+select generated from attributes where cluster_id = $1;" \
         | psql -t postgresql://nailgun:$db_pass@localhost/nailgun \
         | grep -v ^$ \
         | python ../helpers/join-jsons.py);
