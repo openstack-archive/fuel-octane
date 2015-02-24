@@ -351,7 +351,7 @@ create_patch_ports() {
         done
 }
 
-delete_patch() {
+delete_patch_ports() {
     local br_name
     local ph_name
     local node_ids
@@ -369,14 +369,6 @@ delete_patch() {
             ssh root@${node} ovs-vsctl del-port $br_name ${br_name}--${ph_name}
             ssh root@${node} ovs-vsctl del-port $ph_name ${ph_name}--${br_name}
         done
-}
-
-isolate_old_controllers() {
-# Apply isolation to old controllers in a similar fashion as to new controllers.
-    local br_name
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    br_name=$2
-    create_tunnels $1 $br_name 'controller'
 }
 
 apply_disk_settings() {
