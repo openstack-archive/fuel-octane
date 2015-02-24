@@ -300,11 +300,12 @@ delete_tunnel() {
     src_node=$1
     [ -z "$2" ] && die "Bridge name not specified"
     br_name=$2
-    gre_port=$br_name--gre
-    list_ports $src_node $br_name \
-        | grep $gre_port \
-        | xargs -I{} ssh root@$src_node ovs-vsctl del-port $br_name {}
-    [ $? -ne 0 ] && die "Cannot delete GRE port, exiting"
+    for gre_port in $(list_ports $src_node $br_name | grep $br_name--gre)
+        do
+            echo $gre_port \
+                | xargs -I{} ssh root@$src_node ovs-vsctl del-port $br_name {}
+            [ $? -ne 0 ] && die "Cannot delete GRE port, exiting"
+        done
 }
 
 remove_tunnels() {
