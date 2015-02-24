@@ -283,7 +283,7 @@ vips_down() {
     nodes=$(list_nodes $1 'controller')
     for node in $nodes
         do
-            echo vip__management vip__public \
+            echo vip__management vip__public vip__management_old vip__public_old \
                 | xargs -I{} -d ' ' \
                 ssh root@$node crm resource stop {}
         done
