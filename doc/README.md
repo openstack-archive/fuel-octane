@@ -114,6 +114,16 @@ Modify configuration of 6.0 CIC to ensure compatibility with 5.1 Computes:
 octane/bin/manage_services.sh config SEED_ID icehouse
 ```
 
+### Apply 6.0 CIC patches
+
+Use Octane script to apply patch for Nova bugs
+[https://bugs.launchpad.net/nova/+bug/1408496] and
+[https://bugs.launchpad.net/nova/+bug/1408496] to Nova source code on the CIC:
+
+```
+octane/bin/patch-cic-nova SEED_ID
+```
+
 ### Upgrade State Database
 
 State Database contains all metadata and status data of virtual resources in
@@ -158,6 +168,9 @@ to those networks:
 ```
 octane/bin/deploy-with-gre-isolation.sh upgrade 1 40
 ```
+
+Now restart `nova-compute` services on all Compute nodes to ensure reconnection
+to Rabbit server.
 
 ## Upgrade Compute to 6.0
 
