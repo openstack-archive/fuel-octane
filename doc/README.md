@@ -106,12 +106,6 @@ Shut off OpenStack services on 6.0 CIC:
 octane/bin/manage_services.sh stop SEED_ID
 ```
 
-Disable OpenStack API servers on 6.0 CICs:
-
-```
-octane/bin/manage_services.sh disable SEED_ID
-```
-
 ### Configure 6.0 CIC
 
 Modify configuration of 6.0 CIC to ensure compatibility with 5.1 Computes:
@@ -132,21 +126,18 @@ Run Octane script to upgrade databases:
 octane/bin/upgrade-db.sh ORIG_ID SEED_ID
 ```
 
-### Remove 6.0 CICs isolation
-
-At this point, we need to lift isolation from 6.0 CICs. Before that, bring down
-VIPs of 6.0 environment to avoid IP address conflicts:
-
-```
-octane/bin/manage_services.sh stop_vips SEED_ID
-```
-
 ### Update 6.0 Ceph cluster configuration
 
 Use Octane script to configure Ceph Monitors to work with original Ceph cluster:
 
 ```
 octane/bin/migrate-ceph-mon.sh ORIG_ID SEED_ID
+```
+
+Restart Ceph Monitors on all 6.0 controllers to apply configuration changes:
+
+```
+pssh -i -h /tmp/controllers /etc/init.d/ceph restart mon
 ```
 
 ### Start 6.0 CIC services
@@ -160,7 +151,13 @@ octane/bin/manage_services.sh start SEED_ID
 
 ### Replace CICs 5.1 with 6.0
 
-### Move Neutron resources to 6.0 CICs
+Following Octane script will disconnect 5.1 CICs from Management and Public
+networks, while keeping connection between CICs themselves, and connect 6.0 CICs
+to those networks:
+
+```
+octane/bin/deploy-with-gre-isolation.sh upgrade 1 40
+```
 
 ## Upgrade Compute to 6.0
 
