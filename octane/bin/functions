@@ -127,20 +127,28 @@ remove_patch_transformations() {
     python ../helpers/transformations.py deployment_$1
 }
 
+prepare_seed_deployment_info() {
+    local br_name
+    local discard_ips
+    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+    [ -z "$2" ] && "No seed env ID provided, exiting"
+    get_deployment_info $2
+    prepare_deployment_info $1 $2
+    remove_patch_transformations $2
+    upload_deployment_info $2
+}
+
 prepare_deployment_info() {
 # Prepare deployment configuration of Fuel environment.
     local br_name
     local discard_ips
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
-    get_deployment_info $2
     for br_name in br-ex br-mgmt
         do
             discard_ips=$(get_ips_from_deploy_info $2 $br_name)
             replace_ip_addresses $1 $2 $br_name $discard_ips
         done
-    remove_patch_transformations $2
-    upload_deployment_info $2
 }
 
 list_nodes() {
