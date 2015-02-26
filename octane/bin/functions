@@ -403,3 +403,75 @@ apply_network_settings() {
     mv /tmp/interfaces_$1.yaml $iface_file
     fuel node --node $1 --network --upload
 }
+
+get_node_settings() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    fuel node --node $1 --network --download
+    fuel node --node $1 --disk --download
+}
+
+upload_node_settings() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -d "./node_$1" ] || die "Local node settings not found, exiting"
+    fuel node --node $1 --network --upload
+    fuel node --node $1 --disk --upload
+}
+
+upgrade_compute_node() {
+    local orig_id
+    local admin_mac
+    local mac
+    local node
+    local id
+    local roles
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    [ -z "$3" ] && die "No 5.1 env ID provided, exiting"
+    roles=$(fuel node --node $2 \
+        | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}')
+    orig_id=$(fuel node --node $2 \
+        | awk -F\| '/^'$2'/ {gsub(" ", "", $4); print $4}')
+    [ "$orig_id" == "$3" ] \
+        || [ "$orig_id" == "None" ] \
+        || die "Attempt to upgrade node-$2 from non-original environment $orig_id, exiting"
+    admin_mac=$(ssh root@node-$2 ip -o link show dev eth0 \
+        | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
+    [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$2, exiting"
+    get_node_settings $2
+    if [ "$orig_id" == "None" ]
+        then
+            id=$2
+        else
+            fuel node --node $2 --delete
+            fuel node --env $orig_id deploy-changes
+            while :
+                do
+                    for id in $(fuel node \
+                            | awk -v id=$2 '/discover/ {if($1>$id){print $1}}')
+                        do
+                            mac=$(ssh root@node-$id ip -o link show dev eth0 \
+                                | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
+                            [ -z "$mac" ] && break
+                            [ "$mac" == "$admin_mac" ] && break 2
+                        done
+                done
+        fi
+    fuel node --node $id --env $1 set --role ${roles:-compute}
+    get_node_settings $id
+    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
+    ./copy-node-settings interfaces node_$id/interfaces.yaml \
+        interfaces.fixture.yaml
+    if [ $id -ne $2 ]
+        then
+            cp node_$2/disks.yaml node_$id
+        else
+            [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
+            ./copy-node-settings disks node_$id/disks.yaml \
+                disks.fixture.yaml
+        fi
+    upload_node_settings $id
+    get_deployment_info $1
+    prepare_deployment_info $3 $1
+    upload_deployment_info $1
+    fuel node --env $1 --node $id --deploy
+}
