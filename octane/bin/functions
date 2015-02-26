@@ -152,6 +152,7 @@ prepare_deployment_info() {
 }
 
 list_nodes() {
+    local roles_re
     [ -z "$1" ] && die "No env ID provided, exiting"
     roles_re=${2:-controller}
     echo $(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')
@@ -160,6 +161,7 @@ list_nodes() {
 create_ovs_bridges() {
     local nodes
     local node
+    local br_name
     [ -z "$1" ] && die "No env ID provided, exiting"
     nodes=$(list_nodes $1 '(controller)')
     for node in $nodes
@@ -381,6 +383,7 @@ delete_patch_ports() {
 }
 
 apply_disk_settings() {
+    local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
     disk_file="./node_$1/disks.yaml"
     fuel node --node $1 --disk --download
@@ -391,6 +394,7 @@ apply_disk_settings() {
 }
 
 apply_network_settings() {
+    local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
     iface_file="./node_$1/interfaces.yaml"
     fuel node --node $1 --network --download
