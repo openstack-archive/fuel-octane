@@ -56,23 +56,27 @@ get_ips_from_deploy_info() {
 # Returns a list of addresses that Fuel wants to assign to nodes in the 6.0
 # deployment. These addresses must be replaced with addresses from the original
 # environment.
-    local br_name
+    local filename
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
     [ -z "$2" ] && die "No bridge name provided, exiting"
-    echo $(grep -A2 $2: ./deployment_$1/*controller* \
-        | sed -nre 's%.*- (([0-9]{1,3}\.){3}[0-9]{1,3})/[0-9]{1,2}.*%\1%p')
+    filename=$(ls ./deployment_$1/primary-controller_*.yaml)
+    [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
+    echo $(python ./extract-cic-ips ./deployment_$1/$filename $2)
 }
 
 get_vip_from_deploy_info() {
 # Returns a VIP of given type that Fuel wants to assign to the 6.0 environment
 # and that we want to replace with original VIP.
     local br_name
+    local filename
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
     br_name=$(echo ${2:-br-mgmt} \
         | awk '/br-ex/ {print "public_vip:"} \
         /br-mgmt/ {print "management_vip:"}')
     [ -z "$br_name" ] && die "No bridge name provided, exiting"
-    [ -n "$br_name" ] && echo $(grep $br_name ./deployment_$1/primary-controller* \
+    filename=$(ls ./deployment_$1/primary-controller_*.yaml)
+    [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
+    [ -n "$br_name" ] && echo $(grep $br_name ./deployment_$1/$filename \
         | awk '{print $2}')
 }
 
