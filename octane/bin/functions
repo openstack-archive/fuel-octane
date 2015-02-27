@@ -443,7 +443,7 @@ upgrade_compute_node() {
             id=$2
         else
             fuel node --node $2 --delete
-            fuel node --env $orig_id deploy-changes
+            fuel --env $orig_id deploy-changes
             while :
                 do
                     for id in $(fuel node \
