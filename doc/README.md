@@ -118,7 +118,7 @@ octane/bin/manage_services.sh config SEED_ID icehouse
 
 Use Octane script to apply patch for Nova bugs
 [https://bugs.launchpad.net/nova/+bug/1408496] and
-[https://bugs.launchpad.net/nova/+bug/1408496] to Nova source code on the CIC:
+[https://bugs.launchpad.net/nova/+bug/1408498] to Nova source code on the CIC:
 
 ```
 octane/bin/patch-cic-nova SEED_ID
