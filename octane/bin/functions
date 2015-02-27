@@ -460,18 +460,52 @@ upgrade_compute_node() {
     get_node_settings $id
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     ./copy-node-settings interfaces node_$id/interfaces.yaml \
-        interfaces.fixture.yaml
+        interfaces.fixture.yaml > /tmp/interfaces.yaml
+    mv /tmp/interfaces.yaml node_$id/interfaces.yaml
     if [ $id -ne $2 ]
         then
             cp node_$2/disks.yaml node_$id
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             ./copy-node-settings disks node_$id/disks.yaml \
-                disks.fixture.yaml
+                disks.fixture.yaml > /tmp/disks.yaml
+            mv /tmp/disks.yaml node_$id/disks.yaml
         fi
     upload_node_settings $id
     get_deployment_info $1
     prepare_deployment_info $3 $1
     upload_deployment_info $1
+    monitor_and_update_cobbler $id
+    fuel node --env $1 --node $id --provision
+    wait_for_node $id provisioned
     fuel node --env $1 --node $id --deploy
+}
+
+monitor_and_update_cobbler() {
+    local NODE
+    NODE=node-$1
+    while true; do
+        echo .
+        sleep 1
+        dockerctl shell cobbler cobbler system report --name $NODE > /dev/null || continue
+        dockerctl shell cobbler cobbler system edit --name $NODE --in-place --ksmeta="keep_ceph_volumes=True"
+        break
+    done
+}
+
+wait_for_node() {
+    local counter
+    local status
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -z "$2" ] && die "No expected status provided, exiting"
+    counter=0
+    while :
+        do
+            [ $counter -gt 30 ] && die "Wait for node-$1 $2 timed out, exiting"
+            status=$(fuel node --node $1 \
+                awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
+            [ "$status" == "$2" ] && break
+            counter=$(expr $counter + 1)
+            sleep 300
+        done
 }
