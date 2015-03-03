@@ -18,4 +18,4 @@ nova service-list | grep -q 'nova-compute.*enabled' || {
         exit 3
 }
 
-nova list --host $1 | grep ' ACTIVE ' | cut -d\| -f3 | xargs -I% nova live-migration %
+nova list --host $1 | grep ' ACTIVE ' | cut -d\| -f3 | sed -r 's/(^[ ]+?|[ ]+?$)//g' | xargs -tI% nova live-migration %
