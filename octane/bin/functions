@@ -59,9 +59,9 @@ get_ips_from_deploy_info() {
     local filename
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
     [ -z "$2" ] && die "No bridge name provided, exiting"
-    filepath=$(ls ./deployment_$1/primary-controller_*.yaml)
+    filename=$(basename ./deployment_$1/primary-controller_*.yaml)
     [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
-    echo $(python ./extract-cic-ips $filepath $2)
+    echo $(python ./extract-cic-ips ./deployment_$1/$filename $2)
 }
 
 get_vip_from_deploy_info() {
@@ -74,7 +74,7 @@ get_vip_from_deploy_info() {
         | awk '/br-ex/ {print "public_vip:"} \
         /br-mgmt/ {print "management_vip:"}')
     [ -z "$br_name" ] && die "No bridge name provided, exiting"
-    filename=$(ls ./deployment_$1/primary-controller_*.yaml)
+    filename=$(basename ./deployment_$1/primary-controller_*.yaml)
     [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
     [ -n "$br_name" ] && echo $(grep $br_name ./deployment_$1/$filename \
         | awk '{print $2}')
