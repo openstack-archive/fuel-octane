@@ -20,7 +20,7 @@ def main():
     bridge = sys.argv[2]
     settings = load_yaml(filename)
 
-    ips = [node['internal_address'] for node in settings['nodes']
+    ips = [node[ADDR_TYPE[bridge]] for node in settings['nodes']
            if node['role'] in ('primary-controller', 'controller')]
 
     for ip in ips:
