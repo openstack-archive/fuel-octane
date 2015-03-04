@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 set -ex
 
 export SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -12,4 +12,4 @@ sh /home/cirros/cirros_timeline.sh $floating_ip > /home/cirros/output.txt 2>&1 &
 EOF
 
 echo -n $floating_ip | xargs -d" " -P5 -I% sh -c "sshpass -p'cubswin:)' scp $SSH_ARGS cirros_timeline* cirros@%: || :"
-echo -n $floating_ip | xargs -d" " -P5 -I% sh -c "sshpass -p'cubswin:)' ssh $SSH_ARGS cirros@% sh ./cirros_timeline_wrapper.sh"
+echo -n $floating_ip | xargs -d" " -P5 -I% sh -c "sshpass -p'cubswin:)' ssh $SSH_ARGS cirros@% sh ./cirros_timeline_wrapper.sh || :"
