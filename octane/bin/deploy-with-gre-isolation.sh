@@ -1,20 +1,5 @@
 #!/bin/bash
 
-display_help() {
-    echo "Usage: $0 COMMAND ORIG_ENV_ID [SEED_ENV_ID]
-COMMAND:
-    clone           - create seed env by cloning settings from env identified
-                      by ORIG_ENV_ID. No SEED_ENV_ID needed for this command
-    prepare         - prepare configuration of seed env for deployment with
-                      network isolation
-    provision       - configure nodes in the seed env and start provisioning
-    deploy          - activate network isolation and start deployment to the
-                      environment
-    upgrade         - replace original CICs with seed CICs for public and
-                      management networks
-    help            - display this message and exit"
-}
-
 cd $(dirname $0)
 . functions
 
@@ -30,15 +15,16 @@ clone               - clone envinroment settings and return seed env ID
 provision           - start provisioning of nodes in seed env
 prepare             - prepare provisioned seed env CICs for isolated deployment
 deploy              - start deployment of nodes in seed env with isolation
-upgrade             - isolate orig env CICs and replace them with seed CICs"
+upgrade             - isolate orig env CICs and replace them with seed CICs
+help                - display this message and exit"
 }
 
 KEY=0
-[ -z "$1" ] && die $(usage)
+[ -z "$1" ] && die "$(usage)"
 
-[ -z "$2" ] && die $(usage)
+[ -z "$2" ] && die "$(usage)"
 ORIG_ENV=$2
-[ -z "$3" ] && [ "$1" != "clone" ] && die $(usage)
+[ -z "$3" ] && [ "$1" != "clone" ] && die "$(usage)"
 SEED_ENV=$3
 
 case $1 in
@@ -80,11 +66,11 @@ case $1 in
             done
         ;;
      help)
-        display_help
+        usage
         ;;
      *)
         echo "Invalid command: $1"
-        display_help
+        usage
         exit 1
         ;;
 esac
