@@ -49,7 +49,7 @@ get_deployment_info() {
 # Download deployment config from Fuel master for environment ENV to subdir in
 # current directory. Skip download if the directory already exists.
     [ -z "$1" ] && die "No environment ID provided, exiting"
-    test -d ./deployment_$1 || fuel --env $1 deployment default
+    test -d ./deployment_$1 || fuel --env $1 deployment --default
 }
 
 get_ips_from_deploy_info() {
