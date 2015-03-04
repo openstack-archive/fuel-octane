@@ -46,10 +46,12 @@ get_vip_from_cics() {
 }
 
 get_deployment_info() {
+    local cmd
 # Download deployment config from Fuel master for environment ENV to subdir in
 # current directory. Skip download if the directory already exists.
     [ -z "$1" ] && die "No environment ID provided, exiting"
-    test -d ./deployment_$1 || fuel --env $1 deployment --default
+    cmd=${2:-default}
+    test -d ./deployment_$1 || fuel --env $1 deployment --$cmd
 }
 
 get_ips_from_deploy_info() {
@@ -91,35 +93,47 @@ replace_ip_addresses() {
 # Replace IP addresses assigned to new env's controllers and VIPs with addresses
 # of the original environment in deployment config dump.
     local dirname
-    local orig_ips
-    local orig_vip
-    local seed_vip
     local orig_ip
     local seed_ip
-    local orig_id
-    local seed_id
-    local br_name
     [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
-    orig_id=$1
     [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
-    seed_id=$2
-    dirname=deployment_${seed_id}
     [ -z "$3" ] && die "No bridge name and IP addresses provided, exiting"
-    br_name=$3
-    orig_ips=$(get_ips_from_cics $orig_id $br_name)
+    dirname="./deployment_$2"
+    tmpfile="/tmp/env-$1-cic-$3-ips"
     shift 3
-    for orig_ip in $orig_ips
+    for orig_ip in $(cat "$tmpfile")
         do
             if [ -n "$*" ]
                 then
                     seed_ip=$1
-                    sed -i "s%$seed_ip$%$orig_ip%" $dirname/*.yaml
+                    sed -i 's%'$seed_ip'$%'$orig_ip'%' $dirname/*.yaml
                     shift
                 fi
         done
-    orig_vip=$(get_vip_from_cics $orig_id $br_name)
-    seed_vip=$(get_vip_from_deploy_info $seed_id $br_name)
-    sed -i "s%$seed_vip%$orig_vip%" $dirname/*.yaml
+}
+
+replace_vip_address() {
+    local orig_vip
+    local seed_vip
+    local dirname
+    dirname=./deployment_$2
+    orig_vip=$(get_vip_from_cics $1 $br_name)
+    seed_vip=$(get_vip_from_deploy_info $2 $br_name)
+    sed -i 's%'$seed_vip'$%'$orig_vip'%' $dirname/*.yaml
+}
+
+replace_seed_ips() {
+    local br_name
+    local discard_ips
+    [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
+    [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
+    for br_name in br-ex br-mgmt
+        do
+            get_ips_from_cics $1 $br_name > /tmp/env-$1-cic-$br_name-ips
+            discard_ips=$(get_ips_from_deploy_info $2 $br_name)
+            replace_ip_addresses $1 $2 $br_name $discard_ips
+            replace_vip_address $1 $2 $br_name
+        done
 }
 
 remove_patch_transformations() {
@@ -137,22 +151,9 @@ prepare_seed_deployment_info() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
-    prepare_deployment_info $1 $2
+    replace_seed_ips $1 $2
     remove_patch_transformations $2
     upload_deployment_info $2
-}
-
-prepare_deployment_info() {
-# Prepare deployment configuration of Fuel environment.
-    local br_name
-    local discard_ips
-    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
-    [ -z "$2" ] && "No seed env ID provided, exiting"
-    for br_name in br-ex br-mgmt
-        do
-            discard_ips=$(get_ips_from_deploy_info $2 $br_name)
-            replace_ip_addresses $1 $2 $br_name $discard_ips
-        done
 }
 
 list_nodes() {
