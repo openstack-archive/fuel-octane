@@ -361,7 +361,7 @@ create_patch_ports() {
     for node in $nodes
         do
             node_id=$(echo $node | awk -F"-" '{print $2}')
-            filename=$(ls deployment_$1.orig/*_$node_id.yaml)
+            filename=$(ls deployment_$1.orig/*_$node_id.yaml | head -1)
             ./create-patch-ports $filename $br_name \
                 | xargs -I {} ssh root@$node {}
         done
