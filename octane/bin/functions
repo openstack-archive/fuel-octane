@@ -107,6 +107,7 @@ replace_ip_addresses() {
                 then
                     seed_ip=$1
                     sed -i 's%'$seed_ip'$%'$orig_ip'%' $dirname/*.yaml
+                    sed -i 's%- '$seed_ip'/%- '$orig_ip'/%' $dirname/*.yaml
                     shift
                 fi
         done
