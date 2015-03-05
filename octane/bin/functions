@@ -162,6 +162,22 @@ prepare_seed_deployment_info() {
     upload_deployment_info $2
 }
 
+prepare_cic_disk_fixture() {
+    local node_id
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    node_id=$(fuel node --env $1 | awk '/controller/{print($1)}' | head -1)
+    fuel node --node $node_id --disk --download
+    [ -f "node_$node_id/disks.yaml" ] && cp node_$node_id/disks.yaml ./disks.fixture.yaml
+}
+
+prepare_cic_network_fixture() {
+    local node_id
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    node_id=$(fuel node --env $1 | awk '/controller/{print($1)}' | head -1)
+    fuel node --node $node_id --network --download
+    [ -f "node_$node_id/interfaces.yaml" ] && cp node_$node_id/interfaces.yaml ./interfaces.fixture.yaml
+}
+
 list_nodes() {
     local roles_re
     [ -z "$1" ] && die "No env ID provided, exiting"
