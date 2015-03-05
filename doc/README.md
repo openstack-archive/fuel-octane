@@ -166,7 +166,7 @@ networks, while keeping connection between CICs themselves, and connect 6.0 CICs
 to those networks:
 
 ```
-octane/bin/deploy-with-gre-isolation.sh upgrade 1 40
+octane/bin/deploy-with-gre-isolation.sh upgrade ORIG_ID SEED_ID
 ```
 
 Now restart `nova-compute` services on all Compute nodes to ensure reconnection
