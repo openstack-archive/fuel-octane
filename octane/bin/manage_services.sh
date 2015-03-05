@@ -10,7 +10,7 @@ disable_apis() {
 enable_apis() {
     $pssh_run "sed -i '/use_backend maintenance if TRUE/d' \
         \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*)"
-    $pss_run "pkill haproxy"
+    $pssh_run "pkill haproxy"
 }
 
 stop_corosync_services() {
