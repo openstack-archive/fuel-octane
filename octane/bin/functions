@@ -137,12 +137,16 @@ replace_seed_ips() {
         done
 }
 
+backup_deployment_info() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -d "deployment_$1" ] && cp -R deployment_$1 deployment_$1.orig
+}
+
 remove_patch_transformations() {
 # Remove add-patch actions for br-ex, br-mgmt bridges. Required to isolate new
 # controllers from original environment while physically connected to the same
 # L2 segment.
     [ -z "$1" ] && die "No env ID provided, exiting"
-    cp -R deployment_$1 deployment_$1.orig
     python ../helpers/transformations.py deployment_$1
 }
 
@@ -152,6 +156,7 @@ prepare_seed_deployment_info() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
+    backup_deployment_info $2
     replace_seed_ips $1 $2
     remove_patch_transformations $2
     upload_deployment_info $2
