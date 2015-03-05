@@ -55,10 +55,8 @@ case $1 in
         ;;
     upgrade)
         check_deployment_status $SEED_ENV
-        vips_down $SEED_ENV
         for br_name in br-ex br-mgmt
             do
-                check_vip_down $SEED_ENV $br_name
                 delete_patch_ports $ORIG_ENV $br_name
                 create_tunnels $ORIG_ENV $br_name
                 remove_tunnels $SEED_ENV $br_name
