@@ -34,7 +34,8 @@ get_vip_from_cics() {
 # environment.
     local br_name
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
-    br_name=$(echo ${2:-br-mgmt} \
+    [ -z "$2" ] && die "No bridge name provided, exiting"
+    br_name=$(echo $2 \
         | awk '/br-ex/ {print "hapr-p"} \
         /br-mgmt/ {print "hapr-m"}')
     [ -n "$1" ] && echo $(fuel nodes --env-id $1 \
@@ -126,8 +127,8 @@ replace_vip_address() {
 replace_seed_ips() {
     local br_name
     local discard_ips
-    [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
-    [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
+    [ -z "$1" ] && die "No orig and seed env IDs provided, exiting"
+    [ -z "$2" ] && die "No seed env ID provided, exiting"
     for br_name in br-ex br-mgmt
         do
             get_ips_from_cics $1 $br_name > /tmp/env-$1-cic-$br_name-ips
@@ -453,15 +454,13 @@ upgrade_compute_node() {
     local roles
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    [ -z "$3" ] && die "No 5.1 env ID provided, exiting"
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $4); print $4}')
-    [ "$orig_id" == "$3" ] \
-        || [ "$orig_id" == "None" ] \
-        || die "Attempt to upgrade node-$2 from non-original environment $orig_id, exiting"
-    admin_mac=$(ssh root@node-$2 ip -o link show dev eth0 \
+    host=$(fuel node | awk -F"|" '/^'$2'/{print($5)}' \
+        | tr -d ' ')
+    admin_mac=$(ssh root@$host ip -o link show dev eth0 \
         | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
     [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$2, exiting"
     get_node_settings $2
@@ -476,14 +475,15 @@ upgrade_compute_node() {
                     for id in $(fuel node \
                             | awk -v id=$2 '/discover/ {if($1>$id){print $1}}')
                         do
-                            mac=$(ssh root@node-$id ip -o link show dev eth0 \
+                            host=$(fuel node | awk -F"|" '/^'$id'/{gsub(" ","", $5);print($5)}')
+                            mac=$(ssh root@$host ip -o link show dev eth0 \
                                 | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
                             [ -z "$mac" ] && break
                             [ "$mac" == "$admin_mac" ] && break 2
                         done
                 done
         fi
-    fuel node --node $id --env $1 set --role ${roles:-compute}
+    fuel node --node $id --env $1 set --role ${roles:-compute,ceph-osd}
     get_node_settings $id
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     ./copy-node-settings interfaces node_$id/interfaces.yaml \
@@ -500,7 +500,7 @@ upgrade_compute_node() {
         fi
     upload_node_settings $id
     get_deployment_info $1
-    prepare_deployment_info $3 $1
+    replace_seed_ips $1 $1
     upload_deployment_info $1
     monitor_and_update_cobbler $id
     fuel node --env $1 --node $id --provision
@@ -530,7 +530,7 @@ wait_for_node() {
         do
             [ $counter -gt 30 ] && die "Wait for node-$1 $2 timed out, exiting"
             status=$(fuel node --node $1 \
-                awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
+                | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
             [ "$status" == "$2" ] && break
             counter=$(expr $counter + 1)
             sleep 300
