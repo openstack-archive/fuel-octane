@@ -34,6 +34,8 @@ case $1 in
         echo "6.0 seed environment ID is $SEED_ENV"
         ;;
     provision)
+        prepare_cic_disk_fixture $ORIG_ENV
+        prepare_cic_network_fixture $ORIG_ENV
         for node in $(list_nodes $SEED_ENV)
             do
                 node_id=$(echo $node | cut -d '-' -f2)
