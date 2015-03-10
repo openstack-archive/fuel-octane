@@ -49,10 +49,10 @@ get_vip_from_cics() {
 get_deployment_info() {
     local cmd
 # Download deployment config from Fuel master for environment ENV to subdir in
-# current directory. Skip download if the directory already exists.
+# current directory.
     [ -z "$1" ] && die "No environment ID provided, exiting"
     cmd=${2:-default}
-    test -d ./deployment_$1 || fuel --env $1 deployment --$cmd
+    fuel --env $1 deployment --$cmd
 }
 
 get_ips_from_deploy_info() {
@@ -502,7 +502,7 @@ upgrade_compute_node() {
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
-    monitor_and_update_cobbler $id
+    monitor_and_update_cobbler $id &
     fuel node --env $1 --node $id --provision
     wait_for_node $id provisioned
     fuel node --env $1 --node $id --deploy
