@@ -87,7 +87,7 @@ upload_deployment_info() {
 # Upload deployment configration with modifications to Fuel master for
 # environment ENV.
     [ -z "$1" ] && die "No environment ID provided, exiting"
-    [ -d "./deployment_$1" ] && fuel --env $1 deployment upload
+    [ -d "./deployment_$1" ] && fuel --env $1 deployment --upload
 }
 
 replace_ip_addresses() {
@@ -535,4 +535,12 @@ wait_for_node() {
             counter=$(expr $counter + 1)
             sleep 300
         done
+}
+
+import_bootstrap_osd() {
+    local node
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    node=$(list_nodes $1 controller | head -1)
+    ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
+    ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
 }
