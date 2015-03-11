@@ -365,7 +365,7 @@ list_ports() {
 # second argument.
     [ -z "$1" ] && die "No hostname and bridge name provided, exiting"
     [ -z "$2" ] && die "No bridge name provided, exiting"
-    echo $(ssh root@$1 ovs-vsctl list-ports $2)
+    echo -n "$(ssh root@$1 ovs-vsctl list-ports $2)"
 }
 
 create_patch_ports() {
