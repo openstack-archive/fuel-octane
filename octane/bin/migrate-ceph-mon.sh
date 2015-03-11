@@ -128,4 +128,4 @@ for ctrl_host in ${mon_initial_members}; do
   " 
 	
 done
-pssh -i -H ${mon_initial_members} "/etc/init.d/ceph restart mon"
+pssh -i -H "${mon_initial_members}" "/etc/init.d/ceph restart mon"
