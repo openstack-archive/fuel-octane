@@ -1,7 +1,7 @@
 #!/bin/bash
 
 disable_apis() {
-    $pssh_run "echo 'backend maintenance' >> /etc/haproxy/haproxy.cfg"
+    $pssh_run "grep -q 'backend maintenance' /etc/haproxy/haproxy.cfg || echo 'backend maintenance' >> /etc/haproxy/haproxy.cfg"
     $pssh_run "for f in \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*); \
         do echo '  use_backend maintenance if TRUE' >> \$f; done"
     $pssh_run "pkill haproxy"
