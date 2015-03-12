@@ -13,8 +13,7 @@ function copy() {
     done
 }
 
-container=`docker ps | awk '/cobbler/ {print $1}'`
-docker restart $container
+dockerctl restart cobbler
 sleep 10
 copy ./pmanager.py cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py
 copy ./ubuntu_partition cobbler:/var/lib/cobbler/snippets/ubuntu_partition
