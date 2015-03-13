@@ -57,10 +57,13 @@ case $1 in
         ;;
     upgrade)
         check_deployment_status $SEED_ENV
-        for br_name in br-ex br-mgmt
+        for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $ORIG_ENV $br_name
                 create_tunnels $ORIG_ENV $br_name
+            done
+        for br_name in br-ex br-mgmt
+            do
                 remove_tunnels $SEED_ENV $br_name
                 create_patch_ports $SEED_ENV $br_name
             done
