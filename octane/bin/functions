@@ -168,7 +168,7 @@ prepare_seed_deployment_info() {
 prepare_cic_disk_fixture() {
     local node_id
     [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/controller/{print($1)}' | head -1)
+    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
     fuel node --node $node_id --disk --download
     [ -f "node_$node_id/disks.yaml" ] && cp node_$node_id/disks.yaml ./disks.fixture.yaml
 }
@@ -176,7 +176,7 @@ prepare_cic_disk_fixture() {
 prepare_cic_network_fixture() {
     local node_id
     [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/controller/{print($1)}' | head -1)
+    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
     fuel node --node $node_id --network --download
     [ -f "node_$node_id/interfaces.yaml" ] && cp node_$node_id/interfaces.yaml ./interfaces.fixture.yaml
 }
@@ -491,21 +491,18 @@ upgrade_compute_node() {
                 done
         fi
     fuel node --node $id --env $1 set --role ${roles:-compute,ceph-osd}
-    get_node_settings $id
+    [ "$orig_id" == "None" ] || prepare_cic_disk_fixture $orig_id compute
+    [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
-    ./copy-node-settings interfaces node_$id/interfaces.yaml \
-        interfaces.fixture.yaml > /tmp/interfaces.yaml
-    mv /tmp/interfaces.yaml node_$id/interfaces.yaml
+    apply_network_settings $id
     if [ $id -ne $2 ]
         then
-            cp node_$2/disks.yaml node_$id
+            cp node_$2/disks.yaml node_$id/disks.yaml
+            upload_node_settings $id
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
-            ./copy-node-settings disks node_$id/disks.yaml \
-                disks.fixture.yaml > /tmp/disks.yaml
-            mv /tmp/disks.yaml node_$id/disks.yaml
+            apply_disk_settings $id
         fi
-    upload_node_settings $id
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
