@@ -1,8 +1,16 @@
 #!/bin/sh -e
 
+PATCH=${1-"../patches/neutron-upgrade.patch"}
+
+if [ ! -f "$PATCH" ]; then
+    echo "Usage $0 neutron-upgrade.patch > neutron-upgrade-rendered.patch" >> /dev/stderr
+    exit 1
+fi
+
+
 
 extract_vars() {
-        sed -re '/^\+.*%.*/ s/.*%([^%]+)%.*/\L\1/;tx;d;:x' neutron-upgrade.patch
+        sed -re '/^\+.*%.*/ s/.*%([^%]+)%.*/\L\1/;tx;d;:x' $PATCH
 }
 
 convert_vars_to_regex() {
@@ -14,4 +22,4 @@ generate_template_regex() {
 }
 
 
-sed -r "`generate_template_regex`"  neutron-upgrade.patch
+sed -r "`generate_template_regex`" ${PATCH}
