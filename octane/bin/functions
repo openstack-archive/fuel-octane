@@ -447,6 +447,12 @@ upload_node_settings() {
     fuel node --node $1 --disk --upload
 }
 
+get_env_by_node() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    echo "$(fuel node --node $1 \
+        | awk -F\| '/^'$1'/ {gsub(" ", "", $4); print $4}')"
+}
+
 upgrade_compute_node() {
     local orig_id
     local admin_mac
@@ -458,8 +464,7 @@ upgrade_compute_node() {
     [ -z "$2" ] && die "No node ID provided, exiting"
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}')
-    orig_id=$(fuel node --node $2 \
-        | awk -F\| '/^'$2'/ {gsub(" ", "", $4); print $4}')
+    orig_id=$(get_env_by_node $2)
     host=$(fuel node | awk -F"|" '/^'$2'/{print($5)}' \
         | tr -d ' ')
     admin_mac=$(ssh root@$host ip -o link show dev eth0 \
@@ -545,4 +550,14 @@ import_bootstrap_osd() {
     node=$(list_nodes $1 controller | head -1)
     ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
     ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
+}
+
+prepare_osd_upgrade() {
+    local env_id
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    env_id=$(get_env_by_node $1)
+    ctrl=$(list_nodes $env_id 'controller' | head -1)
+    [ -z "$(ssh root@$ctrl ceph health | grep HEALTH_OK)" ] && \
+        die "Ceph cluster is unhealthy, exiting"
+    ssh root@$ctrl ceph osd set noout
 }
