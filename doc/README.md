@@ -172,6 +172,20 @@ octane/bin/deploy-with-gre-isolation.sh upgrade ORIG_ID SEED_ID
 Now restart `nova-compute` services on all Compute nodes to ensure reconnection
 to Rabbit server.
 
-## Upgrade Compute to 6.0
+### Upgrade Compute to 6.0
 
+Run following script to upgrade Compute service on all hypervisor hosts to
+version 6.0 without upgrading data plane (i.e. hypervisor, operating system and
+kernel). This script installs 6.0 source for APT package manager, updates
+versions of `nova-compute` package and its dependencies (including Neutron
+agent), updates configuration file for Neutron agent to work with new version
+of packages and restarts updated services.
+
+```
+octane/bin/upgrade-compute-node.sh NODE_ID [PATCH_PATH]
+```
+NODE_ID argument is required. Its value must be an ID of node in Fuel picked for
+upgrade.
+Optional PATCH_PATH argument allows to specify template for the patch that will
+be applied to Neutron configuration file.
 
