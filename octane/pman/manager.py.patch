@@ -1,7 +1,7 @@
-diff --git a/nailgun/nailgun/volumes/manager.py b/nailgun/nailgun/volumes/manager.py
+diff --git a/manager.py b/manager.py
 index 91200f1..991fa81 100644
---- a/nailgun/nailgun/volumes/manager.py
-+++ b/nailgun/nailgun/volumes/manager.py
+--- a/manager.py
++++ b/manager.py
 @@ -224,8 +224,10 @@ class DisksFormatConvertor(object):
          volume_manager = node.volume_manager
          for disk in disks:

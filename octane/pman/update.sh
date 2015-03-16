@@ -22,7 +22,7 @@ function patchfile() {
     local src=$1 patchf=$2
     local tmp="$run/`basename $src`.patchfile"
     dockerctl copy $src $tmp
-    patch -Np4 $tmp $patchf && cp $tmp "$tmp.backup" || return 0
+    patch -Np1 $tmp $patchf && cp $tmp "$tmp.backup" || return 0
     dockerctl copy $tmp $src
     copyfile $tmp $src
 }

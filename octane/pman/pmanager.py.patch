@@ -1,5 +1,5 @@
---- pm.py	2015-03-13 16:14:43.955031037 +0300
-+++ pmanager.py	2015-03-13 18:57:27.173407487 +0300
+--- a/pmanager.py	2015-03-13 16:14:43.955031037 +0300
++++ b/pmanager.py	2015-03-13 18:57:27.173407487 +0300
 @@ -672,8 +672,26 @@
      def num_ceph_osds(self):
          return self.get_partition_count('ceph')
