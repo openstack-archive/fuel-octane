@@ -182,7 +182,7 @@ agent), updates configuration file for Neutron agent to work with new version
 of packages and restarts updated services.
 
 ```
-octane/bin/upgrade-compute-node.sh NODE_ID [PATCH_PATH]
+octane/bin/upgrade-nova-compute.sh NODE_ID [PATCH_PATH]
 ```
 NODE_ID argument is required. Its value must be an ID of node in Fuel picked for
 upgrade.
