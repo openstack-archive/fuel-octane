@@ -153,6 +153,12 @@ remove_patch_transformations() {
     python ../helpers/transformations.py deployment_$1
 }
 
+disable_ping_checker() {
+    [ -z "$2" ] && die "No env ID provided, exiting"
+    [ -d "./deployment_$2" ] || die "Deployment info directory not found, exiting"
+    ls deployment_$2/** | xargs -I@ sh -c "echo 'ping_checker: false' >> @"
+}
+
 prepare_seed_deployment_info() {
     local br_name
     local discard_ips
@@ -160,6 +166,7 @@ prepare_seed_deployment_info() {
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
     backup_deployment_info $2
+    disable_ping_ckecker $2
     replace_seed_ips $1 $2
     remove_patch_transformations $2
     upload_deployment_info $2
