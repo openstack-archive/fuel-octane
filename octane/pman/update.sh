@@ -19,15 +19,16 @@ function copyfile() {
 }
 
 function patchfile() {
-    local orig=$1 patchf=$2
-    local tmp="$run/`basename $orig`"
-    dockerctl copy $orig $tmp
+    local src=$1 patchf=$2
+    local tmp="$run/`basename $src`.patchfile"
+    dockerctl copy $src $tmp
     patch -Np4 $tmp $patchf && cp $tmp "$tmp.backup" || return 0
-    dockerctl copy $tmp $orig
+    dockerctl copy $tmp $src
+    copyfile $tmp $src
 }
 
 mkdir -p $run
 dockerctl restart cobbler
-copyfile ./pmanager.py cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py
+patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py pmanager.py.patch
 patchfile nailgun:/usr/lib/python2.6/site-packages/nailgun/volumes/manager.py manager.py.patch
 dockerctl shell nailgun pkill -f wsgi
