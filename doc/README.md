@@ -169,10 +169,7 @@ to those networks:
 octane/bin/deploy-with-gre-isolation.sh upgrade ORIG_ID SEED_ID
 ```
 
-Now restart `nova-compute` services on all Compute nodes to ensure reconnection
-to Rabbit server.
-
-### Upgrade Compute to 6.0
+### Upgrade `nova-compute` to 6.0
 
 Run following script to upgrade Compute service on all hypervisor hosts to
 version 6.0 without upgrading data plane (i.e. hypervisor, operating system and
@@ -189,3 +186,31 @@ upgrade.
 Optional PATCH_PATH argument allows to specify template for the patch that will
 be applied to Neutron configuration file.
 
+## Upgrade Ceph-OSD
+
+### Patch Fuel software
+
+To reinstall Ceph OSD with retention of data partitions requires modifications
+to certain components of Fuel, including Cobbler, Nailgun and Puppet manifests.
+Run following script on the Fuel Master node to update code of components and
+restart services.
+
+```
+octane/patches/pman/update.sh
+```
+
+Run following script to update Puppet modules to disable initialization of Ceph
+data partition.
+
+```
+octane/patches/puppet/update.sh
+```
+
+### Disable Ceph rebalance
+
+Run command on any of CIC nodes to disable rebalance of Ceph data when Ceph node
+goes down.
+
+```
+ceph osd set noout
+```
