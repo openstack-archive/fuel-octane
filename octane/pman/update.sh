@@ -29,6 +29,7 @@ function patchfile() {
 
 mkdir -p $run
 dockerctl restart cobbler
+sleep 10
 patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py pmanager.py.patch
 patchfile nailgun:/usr/lib/python2.6/site-packages/nailgun/volumes/manager.py manager.py.patch
 dockerctl shell nailgun pkill -f wsgi
