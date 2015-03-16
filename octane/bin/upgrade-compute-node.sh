@@ -25,15 +25,16 @@ add_apt_sources() {
 	printf "\ndeb $source precise main\n" | ssh root@$1 "cat >> /etc/apt/sources.list"
 }
 
-PATCH=${2-"../patches/neutron-upgrade.patch"}
-
-if [ ! -f "$PATCH" ]; then
-    echo "Usage $0 neutron-upgrade.patch > neutron-upgrade-rendered.patch" >> /dev/stderr
-    exit 1
-fi
 
 [ -f "./functions" ] && . ./functions
 
 [ -z "$1" ] && die "No node ID provided, exiting"
+PATCH=${2-"../patches/neutron-upgrade.patch"}
+
+if [ ! -f "$PATCH" ]; then
+    echo "Usage $0 NODE_ID [PATCH_PATH]" >> /dev/stderr
+    exit 1
+fi
+
 add_apt_sources $1
 upgrade_compute_service $1
