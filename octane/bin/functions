@@ -505,11 +505,12 @@ upgrade_compute_node() {
     if [ $id -ne $2 ]
         then
             cp node_$2/disks.yaml node_$id/disks.yaml
-            upload_node_settings $id
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             apply_disk_settings $id
         fi
+    ./keep-ceph-partition node_$id/disks.yaml
+    upload_node_settings $id
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
