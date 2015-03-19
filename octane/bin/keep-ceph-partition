@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import sys
+import yaml
+
+
+def main():
+    settings = yaml.load(open(sys.argv[1]))
+    for disk in settings:
+        for vol in disk["volumes"]:
+            if vol["name"] == "ceph":
+                vol.update({'keep': True})
+
+    yaml.dump(list(settings), stream=sys.stdout, default_flow_style=False)
+
+if __name__ == '__main__':
+    main()
+
