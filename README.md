@@ -172,7 +172,7 @@ Run following script to update Puppet modules to disable initialization of Ceph
 data partition.
 
 ```
-[root@fuel pman]# cd /root/octane/octane/patch/puppet
+[root@fuel pman]# cd /root/octane/octane/patches/puppet
 [root@fuel puppet]# ./update.sh
 ```
 
@@ -183,3 +183,6 @@ Select a node to upgrade from the list of nodes in 5.1 environment:
 ```
 [root@fuel puppet]# cd /root/octane/octane/bin
 [root@fuel bin]# ./octane upgrade-node
+```
+
+
