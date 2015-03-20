@@ -166,7 +166,7 @@ prepare_seed_deployment_info() {
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
     backup_deployment_info $2
-    disable_ping_ckecker $2
+    disable_ping_checker $2
     replace_seed_ips $1 $2
     remove_patch_transformations $2
     upload_deployment_info $2
@@ -566,3 +566,8 @@ prepare_osd_upgrade() {
         die "Ceph cluster is unhealthy, exiting"
     ssh root@$ctrl ceph osd set noout
 }
+
+prepare_compute_upgrade() {
+}
+
+
