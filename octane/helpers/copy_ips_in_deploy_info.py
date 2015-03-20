@@ -23,5 +23,5 @@ with open(args.destination_yaml, 'r') as dest:
                 j["internal_address"] = i["internal_address"]
                 j["public_address"] = i["public_address"]
 
-with open(args.destination_yamlg, 'w') as target:
+with open(args.destination_yaml, 'w') as target:
     target.write(yaml.dump(dest_yaml, default_flow_style=False))
