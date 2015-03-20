@@ -563,18 +563,6 @@ upgrade_node() {
     fuel --env $1 deploy-changes
 }
 
-monitor_and_update_cobbler() {
-    local NODE
-    NODE=node-$1
-    while true; do
-        echo .
-        sleep 1
-        dockerctl shell cobbler cobbler system report --name $NODE > /dev/null || continue
-        dockerctl shell cobbler cobbler system edit --name $NODE --in-place --ksmeta="keep_ceph_volumes=True"
-        break
-    done
-}
-
 wait_for_node() {
     local counter
     local status
