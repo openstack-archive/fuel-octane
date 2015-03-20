@@ -311,8 +311,8 @@ check_deployment_status() {
     local status
     [ -z "$1" ] && die "No env ID provided, exiting"
     status=$(fuel env --env $1 \
-        | grep -Eo "^$1 \| [^\|]+" \
-        | cut -d' ' -f3)
+        | awk -F"|" '/^'$1'/{print $2}' \
+        | tr -d ' ')
     [ "$status" == 'new' ] || die "Environment is not operational, exiting"
 }
 
@@ -599,4 +599,3 @@ import_bootstrap_osd() {
     ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
     ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
 }
-
