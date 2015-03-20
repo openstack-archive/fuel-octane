@@ -460,36 +460,39 @@ get_env_by_node() {
         | awk -F\| '/^'$1'/ {gsub(" ", "", $4); print $4}')"
 }
 
-upgrade_compute_node() {
+get_host_ip_by_node_id() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    echo $(fuel node | awk -F"|" '/^'$1'/{print($5})' | tr -d ' ')
+}
+
+prepare_node_upgrade(){
     local orig_id
-    local admin_mac
-    local mac
-    local node
-    local id
     local roles
-    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
-    [ -z "$2" ] && die "No node ID provided, exiting"
-    roles=$(fuel node --node $2 \
-        | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}')
-    orig_id=$(get_env_by_node $2)
-    host=$(fuel node | awk -F"|" '/^'$2'/{print($5)}' \
-        | tr -d ' ')
+    local mac
+    local admin_mac
+    local host
+    local id
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    roles=$(fuel node --node $1 \
+        | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
+    orig_id=$(get_env_by_node $1)
+    host=$(get_host_ip_by_node_id $1)
     admin_mac=$(ssh root@$host ip -o link show dev eth0 \
         | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
-    [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$2, exiting"
-    get_node_settings $2
+    [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$1, exiting"
+    get_node_settings $1
     if [ "$orig_id" == "None" ]
         then
-            id=$2
+            id=$1
         else
-            fuel node --node $2 --delete
+            fuel node --node $1 --delete
             fuel --env $orig_id deploy-changes
             while :
                 do
                     for id in $(fuel node \
-                            | awk -v id=$2 '/discover/ {if($1>$id){print $1}}')
+                            | awk -v id=$1 '/discover/ {if($1>$id){print $1}}')
                         do
-                            host=$(fuel node | awk -F"|" '/^'$id'/{gsub(" ","", $5);print($5)}')
+                            host=$(get_host_ip_by_node_id $id)
                             mac=$(ssh root@$host ip -o link show dev eth0 \
                                 | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
                             [ -z "$mac" ] && break
@@ -502,22 +505,63 @@ upgrade_compute_node() {
     [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     apply_network_settings $id
-    if [ $id -ne $2 ]
+    if [ $id -ne $1 ]
         then
-            cp node_$2/disks.yaml node_$id/disks.yaml
+            cp node_$1/disks.yaml node_$id/disks.yaml
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             apply_disk_settings $id
         fi
     ./keep-ceph-partition node_$id/disks.yaml
     upload_node_settings $id
+}
+
+prepare_osd_upgrade() {
+    local env_id
+    local ctrl
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    env_id=$(get_env_by_node $1)
+    ctrl=$(list_nodes $env_id 'controller' | head -1)
+    [ -z "$(ssh root@$ctrl ceph health | grep HEALTH_OK)" ] && \
+        die "Ceph cluster is unhealthy, exiting"
+    ssh root@$ctrl ceph osd set noout
+    scp -r ../pman root@node-$1:/tmp/
+    ssh root@node-$1 /tmp/pman/update_node.sh
+}
+
+prepare_compute_upgrade() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    ./host_evacuate node-$1
+}
+
+upgrade_node() {
+    local roles
+    local role
+    local id
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    roles=$(fuel node --node $2 \
+        | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
+        | sed -re 's%,% %')
+    for role in roles
+        do
+            case $role in 
+                compute)
+                    prepare_compute_upgrade $2
+                    ;;
+                ceph-osd)
+                    prepare_osd_upgrade $2
+                    ;;
+                *)
+                    echo "Role $role unsupported, skipping"
+                    ;;
+             esac
+         done
+    prepare_node_upgrade $2
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
-    monitor_and_update_cobbler $id &
-    fuel node --env $1 --node $id --provision
-    wait_for_node $id provisioned
-    fuel node --env $1 --node $id --deploy
+    fuel --env $1 deploy-changes
 }
 
 monitor_and_update_cobbler() {
@@ -556,18 +600,4 @@ import_bootstrap_osd() {
     ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
     ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
 }
-
-prepare_osd_upgrade() {
-    local env_id
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    env_id=$(get_env_by_node $1)
-    ctrl=$(list_nodes $env_id 'controller' | head -1)
-    [ -z "$(ssh root@$ctrl ceph health | grep HEALTH_OK)" ] && \
-        die "Ceph cluster is unhealthy, exiting"
-    ssh root@$ctrl ceph osd set noout
-}
-
-prepare_compute_upgrade() {
-}
-
 
