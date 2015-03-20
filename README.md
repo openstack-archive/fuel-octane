@@ -182,7 +182,15 @@ Select a node to upgrade from the list of nodes in 5.1 environment:
 
 ```
 [root@fuel puppet]# cd /root/octane/octane/bin
+[root@fuel bin]# fuel node --env ORIG_ID
+```
+
+Run an Octane script with 'upgrade-node' command to reassign node to 6.0
+environment and upgrade it. You need to specify ID of the node as a second
+argument.
+
+```
 [root@fuel bin]# ./octane upgrade-node
 ```
 
-
+Repeat this process until all nodes are reassigned from 5.1 to 6.0 environment.
