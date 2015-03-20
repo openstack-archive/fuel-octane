@@ -77,6 +77,7 @@ Use Octane script to configure network isolation of Seed environment and start
 deployment of OpenStack services:
 
 ```
+octane/bin/deploy-with-gre-isolation.sh prepare ORIG_ID SEED_ID
 octane/bin/deploy-with-gre-isolation.sh deploy ORIG_ID SEED_ID
 ```
 
