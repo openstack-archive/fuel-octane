@@ -192,7 +192,7 @@ list_nodes() {
     local roles_re
     [ -z "$1" ] && die "No env ID provided, exiting"
     roles_re=${2:-controller}
-    echo $(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')
+    echo "$(fuel node --env $1 | awk '/'$roles_re'/ {print "node-" $1}')"
 }
 
 create_ovs_bridges() {
