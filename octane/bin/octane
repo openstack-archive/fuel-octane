@@ -1,0 +1,120 @@
+#!/bin/bash
+
+cd $(dirname $0)
+. functions
+
+[ "$1" == "-d" ] && {
+    set -x
+    shift
+}
+
+usage() {
+    echo "Usage: $(basename $0) [-d] COMMAND ENV_ID [ENV_ID]
+COMMAND:
+clone ENV_ID                    - clone envinroment settings and return seed env ID
+provision ORIG_ID SEED_ID       - start provisioning of nodes in seed env
+prepare ORIG_ID SEED_ID         - prepare provisioned seed env CICs for isolated deployment
+deploy ENV_ID                   - start deployment of nodes in seed env with isolation
+upgrade ORIG_ID SEED_ID         - isolate orig env CICs and replace them with seed CICs
+upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
+upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
+upgrade-compute ENV_ID NODE_ID  - move compute node NODE_ID to env ENV_ID and upgrade
+upgrade-nova-compute NODE_ID    - update nova and neutron packages on the compute
+                                  node NODE_ID and restart services
+help                        - display this message and exit"
+}
+
+KEY=0
+[ -z "$1" ] && die "$(usage)"
+
+case $1 in
+    prepare-fuel)
+        yum -y install postgresql.x86_64 pssh patch
+        ./patch-fuel-manifests.sh
+        ;;
+    clone)
+        [ -z "$2" ] && die "$(usage)"
+        SEED_ENV="$(clone_env $2)"
+        copy_generated_settings $2 $SEED_ENV
+        echo "6.0 seed environment ID is $SEED_ENV"
+        ;;
+    provision)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        prepare_cic_disk_fixture $2
+        prepare_cic_network_fixture $2
+        for node in $(list_nodes $3)
+            do
+                node_id=$(echo $node | cut -d '-' -f2)
+                [ -f ./interfaces.fixture.yaml ] && apply_network_settings $node_id
+                [ -f ./disks.fixture.yaml ] && apply_disk_settings $node_id
+            done
+        env_action $3 provision
+        ;;
+    prepare)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        prepare_seed_deployment_info $2 $3
+        create_ovs_bridges $3
+        ;;
+    deploy)
+        [ -z "$2" ] && die "$(usage)"
+        for br_name in br-ex br-mgmt
+            do
+                create_tunnels $2 $br_name '(controller|compute|ceph-osd)'
+            done
+        env_action $2 deploy
+        ;;
+    upgrade-cics)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        check_deployment_status $3
+        ./manage_services.sh start $3
+        # Wait for corosync cluster to sync and start, and for Neutron to create
+        # all network resources on 6.0 CICs
+        sleep 300
+        for br_name in br-ex br-mgmt br-prv
+            do
+                delete_patch_ports $2 $br_name
+                create_tunnels $2 $br_name
+            done
+        for br_name in br-ex br-mgmt
+            do
+                remove_tunnels $3 $br_name
+                create_patch_ports $3 $br_name
+            done
+        ;;
+     upgrade-db)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        ./manage_services.sh stop $3
+        ./manage_services.sh disable $2
+        ./upgrade-db.sh $2 $3
+        ;;
+     upgrade-ceph)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        ./migrate-ceph-mon.sh $2 $3
+        ;;
+     upgrade-node)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        upgrade_node $2 $3;
+        ;;
+     upgrade-nova-compute)
+        [ -z "$2" ] && die "$(usage)"
+        list_nodes $2 compute \
+        | xargs -I{} ./upgrade-nova-compute {}
+        ;;
+     help)
+        usage
+        ;;
+     *)
+        echo "Invalid command: $1"
+        usage
+        exit 1
+        ;;
+esac
+
+exit 0
+# vi:sw=4:ts=4:

@@ -21,6 +21,21 @@ migration to evacuate all virtual instances from the node. Delete the node from
 environment. Repeat for at least 2 nodes (CIC and Compute/Ceph OSD in 6.0 Seed
 environment). Wait for nodes to be discovered in Fuel as `unallocated'.
 
+## Install Octane
+
+Unpack Octane tarball to /root/ directory. Change to bin/ directory of Octane.
+
+```
+[root@fuel ~]# cd /root/octane/octane/bin
+```
+
+Run Octane script to install necessary packages on Fuel master and patch
+manifests and source code of components.
+
+```
+[root@fuel bin]# ./octane prepare-fuel
+```
+
 ## Install 6.0 Seed environment
 
 ### Clone settings
@@ -29,7 +44,7 @@ First, pick the environment of version 5.1 you want to upgrade. Log in to Fuel
 Master node and run:
 
 ```
-fuel env
+[root@fuel bin]# fuel env
 ````
 
 Find the environment you selected for upgrade and remember its ID. We will refer
@@ -38,7 +53,7 @@ to it as `ORIG_ID` below.
 Now run Octane script to clone settings of your environment:
 
 ```
-octane/bin/deploy-with-gre-isolation.sh clone ORIG_ID
+[root@fuel bin]# ./octane clone ORIG_ID
 ```
 
 Remember ID of your Seed environment. We will refer to it as `SEED_ID`.
@@ -46,10 +61,12 @@ Remember ID of your Seed environment. We will refer to it as `SEED_ID`.
 ### Add nodes
 
 Add nodes from pool of unallocated node to the new environment via Fuel UI or
-CLI. You need to add at least 1 CIC and at least 1 Ceph-OSD node. You may add
-Compute node, but it is optional.
+CLI. You need to add at least 1 CIC node. You may add Compute node, but it is
+optional.
 
-Configure disks and interfaces at nodes in Seed environment via Fuel UI.
+```
+[root@fuel bin]# fuel node set --env SEED_ID --node ID[,ID,...] --role controller
+```
 
 ### Provision nodes
 
@@ -57,19 +74,10 @@ Use Octane script to initiate provisioning of operating system to all nodes in
 Seed environment:
 
 ```
-octane/bin/deploy-with-gre-isolation.sh provision ORIG_ID SEED_ID
+[root@fuel bin]# ./octane provision ORIG_ID SEED_ID
 ```
 
 Wait for nodes to come to 'provisioned' state.
-
-### Patch Fuel manifests
-
-While Seed environment is being provisioned, patch Fuel manifests using
-following Octane script:
-
-```
-octane/bin/patch-fuel-manifests.sh
-```
 
 ### Configure isolation
 
@@ -77,14 +85,14 @@ Use Octane script to configure network isolation of Seed environment and start
 deployment of OpenStack services:
 
 ```
-octane/bin/deploy-with-gre-isolation.sh prepare ORIG_ID SEED_ID
-octane/bin/deploy-with-gre-isolation.sh deploy ORIG_ID SEED_ID
+[root@fuel bin]# ./octane prepare ORIG_ID SEED_ID
+[root@fuel bin]# ./octane deploy SEED_ID
 ```
 
 Wait for Seed environment to come into 'operational' state:
 
 ```
-fuel env --env SEED_ID
+[root@fuel bin]# fuel env --env SEED_ID
 ```
 
 ## Upgrade CICs to 6.0
@@ -92,49 +100,19 @@ fuel env --env SEED_ID
 This stage upgrades 5.1 controllers to version 6.0 by replacing them
 with CICs of Seed environment.
 
-### Shut off CIC services
-
-Use Octane script to shut off OpenStack services on CICs in 5.1
-environment:
-
-```
-octane/bin/manage_services.sh disable ORIG_ID
-```
-
-Shut off OpenStack services on 6.0 CIC:
-
-```
-octane/bin/manage_services.sh stop SEED_ID
-```
-
-### Configure 6.0 CIC
-
-Modify configuration of 6.0 CIC to ensure compatibility with 5.1 Computes:
-
-```
-octane/bin/manage_services.sh config SEED_ID icehouse
-```
-
-### Apply 6.0 CIC patches
-
-Use Octane script to apply patch for Nova bugs
-[https://bugs.launchpad.net/nova/+bug/1408496] and
-[https://bugs.launchpad.net/nova/+bug/1408498] to Nova source code on the CIC:
-
-```
-octane/bin/patch-cic-nova SEED_ID
-```
-
 ### Upgrade State Database
 
 State Database contains all metadata and status data of virtual resources in
 your cloud environment. Octane transfers that data to 6.0 environment as a part
 of upgrade of CIC.
 
+Before it starts datat transfer, Octane stops all services on 6.0 CICs, and
+disables APIs on 5.1 CICs, putting the environment into **Maintenance mode**.
+
 Run Octane script to upgrade databases:
 
 ```
-octane/bin/upgrade-db.sh ORIG_ID SEED_ID
+[root@fuel bin]# ./octane upgrade-db ORIG_ID SEED_ID
 ```
 
 ### Update 6.0 Ceph cluster configuration
@@ -142,52 +120,41 @@ octane/bin/upgrade-db.sh ORIG_ID SEED_ID
 Use Octane script to configure Ceph Monitors to work with original Ceph cluster:
 
 ```
-octane/bin/migrate-ceph-mon.sh ORIG_ID SEED_ID
+[root@fuel bin]# ./octane upgrade-ceph ORIG_ID SEED_ID
 ```
 
-Restart Ceph Monitors on all 6.0 controllers to apply configuration changes:
-
-```
-pssh -i -h /tmp/controllers /etc/init.d/ceph restart mon
-```
-
-### Start 6.0 CIC services
-
-Once DB upgraded and Ceph MONs reconfigured, run Octane script to start services
-on 6.0 CICs:
-
-```
-octane/bin/manage_services.sh start SEED_ID
-```
+Once it updated Ceph configuration, the script restarts Ceph Monitors on all 6.0
+CICs.
 
 ### Replace CICs 5.1 with 6.0
 
-Following Octane script will disconnect 5.1 CICs from Management and Public
-networks, while keeping connection between CICs themselves, and connect 6.0 CICs
-to those networks:
+Now start all services on 6.0 CICs with upgraded data and redirect Compute
+nodes from 5.1 CICs to 6.0 CICs.
+
+Following Octane script will start all services on 6.0 CICs, then disconnect 5.1
+CICs from Management and Public networks, while keeping connection between CICs
+themselves, and connect 6.0 CICs to those networks:
 
 ```
-octane/bin/deploy-with-gre-isolation.sh upgrade ORIG_ID SEED_ID
+[root@fuel bin]# ./octane upgrade-cics ORIG_ID SEED_ID
 ```
 
 ### Upgrade `nova-compute` to 6.0
 
-Run following script to upgrade Compute service on all hypervisor hosts to
-version 6.0 without upgrading data plane (i.e. hypervisor, operating system and
-kernel). This script installs 6.0 source for APT package manager, updates
-versions of `nova-compute` package and its dependencies (including Neutron
-agent), updates configuration file for Neutron agent to work with new version
-of packages and restarts updated services.
+Run following script to upgrade `nova-compute` and dependency packages on all
+hypervisor hosts to version 6.0 without upgrading data plane (i.e. hypervisor,
+operating system and kernel). This script installs 6.0 source for APT package
+manager, updates versions of `nova-compute` package and its dependencies
+(including Neutron agent), updates configuration file for Neutron agent to work
+with new version of packages and restarts updated services.
+
+Note that this script will affect all compute nodes in the environment.
 
 ```
-octane/bin/upgrade-nova-compute.sh NODE_ID [PATCH_PATH]
+[root@fuel bin]# ./octane upgrade-nova-compute ORIG_ID
 ```
-NODE_ID argument is required. Its value must be an ID of node in Fuel picked for
-upgrade.
-Optional PATCH_PATH argument allows to specify template for the patch that will
-be applied to Neutron configuration file.
 
-## Upgrade Ceph-OSD
+## Upgrade nodes
 
 ### Patch Fuel software
 
@@ -197,21 +164,22 @@ Run following script on the Fuel Master node to update code of components and
 restart services.
 
 ```
-octane/patches/pman/update.sh
+[root@fuel bin]# cd /root/octane/octane/patches/pman
+[root@fuel pman]# ./update.sh
 ```
 
 Run following script to update Puppet modules to disable initialization of Ceph
 data partition.
 
 ```
-octane/patches/puppet/update.sh
+[root@fuel pman]# cd /root/octane/octane/patch/puppet
+[root@fuel puppet]# ./update.sh
 ```
 
-### Disable Ceph rebalance
+### Pick node for upgrade
 
-Run command on any of CIC nodes to disable rebalance of Ceph data when Ceph node
-goes down.
+Select a node to upgrade from the list of nodes in 5.1 environment:
 
 ```
-ceph osd set noout
-```
+[root@fuel puppet]# cd /root/octane/octane/bin
+[root@fuel bin]# ./octane upgrade-node
