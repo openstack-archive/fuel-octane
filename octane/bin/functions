@@ -465,7 +465,7 @@ get_host_ip_by_node_id() {
     echo $(fuel node | awk -F"|" '/^'$1'/{print($5)}' | tr -d ' ')
 }
 
-prepare_node_upgrade(){
+assign_node_to_env(){
     local orig_id
     local roles
     local mac
@@ -473,6 +473,7 @@ prepare_node_upgrade(){
     local host
     local id
     [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -z "$2" ] && die "No seed env ID provided, exiting"
     roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
@@ -500,7 +501,7 @@ prepare_node_upgrade(){
                         done
                 done
         fi
-    fuel node --node $id --env $1 set --role ${roles:-compute,ceph-osd}
+    fuel node --node $id --env $2 set --role ${roles:-compute,ceph-osd}
     [ "$orig_id" == "None" ] || prepare_cic_disk_fixture $orig_id compute
     [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
@@ -556,7 +557,7 @@ upgrade_node() {
                     ;;
              esac
          done
-    prepare_node_upgrade $2
+    assign_node_to_env $2 $1
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
