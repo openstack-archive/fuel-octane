@@ -526,7 +526,9 @@ prepare_osd_upgrade() {
     [ -z "$(ssh root@$ctrl ceph health | grep HEALTH_OK)" ] && \
         die "Ceph cluster is unhealthy, exiting"
     ssh root@$ctrl ceph osd set noout
-    ../patches/pman/update_node.sh $1
+    cd ../patches/pman/
+    ./update_node.sh node-$1
+    cd $OLDPWD
 }
 
 prepare_compute_upgrade() {
