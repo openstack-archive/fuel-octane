@@ -18,10 +18,10 @@ deploy ENV_ID                   - start deployment of nodes in seed env with iso
 upgrade ORIG_ID SEED_ID         - isolate orig env CICs and replace them with seed CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
-upgrade-compute ENV_ID NODE_ID  - move compute node NODE_ID to env ENV_ID and upgrade
+upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
 upgrade-nova-compute NODE_ID    - update nova and neutron packages on the compute
                                   node NODE_ID and restart services
-help                        - display this message and exit"
+help                            - display this message and exit"
 }
 
 KEY=0
@@ -31,6 +31,8 @@ case $1 in
     prepare-fuel)
         yum -y install postgresql.x86_64 pssh patch
         ./patch-fuel-manifests.sh
+        ../patches/pman/update.sh
+        ../patches/puppet/update.sh
         ;;
     clone)
         [ -z "$2" ] && die "$(usage)"
@@ -104,7 +106,7 @@ case $1 in
      upgrade-nova-compute)
         [ -z "$2" ] && die "$(usage)"
         list_nodes $2 compute \
-        | xargs -I{} ./upgrade-nova-compute {}
+        | xargs -I{} ./upgrade-nova-compute.sh {}
         ;;
      help)
         usage
