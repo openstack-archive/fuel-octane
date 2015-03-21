@@ -545,7 +545,7 @@ upgrade_node() {
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
-    for role in roles
+    for role in $roles
         do
             case $role in 
                 compute)
