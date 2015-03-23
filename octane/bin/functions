@@ -156,7 +156,7 @@ remove_patch_transformations() {
 disable_ping_checker() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     [ -d "./deployment_$1" ] || die "Deployment info directory not found, exiting"
-    ls deployment_$1/** | xargs -I@ sh -c "echo 'ping_checker: \"false\"' >> @"
+    ls deployment_$1/** | xargs -I@ sh -c "echo 'run_ping_checker: \"false\"' >> @"
 }
 
 prepare_seed_deployment_info() {
