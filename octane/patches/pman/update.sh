@@ -1,6 +1,7 @@
 #!/bin/sh -ex
 
-run=.state
+run=".state"
+PATCH_DIR="../patches/pman/"
 
 function copyfile() {
     local src=$1 dst=$2
@@ -30,8 +31,8 @@ function patchfile() {
 mkdir -p $run
 dockerctl restart cobbler
 sleep 10
-patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py pmanager.py.patch
+patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py ${PATCH_DIR}/pmanager.py.patch
 sleep 5
-patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py pmanager.py.patch
-patchfile nailgun:/usr/lib/python2.6/site-packages/nailgun/volumes/manager.py manager.py.patch
+patchfile cobbler:/usr/lib/python2.6/site-packages/cobbler/pmanager.py ${PATCH_DIR}/pmanager.py.patch
+patchfile nailgun:/usr/lib/python2.6/site-packages/nailgun/volumes/manager.py ${PATCH_DIR}/manager.py.patch
 dockerctl shell nailgun pkill -f wsgi
