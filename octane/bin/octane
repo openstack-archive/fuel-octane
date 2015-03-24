@@ -63,9 +63,9 @@ case $1 in
         [ -z "$2" ] && die "$(usage)"
         for br_name in br-ex br-mgmt
             do
-                create_tunnels $3 $br_name '(controller|compute|ceph-osd)'
+                create_tunnels $2 $br_name '(controller|compute|ceph-osd)'
             done
-        env_action $3 deploy
+        env_action $2 deploy
         ;;
     upgrade-cics)
         [ -z "$2" ] && die "$(usage)"
