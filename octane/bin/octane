@@ -78,6 +78,9 @@ case $1 in
         for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $2 $br_name
+            done
+        for br_name in br-ex br-mgmt
+            do
                 create_tunnels $2 $br_name
             done
         for br_name in br-ex br-mgmt
