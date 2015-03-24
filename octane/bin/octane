@@ -89,6 +89,10 @@ case $1 in
      upgrade-db)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
+        ./delete_fuel_resources.sh $3
+        # Wait for resources to be deleted from 6.0 environment before
+        # proceeding to stop services
+        sleep 60
         ./manage_services.sh stop $3
         ./manage_services.sh disable $2
         ./upgrade-db.sh $2 $3
