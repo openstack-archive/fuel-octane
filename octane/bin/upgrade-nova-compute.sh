@@ -14,18 +14,19 @@ generate_template_regex() {
 upgrade_compute_service() {
 	local regex
 	local nova_regex
-	regex=$(ssh root@$1 "find /etc/neutron -type f -exec cat {} \;" | generate_template_regex $PATCH)
-	nova_regex=$(ssh root@$1 "cat /etc/nova/nova.conf" | generate_template_regex $NOVA_PATCH)
-	sed -r "$regex" ${PATCH}  | ssh root@$1 "tee /tmp/patch-neutron-config_$1.patch"
-	ssh root@$1 "apt-get update; apt-get install -o Dpkg::Options::='--force-confnew' --yes nova-compute"
-	ssh root@$1 "cd /etc/neutron && patch -p0 < /tmp/patch-neutron-config_$1.patch"
-	cat ${NOVA_PATCH} | sed -r "${nova_regex}" | ssh root@$1 "cat > /etc/nova/nova.conf"
+	regex=$(ssh $1 "find /etc/neutron -type f -exec cat {} \;" | generate_template_regex $PATCH)
+	nova_regex=$(ssh $1 "cat /etc/nova/nova.conf" | generate_template_regex $NOVA_PATCH)
+	sed -r "$regex" ${PATCH}  | ssh $1 "tee /tmp/patch-neutron-config_$1.patch"
+	ssh $1 "apt-get update; apt-get install -o Dpkg::Options::='--force-confnew' --yes nova-compute"
+	ssh $1 "cd /etc/neutron && patch -p0 < /tmp/patch-neutron-config_$1.patch"
+	cat ${NOVA_PATCH} | sed -r "${nova_regex}" | ssh $1 "cat > /etc/nova/nova.conf"
+	ssh $1 'restart nova-compute && restart neutron-plugin-openvswitch-agent'
 } 
 
 add_apt_sources() {
 	local source
 	source="http://$(grep fuel /etc/hosts | cut -d \  -f1):8080/2014.2-6.0/ubuntu/x86_64"
-	printf "\ndeb $source precise main\n" | ssh root@$1 "cat >> /etc/apt/sources.list"
+	printf "\ndeb $source precise main\n" | ssh $1 "cat >> /etc/apt/sources.list"
 }
 
 
