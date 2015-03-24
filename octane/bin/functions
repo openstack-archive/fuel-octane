@@ -590,3 +590,12 @@ import_bootstrap_osd() {
     ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
     ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
 }
+
+check_env_nodes() {
+    local node
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    for node in  $(list_nodes $1 "(controller|compute|ceph-osd)")
+        do
+            ping -c1 $node || die "Node $node inaccessible, exiting"
+        done
+}
