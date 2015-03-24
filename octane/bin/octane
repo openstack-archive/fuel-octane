@@ -74,7 +74,7 @@ case $1 in
         ./manage_services.sh start $3
         # Wait for corosync cluster to sync and start, and for Neutron to create
         # all network resources on 6.0 CICs
-        sleep 300
+        sleep 120
         for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $2 $br_name
