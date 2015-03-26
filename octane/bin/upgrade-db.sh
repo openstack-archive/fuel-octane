@@ -17,9 +17,14 @@ main() {
     }
     dst_node=$2
     dbs="keystone nova heat neutron glance cinder"
-    ssh $src_node "mysqldump --lock-all-tables --add-drop-database --databases $dbs" \
-        | gzip | tee dbs.original.sql.gz \
-        | ssh $dst_node "zcat | mysql"
+    dbs_tuple=$(echo $dbs | sed -re "s%^%'%;s% %', '%g;s%$%'%")
+    echo "USE information_schema;
+SELECT 'SET FOREIGN_KEY_CHECKS = 0;' UNION
+SELECT concat('DROP TABLE IF EXISTS ', TABLE_SCHEMA, '.', TABLE_NAME, ';')
+FROM tables
+WHERE TABLE_SCHEMA in ($dbs_tuple);" | ssh $dst_node "mysql -N | mysql"
+    ssh $src_node "mysqldump --lock-all-tables --databases $dbs | gzip " \
+    | tee dbs.original.sql.gz | ssh $dst_node "zcat | mysql"
     ssh $dst_node "keystone-manage db_sync;
 nova-manage db sync;
 heat-manage db_sync;
