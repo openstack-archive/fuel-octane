@@ -190,7 +190,7 @@ environment and upgrade it. You need to specify ID of the node as a second
 argument.
 
 ```
-[root@fuel bin]# ./octane upgrade-node
+[root@fuel bin]# ./octane upgrade-node SEED_ID NODE_ID
 ```
 
 Repeat this process until all nodes are reassigned from 5.1 to 6.0 environment.
