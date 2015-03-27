@@ -477,14 +477,13 @@ assign_node_to_env(){
     local admin_mac
     local host
     local id
+    local last_node
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
     host=$(get_host_ip_by_node_id $1)
-    admin_mac=$(ssh root@$host ip -o link show dev eth0 \
-        | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
     [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$1, exiting"
     get_node_settings $1
     if [ "$orig_id" == "None" ]
@@ -493,17 +492,15 @@ assign_node_to_env(){
         else
             fuel node --node $1 --delete
             fuel --env $orig_id deploy-changes
+            last_node=$(get_last_node)
             while :
                 do
-                    for id in $(fuel node \
-                            | awk -v id=$1 '/discover/ {if($1>$id){print $1}}')
-                        do
-                            host=$(get_host_ip_by_node_id $id)
-                            mac=$(ssh root@$host ip -o link show dev eth0 \
-                                | sed -re 's%.* link/ether ([^ ]+) .*%\1%')
-                            [ -z "$mac" ] && break
-                            [ "$mac" == "$admin_mac" ] && break 2
-                        done
+                    id=$(get_last_node)
+                    [[ $id > $last_node ]] && {
+                        echo "Found node $id, adding node to env $2 as $roles"
+                        break
+                    }
+                    sleep 30
                 done
         fi
     fuel node --node $id --env $2 set --role ${roles:-compute,ceph-osd}
