@@ -465,6 +465,11 @@ get_host_ip_by_node_id() {
     echo $(fuel node | awk -F"|" '/^'$1'/{print($5)}' | tr -d ' ')
 }
 
+get_last_node() {
+    echo $(fuel node | awk -F\| '$1 ~ /[0-9]+[ ]+/{print($1)}' \
+           | sort -n | tail -1)
+}
+
 assign_node_to_env(){
     local orig_id
     local roles
