@@ -104,6 +104,7 @@ case $1 in
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         ./migrate-ceph-mon.sh $2 $3
+        import_bootstrap_osd $3
         ;;
      upgrade-node)
         [ -z "$2" ] && die "$(usage)"
