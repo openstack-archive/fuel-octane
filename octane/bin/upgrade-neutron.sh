@@ -7,12 +7,12 @@ TMPL=${2:-neutron-template}
 
 function error {
   echo "Error"
-  exit 
+  exit 1
 }
 
 function exit_success {
   echo "Success"
-  exit 
+  exit 0
 } 
 
 function tmpl_var_names {
@@ -36,6 +36,5 @@ var_values=`egrep -hR "$var_names" $SRC | tmpl_var_values`
 
 cp -vr $TMPL /tmp/neutron
 find /tmp/neutron -type f | xargs -tI{} sed -ri'' "$var_values" {} 
-
 
 trap exit_success EXIT
