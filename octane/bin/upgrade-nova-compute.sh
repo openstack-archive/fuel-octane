@@ -11,15 +11,23 @@ generate_template_regex() {
         egrep "`extract_vars $1 | convert_vars_to_regex`" | awk -F= '{key = gensub(" ", "", "g", $1); printf("s|%%%s%%|%s|g;", toupper(key), $2)}'
 }
 
+
 upgrade_compute_service() {
 	local regex
 	local nova_regex
-	regex=$(ssh $1 "find /etc/neutron -type f -exec cat {} \;" | generate_template_regex $PATCH)
+	#regex=$(ssh $1 "find /etc/neutron -type f -exec cat {} \;" | generate_template_regex $PATCH)
+	./upgrade-neutron.sh bootstrap $1
+	local tmp_dir=`ssh $1 ./upgrade-neutron.sh prepare neutron-template`
+	if [ -z "$tmp_dir" ]; then
+		echo "Tmp dir err"
+		exit 1
+	fi
 	nova_regex=$(ssh $1 "cat /etc/nova/nova.conf" | generate_template_regex $NOVA_PATCH)
-	sed -r "$regex" ${PATCH}  | ssh $1 "tee /tmp/patch-neutron-config_$1.patch"
+	#sed -r "$regex" ${PATCH}  | ssh $1 "tee /tmp/patch-neutron-config_$1.patch"
 	ssh $1 "apt-get update; apt-get install -o Dpkg::Options::='--force-confnew' --yes nova-compute"
-	ssh $1 "cd /etc/neutron && patch -p0 < /tmp/patch-neutron-config_$1.patch"
+	#ssh $1 "cd /etc/neutron && patch -p0 < /tmp/patch-neutron-config_$1.patch"
 	cat ${NOVA_PATCH} | sed -r "${nova_regex}" | ssh $1 "cat > /etc/nova/nova.conf"
+	ssh $1 ./upgrade-neutron.sh install $tmp_dir
 	ssh $1 'restart nova-compute && restart neutron-plugin-openvswitch-agent'
 } 
 
