@@ -623,7 +623,7 @@ provision_node() {
     local env_id
     [ -z "$1" ] && die "No node ID provided, exiting"
     env_id=$(get_env_by_node $1)
-    [ -f "/tmp/interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "/tmp/disks.fixture.yaml" ] && apply_disk_settings $
+    [ -f "./interfaces.fixture.yaml" ] && apply_network_settings $1
+    [ -f "./disks.fixture.yaml" ] && apply_disk_settings $
     fuel node --env $env_id --node $1 --provision
 }
