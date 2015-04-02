@@ -59,13 +59,17 @@ function install() {
 	} 
 	rm -rf $DST_DIR 
 	cp -vr $SRC_DIR $DST_DIR
+	test -f $DST_DIR/plugins/ml2/ml2_conf.ini 
+	ln -s $DST_DIR/plugins/ml2/ml2_conf.ini $DST_DIR/plugin.ini
+	test -h $DST_DIR/plugin.ini	
+	chown -R root:neutron $DST_DIR
 } 
 
 function bootstrap() {
 	local NODE=$1
 	test -f $0 -a -f ${TEMPLATE_FILE} 
 	scp $0 ${TEMPLATE_FILE} ${NODE}:
-	ssh ${NODE} "test -d neutron-template || neutron-template; tar xvf `basename $TEMPLATE_FILE` -C neutron-template"
+	ssh ${NODE} "test -d neutron-template || mkdir neutron-template; tar xvf `basename $TEMPLATE_FILE` -C neutron-template"
 } 
 
 trap exit_error EXIT

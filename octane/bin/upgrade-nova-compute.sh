@@ -28,7 +28,7 @@ upgrade_compute_service() {
 	#ssh $1 "cd /etc/neutron && patch -p0 < /tmp/patch-neutron-config_$1.patch"
 	cat ${NOVA_PATCH} | sed -r "${nova_regex}" | ssh $1 "cat > /etc/nova/nova.conf"
 	ssh $1 ./upgrade-neutron.sh install $tmp_dir
-	ssh $1 'restart nova-compute && restart neutron-plugin-openvswitch-agent'
+	ssh $1 'restart nova-compute && ( stop neutron-plugin-openvswitch-agent; start neutron-plugin-openvswitch-agent )'
 } 
 
 add_apt_sources() {
