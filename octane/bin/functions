@@ -83,6 +83,15 @@ get_vip_from_deploy_info() {
         | awk '{print $2}')
 }
 
+get_primary_ip() {
+    local filename
+    local primary_id
+    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
+    [ -z "$2" ] && die "No bridge name provided, exiting"
+    filename=$(basename ./deployment_$1/primary-controller_*.yaml)
+    echo $(python ./extract-primary-ip "./deployment_$1/$filename" $2)
+}
+
 upload_deployment_info() {
 # Upload deployment configration with modifications to Fuel master for
 # environment ENV.
@@ -129,11 +138,15 @@ replace_vip_address() {
 replace_seed_ips() {
     local br_name
     local discard_ips
+    local primary_ip
     [ -z "$1" ] && die "No orig and seed env IDs provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     for br_name in br-ex br-mgmt
         do
-            get_ips_from_cics $1 $br_name > /tmp/env-$1-cic-$br_name-ips
+            [ -f "/tmp/env-$1-cic-$br_name-ips" ] || \
+                get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
+            primary_ip=$(get_primary_ip $2)
+            replace_ip_addresses $1 $2 $br_name $primary_ip
             discard_ips=$(get_ips_from_deploy_info $2 $br_name)
             replace_ip_addresses $1 $2 $br_name $discard_ips
             replace_vip_address $1 $2 $br_name
@@ -604,4 +617,13 @@ check_env_nodes() {
         do
             ping -c1 $node || die "Node $node inaccessible, exiting"
         done
+}
+
+provision_node() {
+    local env_id
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    env_id=$(get_env_by_node $1)
+    [ -f "/tmp/interfaces.fixture.yaml" ] && apply_network_settings $1
+    [ -f "/tmp/disks.fixture.yaml" ] && apply_disk_settings $
+    fuel node --env $env_id --node $1 --provision
 }
