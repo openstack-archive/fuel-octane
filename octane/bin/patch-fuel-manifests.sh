@@ -13,3 +13,5 @@ sed -ie "s%defaultto(false)%defaultto(true)%" \
 
 dockerctl shell astute sed -i "94s%^%#%" $deploy_actions_path
 dockerctl shell astute supervisorctl restart astute
+
+patch -Np1 $modulespath/openstack/manifests/controller.pp ./controller.pp.patch || :

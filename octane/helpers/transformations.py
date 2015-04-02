@@ -4,13 +4,26 @@ import re
 import argparse
 
 
+BRIDGES = ('br-ex', 'br-mgmt')
+
+
 def get_parser():
     parser = argparse.ArgumentParser(description="Remove patch ports from "
                                                  "deployment configuration "
                                                  "of environment")
     parser.add_argument("dirname",
                         help="Name of directory that contains deployment "
-                             "configuration of environment")
+                             "configuration of environment.")
+    subparsers = parser.add_subparsers()
+
+    parser_a = subparsers.add_parser("remove_patch_ports",
+                                     help="Remove patch ports.")
+    parser_a.set_defaults(action=remove_patch_ports)
+
+    parser_b = subparsers.add_parser("remove_predefined_nets",
+                                     help="Remove predefined networks.")
+    parser_b.set_defaults(action=remove_predefined_nets)
+
     return parser
 
 
@@ -30,28 +43,29 @@ def remove_patch_port(host_config, bridge_name):
         if (action['action'] == 'add-patch') and (bridge_name
                 in action['bridges']):
             transformations.remove(action)
-    return host_config, action
+    return host_config
 
 
-def update_host_deployment_info(host_file, bridges):
-    host_config = load_yaml_file(host_file)
-    removed_actions = []
-    for bridge_name in bridges:
-        host_config, removed_action = remove_patch_port(host_config,
-                                                        bridge_name)
-        removed_actions.append(removed_action)
-    dump_yaml_file(host_config, host_file)
-    return removed_actions
+def remove_patch_ports(host_config):
+    for bridge_name in BRIDGES:
+        host_config = remove_patch_port(host_config, bridge_name)
+    return host_config
 
 
-def update_env_deployment_info(dirname):
+def remove_predefined_nets(host_config):
+    host_config["quantum_settings"]["predefined_networks"] = {}
+    return host_config
+
+
+def update_env_deployment_info(dirname, action):
     pattern = "^[-\w]+_\d+.yaml$"
-    bridges = ['br-ex', 'br-mgmt']
     host_files = os.listdir(dirname)
     for filename in host_files:
         if re.match(pattern, filename):
             host_file = os.path.join(dirname, filename)
-            update_host_deployment_info(host_file, bridges)
+            host_config = load_yaml_file(host_file)
+            host_config = action(host_config)
+            dump_yaml_file(host_config, host_file)
 
 
 def patch_port_params(host_file, bridge_name):
@@ -66,7 +80,7 @@ def patch_port_params(host_file, bridge_name):
 def main():
     args = get_parser().parse_args()
 
-    update_env_deployment_info(args.dirname)
+    update_env_deployment_info(args.dirname, args.action)
 
 
 if __name__ == "__main__":
