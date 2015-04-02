@@ -29,8 +29,9 @@ echo -n \$services \
         | sed -E "s,.*/([^\.]+)(\.conf|override)?$,\1," \
         | sort -u | xargs -I@ sh -c "status @ \
         | grep start/running >/dev/null 2>&1 && echo @"' \
-        | tee services;
-    for s in \$(cat services);
+        | tee /tmp/services.tmp;
+    [ -f /tmp/services ] || mv /tmp/services.tmp /tmp/services;
+    for s in \$(cat /tmp/services);
         do
             stop \$s;
         done
@@ -64,7 +65,7 @@ crm_services=\$(pcs resource \
     | awk '/Clone Set:/ {print \$4; getline; print \$1}' \
     | sed 'N;s/\n/ /' \
     | tr -d ':[]' | awk '{print substr(\$1,3)}');
-for s in \$(<services);
+for s in \$(</tmp/services);
 do
     for cs in \$crm_services; do
         if [ "\$cs" == "\$s" ]; then
