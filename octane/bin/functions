@@ -480,7 +480,6 @@ assign_node_to_env(){
     local orig_id
     local roles
     local mac
-    local admin_mac
     local host
     local id
     local last_node
@@ -490,7 +489,6 @@ assign_node_to_env(){
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
     host=$(get_host_ip_by_node_id $1)
-    [ -z "$admin_mac" ] && die "Cannot find admin interface for node-$1, exiting"
     get_node_settings $1
     if [ "$orig_id" == "None" ]
         then
