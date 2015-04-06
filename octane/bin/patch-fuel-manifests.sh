@@ -5,7 +5,7 @@ PATCH_DIR=../patches/
 patchfile() {
     [ -z "$1" ] && die "No original file provided, exiting"
     [ -z "$2" ] && die "No patch file provided, exiting"
-    patch -Np1 --dry-run --silent $1 $2 2>/dev/null || patch -Np1 $1 $2
+    patch -Np1 --dry-run --silent $1 $2 2>/dev/null && patch -Np1 $1 $2
 }
 
 set -x
