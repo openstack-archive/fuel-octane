@@ -668,7 +668,7 @@ install_cics() {
     local node_id
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    hosts=$(cat "/tmp/env-$2-cics.hosts")
+    hosts=$(sed '1d' "/tmp/env-$2-cics.hosts")
     for node_id in $hosts
         do
             provision_node $node_id
