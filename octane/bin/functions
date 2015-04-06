@@ -174,8 +174,6 @@ disable_ping_checker() {
 }
 
 prepare_seed_deployment_info() {
-    local br_name
-    local discard_ips
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
@@ -627,4 +625,83 @@ provision_node() {
     [ -f "./interfaces.fixture.yaml" ] && apply_network_settings $1
     [ -f "./disks.fixture.yaml" ] && apply_disk_settings $1
     fuel node --env $env_id --node $1 --provision
+}
+
+upgrade_db() {
+    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    ./delete_fuel_resources $2
+    sleep 7
+    ./manage_services.sh stop $2
+    ./manage_services.sh disable $2
+    ./upgrade-db.sh "$@"
+}
+
+init_seed() {
+    local filename
+    [ -z "$1" ] && die "No 6.0 env IDs provided, exiting"
+    ENV=$1 && shift
+    filename="/tmp/env-$ENV-cics.hosts"
+    [ -f "$filename"] && die "Seed env $ENV already initialized, exiting"
+    fuel node set --env $ENV --node $2 --role controller && shift
+    while [ -n "$*" ]
+        do
+            echo "$1" >> $filename && shift
+        done
+}
+
+install_primary_cic() {
+    local hosts
+    local node_id
+    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    hosts="/tmp/env-$2-cics.hosts"
+    [ -f "$hosts" ] || die "Seed env $2 not initialized and $hosts file not found, exiting"
+    node_id=$(head -1 "$hosts")
+    [ -z "$node_id" ] && die "No primary CIC ID in $hosts file, exiting"
+    provision_node $node_id
+    wait_for_node $node_id "provisioned"
+    prepare_seed_deployment_info $1 $2
+    fuel node --env $2 --node $node_id --deploy
+    wait_for_node $node_id "ready"
+}
+
+install_cics() {
+    local hosts
+    local node_id
+    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    hosts=$(cat "/tmp/env-$2-cics.hosts")
+    for node_id in $hosts
+        do
+            provision_node $node_id
+        done
+    for i in $(seq 30)
+        do
+            if [ "$(fuel node --env $2 \
+                | awk -F\| '$7 ~ /controller/ && $2 ~ /ready/ {print $0}' \
+                | wc -l)" == "$(cat /tmp/env-$2-cics.hosts | wc -l)" ]
+                then
+                    break
+                fi
+            sleep 300
+       done
+}
+
+install_seed() {
+    local orig_env
+    local seed_env
+    [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
+    [ -z "$2" ] && die "No node IDs for 6.0 controllers provided, exiting"
+    orig_env=$1 && shift 2
+    seed_env=$(clone_env $orig_env)
+    args="$orig_env $seed_env"
+    copy_generated_settings $args
+    init_seed $seed_env "$@"
+    prepare_cic_disk_fixture $orig_env
+    prepare_cic_network_fixture $orig_env
+    install_primary_cic $args
+    upgrade_db $args
+    install_cics $args
+    upgrade_ceph $args
 }
