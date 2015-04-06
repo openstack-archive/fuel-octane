@@ -105,6 +105,7 @@ replace_ip_addresses() {
     local dirname
     local orig_ip
     local seed_ip
+    local tmpfile
     [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
     [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
     [ -z "$3" ] && die "No bridge name and IP addresses provided, exiting"
