@@ -144,10 +144,7 @@ replace_seed_ips() {
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     for br_name in br-ex br-mgmt
         do
-            [ -f "/tmp/env-$1-cic-$br_name-ips" ] || \
-                get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            primary_ip=$(get_primary_ip $2)
-            replace_ip_addresses $1 $2 $br_name $primary_ip
+            get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
             discard_ips=$(get_ips_from_deploy_info $2 $br_name)
             replace_ip_addresses $1 $2 $br_name $discard_ips
             replace_vip_address $1 $2 $br_name
