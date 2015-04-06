@@ -211,7 +211,7 @@ list_nodes() {
     local roles_re
     [ -z "$1" ] && die "No env ID provided, exiting"
     roles_re=${2:-controller}
-    echo "$(fuel node --env $1 | awk -F\| '$7 ~ /'$roles_re'/ && $2 ~ /'$3'/ {print "node-" $1}')"
+    echo "$(fuel node --env $1 | awk -F\| '($7 ~ /'$roles_re'/ || $8 ~ /'$roles_re'/) && $2 ~ /'$3'/ {print "node-" $1}')"
 }
 
 create_ovs_bridges() {
@@ -624,6 +624,6 @@ provision_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     env_id=$(get_env_by_node $1)
     [ -f "./interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "./disks.fixture.yaml" ] && apply_disk_settings $
+    [ -f "./disks.fixture.yaml" ] && apply_disk_settings $1
     fuel node --env $env_id --node $1 --provision
 }
