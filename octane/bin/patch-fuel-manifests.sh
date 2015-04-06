@@ -2,6 +2,12 @@
 
 PATCH_DIR=../patches/
 
+patchfile() {
+    [ -z "$1" ] && die "No original file provided, exiting"
+    [ -z "$2" ] && die "No patch file provided, exiting"
+    patch -Np1 --dry-run --silent $1 $2 2>/dev/null || patch -Np1 $1 $2
+}
+
 set -x
 
 modulespath="/etc/puppet/2014.2-6.0/modules"
@@ -17,4 +23,4 @@ dockerctl shell astute sed -i "94s%^%#%" $deploy_actions_path
 dockerctl shell astute supervisorctl restart astute
 
 cd $PATCH_DIR
-patch -Np1 $modulespath/openstack/manifests/controller.pp ./controller.pp.patch || :
+patchfile $modulespath/openstack/manifests/controller.pp ./controller.pp.patch
