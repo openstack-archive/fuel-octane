@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATCH_DIR=../patches/
+
 set -x
 
 modulespath="/etc/puppet/2014.2-6.0/modules"
@@ -14,4 +16,5 @@ sed -ie "s%defaultto(false)%defaultto(true)%" \
 dockerctl shell astute sed -i "94s%^%#%" $deploy_actions_path
 dockerctl shell astute supervisorctl restart astute
 
+cd $PATCH_DIR
 patch -Np1 $modulespath/openstack/manifests/controller.pp ./controller.pp.patch || :
