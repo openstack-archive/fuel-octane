@@ -45,13 +45,11 @@ case $1 in
         [ -z "$3" ] && die "$(usage)"
         prepare_cic_disk_fixture $2
         prepare_cic_network_fixture $2
-        for node in $(list_nodes $3)
+        for node in $(list_nodes $3 'controller' 'discover')
             do
                 node_id=$(echo $node | cut -d '-' -f2)
-                [ -f ./interfaces.fixture.yaml ] && apply_network_settings $node_id
-                [ -f ./disks.fixture.yaml ] && apply_disk_settings $node_id
+                provision_node $node_id
             done
-        env_action $3 provision
         ;;
     prepare)
         [ -z "$2" ] && die "$(usage)"
