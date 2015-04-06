@@ -26,7 +26,7 @@ get_ips_from_cics() {
         | cut -d\| -f5  \
         | xargs -I{} ssh root@{} ip addr\
         | awk '/'$2':/ {getline; getline; print $2}' \
-        | sed -re 's%([^/]+)/[0-9]{2}%\1%')
+        | sed -re 's%([^/]+)/[0-9]{2}%\1%' | sort)
 }
 
 get_vip_from_cics() {
