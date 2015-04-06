@@ -1,7 +1,7 @@
 #!/bin/sh -ex
 
 run=".state"
-PATCH_DIR="../patches/pman/"
+PATCH_DIR=$(dirname $0)
 
 function copyfile() {
     local src=$1 dst=$2

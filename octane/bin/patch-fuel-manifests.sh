@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATCH_DIR=../patches/
+PATCH_DIR=$(dirname $0)/../patches/
 
 patchfile() {
     [ -z "$1" ] && die "No original file provided, exiting"
@@ -22,5 +22,4 @@ sed -ie "s%defaultto(false)%defaultto(true)%" \
 dockerctl shell astute sed -i "94s%^%#%" $deploy_actions_path
 dockerctl shell astute supervisorctl restart astute
 
-cd $PATCH_DIR
-patchfile $modulespath/openstack/manifests/controller.pp ./controller.pp.patch
+patchfile $modulespath/openstack/manifests/controller.pp $PATCH_DIR/controller.pp.patch
