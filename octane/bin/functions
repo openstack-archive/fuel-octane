@@ -715,7 +715,7 @@ install_seed() {
     local seed_env
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
     [ -z "$2" ] && die "No node IDs for 6.0 controllers provided, exiting"
-    orig_env=$1 && shift 2
+    orig_env=$1 && shift
     seed_env=$(clone_env $orig_env)
     args="$orig_env $seed_env"
     copy_generated_settings $args
