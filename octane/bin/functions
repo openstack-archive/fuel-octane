@@ -670,10 +670,27 @@ install_cics() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     hosts=$(sed '1d' "/tmp/env-$2-cics.hosts")
+    ./manage_services.sh start $2
     for node_id in $hosts
         do
+            fuel node set --env $2 --node $node_id --role controller
             provision_node $node_id
         done
+    for i in $(seq 30)
+        do
+            if [ "$(fuel node --env $2 \
+                | awk -F\| '$8 ~ /controller/ && $2 ~ /provisioned/ {print $0}' \
+                | wc -l)" == "$(sed '1d' /tmp/env-$2-cics.hosts | wc -l)" ]
+                then
+                    break
+                fi
+            sleep 300
+       done
+    for  br_name in br-ex br-mgmt
+        do
+            create_tunnels $2 $br_name 'controller'
+        done
+    fuel node --env $2 --node $(head -1 "/tmp/env-$2-cics.hosts") --deploy
     for i in $(seq 30)
         do
             if [ "$(fuel node --env $2 \
