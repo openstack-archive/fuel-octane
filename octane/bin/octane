@@ -40,6 +40,10 @@ case $1 in
         copy_generated_settings $2 $SEED_ENV
         echo "6.0 seed environment ID is $SEED_ENV"
         ;;
+    install-seed)
+        shift
+        install_seed "$@"
+        ;;
     provision)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
