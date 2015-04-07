@@ -703,6 +703,13 @@ install_cics() {
        done
 }
 
+upgrade_ceph() {
+    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    ./migrate-ceph-mon.sh $1 $2
+    import_bootstrap_osd $2
+}
+
 install_seed() {
     local orig_env
     local seed_env
