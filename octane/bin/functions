@@ -686,6 +686,7 @@ install_cics() {
                 fi
             sleep 300
        done
+    prepare_seed_deployment_info $1 $2
     for  br_name in br-ex br-mgmt
         do
             create_tunnels $2 $br_name 'controller'
