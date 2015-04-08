@@ -660,6 +660,7 @@ install_primary_cic() {
     provision_node $node_id
     wait_for_node $node_id "provisioned"
     prepare_seed_deployment_info $1 $2
+    create_ovs_bridges $2
     fuel node --env $2 --node $node_id --deploy
     wait_for_node $node_id "ready"
 }
@@ -687,6 +688,7 @@ install_cics() {
             sleep 300
        done
     prepare_seed_deployment_info $1 $2
+    create_ovs_bridges $2
     for  br_name in br-ex br-mgmt
         do
             create_tunnels $2 $br_name 'controller'
