@@ -176,12 +176,21 @@ data partition.
 [root@fuel puppet]# ./update.sh
 ```
 
+### Prepare Ceph cluster to upgrade
+
+To avoid Ceph cluster rebalancing and pushing around data we need to tune its
+configuration a bit:
+
+```
+[root@fuel puppet]# cd /root/octane/octane/bin
+[root@fuel bin]# ./octane prepare-osd-upgrade SEED_ID
+```
+
 ### Pick node for upgrade
 
 Select a node to upgrade from the list of nodes in 5.1 environment:
 
 ```
-[root@fuel puppet]# cd /root/octane/octane/bin
 [root@fuel bin]# fuel node --env ORIG_ID
 ```
 
