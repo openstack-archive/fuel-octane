@@ -693,7 +693,13 @@ install_cics() {
         do
             create_tunnels $2 $br_name 'controller'
         done
-    fuel node --env $2 --node $(head -1 "/tmp/env-$2-cics.hosts") --deploy
+    fuel node --env $2 --node $(sed '1d' "/tmp/env-$2-cics.hosts" \
+        | awk 'BEGIN {f = ""}
+        {
+            if (f == "") {f = $1}
+            else {printf f","; f = $1}
+        }
+        END {printf f}') --deploy
     for i in $(seq 30)
         do
             if [ "$(fuel node --env $2 \
