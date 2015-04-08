@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SVC_LIST="/root/services_list"
+SVC_LIST_TMP="${SVC_LIST}.tmp"
+
 disable_apis() {
     $pssh_run "grep -q 'backend maintenance' /etc/haproxy/haproxy.cfg || echo 'backend maintenance' >> /etc/haproxy/haproxy.cfg"
     $pssh_run "for f in \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*); \
@@ -29,9 +32,9 @@ echo -n \$services \
         | sed -E "s,.*/([^\.]+)(\.conf|override)?$,\1," \
         | sort -u | xargs -I@ sh -c "status @ \
         | grep start/running >/dev/null 2>&1 && echo @"' \
-        | tee /tmp/services.tmp;
-    [ -f /tmp/services ] || mv /tmp/services.tmp /tmp/services;
-    for s in \$(cat /tmp/services);
+        | tee $SVC_LIST_TMP;
+    [ -f ${SVC_LIST} ] || mv ${SVC_LIST_TMP} ${SVC_LIST};
+    for s in \$(cat ${SVC_LIST});
         do
             stop \$s;
         done
@@ -65,7 +68,7 @@ crm_services=\$(pcs resource \
     | awk '/Clone Set:/ {print \$4; getline; print \$1}' \
     | sed 'N;s/\n/ /' \
     | tr -d ':[]' | awk '{print substr(\$1,3)}');
-for s in \$(</tmp/services);
+for s in \$(<${SVC_LIST});
 do
     for cs in \$crm_services; do
         if [ "\$cs" == "\$s" ]; then
