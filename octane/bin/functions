@@ -539,8 +539,10 @@ assign_node_to_env(){
 
 prepare_ceph_osd_upgrade() {
     local seed_id
+    local nodes
+    local node
     [ -z "${seed_id:=$1}" ] && die "No 6.0 env ID provided, exiting"
-    nodes=$(list_nodes $1 '(controller)')
+    nodes=$(list_nodes $seed_id '(controller)')
     for node in $nodes
         do
             ssh root@$node sh -c "'
