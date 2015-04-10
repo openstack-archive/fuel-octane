@@ -630,7 +630,7 @@ upgrade_db() {
     ./delete_fuel_resources.sh $2
     sleep 7
     ./manage_services.sh stop $2
-    ./manage_services.sh disable $2
+    ./manage_services.sh disable $1
     ./upgrade-db.sh "$@"
 }
 
