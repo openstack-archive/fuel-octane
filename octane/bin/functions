@@ -153,7 +153,10 @@ replace_seed_ips() {
 
 backup_deployment_info() {
     [ -z "$1" ] && die "No env ID provided, exiting"
-    [ -d "deployment_$1" ] && cp -R deployment_$1 deployment_$1.orig
+    [ -d "deployment_$1" ] && {
+        [ -d "deployment_$1.orig" ] || mkdir "deployment_$1.orig"
+        cp -R deployment_$1/*.yaml deployment_$1.orig/
+    }
 }
 
 remove_patch_transformations() {
