@@ -11,9 +11,9 @@ usage() {
 
 seq ${1:-3} | xargs -I{} keystone tenant-create --name test-{}
 keystone tenant-list | awk -F\| '/test-/{print($2)}' | tr -d \ \
-    | xargs -I@ neutron net-create --tenant-id @ test-net-@
-keystone tenant-list | awk -F\| '/test-/{print($2)}' | tr -d \ \
-    | xargs -I@ neutron subnet-create --tenant-id @ test-net-@ 192.168.111.0/24
+    | xargs -I@ sh -c "neutron net-create --tenant-id @ test-net-@;
+neutron subnet-create --tenant-id @ test-net-@ 192.168.111.0/24;
+keystone user-role-add --user admin --role admin --tenant @"
 for tenant in $(keystone tenant-list \
                 | awk -F\| '/test-/{print($2)}' \
                 | tr -d \ )
@@ -22,10 +22,10 @@ for tenant in $(keystone tenant-list \
               | awk -F\| '/ id /{print($3)}' \
               | tr -d \ );
         image=$(nova image-list \
-                | awk -F\| '/TestVM/'{print($2)} \
+                | awk -F\| '/TestVM/{print($2)}' \
                 | tr -d \ )
         flavor=$(nova flavor-list \
-                 | awk -F\| '/m1.tiny/'{print($2)} \
+                 | awk -F\| '/m1.tiny/{print($2)}' \
                  | tr -d \ )
         seq ${2:-3} | xargs -tI@ nova --os-tenant-id=$tenant \
             boot \
