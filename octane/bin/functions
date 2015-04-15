@@ -826,7 +826,8 @@ update_admin_tenant_id() {
     tenant_id=$(ssh root@$cic_node ". openrc; keystone tenant-get services" \
         | awk -F\| '$2 ~ /id/{print $3}' | tr -d \ )
     list_nodes $1 controller | xargs -I{} ssh root@{} \
-        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' -i /etc/neutron/neutron.conf"
+        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' -i /etc/neutron/neutron.conf;
+        restart neutron-server"
 }
 
 install_seed() {
