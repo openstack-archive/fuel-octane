@@ -768,7 +768,6 @@ install_primary_cic() {
     create_ovs_bridges $2
     fuel node --env $2 --node $node_id --deploy
     wait_for_node $node_id "ready"
-    prepare_ceph_osd_upgrade $2
 }
 
 install_cics() {
@@ -859,5 +858,6 @@ install_seed() {
     upgrade_db $args
     install_cics $args
     upgrade_ceph $args
+    prepare_ceph_osd_upgrade $seed_env
     update_admin_tenant_id $seed_env
 }
