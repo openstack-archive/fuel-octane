@@ -567,11 +567,11 @@ EOF
 
 prepare_osd_upgrade() {
     local env_id
-    local ctrl
+    local cic_node
     [ -z "$1" ] && die "No node ID provided, exiting"
     env_id=$(get_env_by_node $1)
-    ctrl=$(list_nodes $env_id 'controller' | head -1)
-    [ -z "$(ssh root@$ctrl ceph health | grep HEALTH_OK)" ] && \
+    cic_node=$(list_nodes $env_id 'controller' | head -1)
+    [ -z "$(ssh root@$cic_node ceph health | grep HEALTH_OK)" ] && \
         die "Ceph cluster is unhealthy, exiting"
     ssh root@$ctrl ceph osd set noout
     cd ../patches/pman/
@@ -762,6 +762,7 @@ install_primary_cic() {
     create_ovs_bridges $2
     fuel node --env $2 --node $node_id --deploy
     wait_for_node $node_id "ready"
+    prepare_ceph_osd_upgrade $2
 }
 
 install_cics() {
