@@ -608,10 +608,13 @@ upgrade_node() {
              esac
          done
     assign_node_to_env $2 $1
+    fuel node --env $1 --node $2 --provision
+    wait_for_node $2 "provisioned"
     get_deployment_info $1
     replace_seed_ips $1 $1
     upload_deployment_info $1
-    fuel --env $1 deploy-changes
+    fuel node --env $1 --node $2 --deploy
+    wait_for_node $2 "ready"
 }
 
 wait_for_node() {
