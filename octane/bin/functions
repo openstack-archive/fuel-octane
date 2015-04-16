@@ -536,6 +536,7 @@ assign_node_to_env(){
         fi
     ./keep-ceph-partition node_$id/disks.yaml
     upload_node_settings $id
+    echo $id
 }
 
 prepare_ceph_osd_upgrade() {
@@ -571,7 +572,7 @@ prepare_osd_upgrade() {
     local cic_node
     [ -z "$1" ] && die "No node ID provided, exiting"
     env_id=$(get_env_by_node $1)
-    cic_node=$(list_nodes $env_id 'controller' | head -1)
+    cic_node=$(list_nodes $env_id 'ceph-osd' | head -1)
     [ -z "$(ssh root@$cic_node ceph health | grep HEALTH_OK)" ] && \
         die "Ceph cluster is unhealthy, exiting"
     ssh root@$ctrl ceph osd set noout
@@ -608,15 +609,15 @@ upgrade_node() {
                     ;;
              esac
          done
-    assign_node_to_env $2 $1
-    fuel node --env $1 --node $2 --provision
-    wait_for_node $2 "provisioned"
+    id=$(assign_node_to_env $2 $1)
+    fuel node --env $1 --node $id --provision
+    wait_for_node $id "provisioned"
     get_deployment_info $1
     replace_seed_ips $1 $1
     remove_predefined_networks $1
     upload_deployment_info $1
-    fuel node --env $1 --node $2 --deploy
-    wait_for_node $2 "ready"
+    fuel node --env $1 --node $id --deploy
+    wait_for_node $id "ready"
 }
 
 wait_for_node() {
