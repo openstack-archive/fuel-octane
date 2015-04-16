@@ -581,7 +581,7 @@ prepare_osd_upgrade() {
 
 prepare_compute_upgrade() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    ./host_evacuate node-$1
+    ./host_evacuation.sh node-$1
 }
 
 upgrade_node() {
