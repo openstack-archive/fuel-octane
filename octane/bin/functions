@@ -823,6 +823,11 @@ upgrade_ceph() {
     import_bootstrap_osd $2
 }
 
+disable_wsrep() {
+    [ -z "$2" ] && die "Only one controller in the env, exiting"
+    ssh $2 mysql -e "SET GLOBAL wsrep_on='off';"
+}
+
 update_admin_tenant_id() {
     local cic_node
     local tenant_id
