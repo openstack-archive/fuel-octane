@@ -567,23 +567,36 @@ EOF
         done
 }
 
-prepare_osd_upgrade() {
-    local env_id
-    local cic_node
+set_osd_noout() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    ssh root@$(list_nodes $1 'controller' | head -1) ceph osd set noout
+}
+
+check_orig_ceph_cluster() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    env_id=$(get_env_by_node $1)
-    cic_node=$(list_nodes $env_id 'ceph-osd' | head -1)
-    [ -z "$(ssh root@$cic_node ceph health | grep HEALTH_OK)" ] && \
+    [ -z "$(ssh root@node-$1 ceph health | grep HEALTH_OK)" ] && \
         die "Ceph cluster is unhealthy, exiting"
-    ssh root@$ctrl ceph osd set noout
+}
+
+patch_osd_node() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
     cd ../patches/pman/
     ./update_node.sh node-$1
     cd $OLDPWD
 }
 
+prepare_osd_node_upgrade() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    check_orig_ceph_cluster "$@"
+    patch_osd_node "$@"
+}
+
 prepare_compute_upgrade() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    ./host_evacuation.sh node-$1
+    env=$(get_env_by_node $1)
+    cic=$(list_nodes $env controller | head -1)
+    scp ./host_evacuation.sh root@$cic:/var/tmp/
+    ssh root@$cic "sh -c /var/tmp/host_evacuation.sh node-$1"
 }
 
 upgrade_node() {
@@ -599,10 +612,11 @@ upgrade_node() {
         do
             case $role in 
                 compute)
-                    prepare_compute_upgrade $2
+                    prepare_compute_upgrade $1 $2
                     ;;
                 ceph-osd)
-                    prepare_osd_upgrade $2
+                    prepare_osd_node_upgrade $2
+                    set_osd_noout $1
                     ;;
                 *)
                     echo "Role $role unsupported, skipping"
