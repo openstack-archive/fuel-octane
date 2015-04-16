@@ -614,7 +614,7 @@ upgrade_node() {
         do
             case $role in 
                 compute)
-                    prepare_compute_upgrade $1 $2
+                    prepare_compute_upgrade $2
                     ;;
                 ceph-osd)
                     prepare_osd_node_upgrade $2
