@@ -1,5 +1,7 @@
 #!/bin/bash
 
+NODE_ID=0
+
 die() {
     echo "$1"
     exit ${2:-1}
@@ -536,7 +538,7 @@ assign_node_to_env(){
         fi
     ./keep-ceph-partition node_$id/disks.yaml
     upload_node_settings $id
-    echo $id
+    NODE_ID=$id
 }
 
 prepare_ceph_osd_upgrade() {
@@ -623,15 +625,16 @@ upgrade_node() {
                     ;;
              esac
          done
-    id=$(assign_node_to_env $2 $1)
-    fuel node --env $1 --node $id --provision
-    wait_for_node $id "provisioned"
+    assign_node_to_env $2 $1 # Set NODE_ID global var to the ID of reassigned node
+    [ $NODE_ID == 0 ] && die "Cannot determine ID of reassigned node, exiting"
+    fuel node --env $1 --node $NODE_ID --provision
+    wait_for_node $NODE_ID "provisioned"
     get_deployment_info $1
     replace_seed_ips $1 $1
     remove_predefined_networks $1
     upload_deployment_info $1
-    fuel node --env $1 --node $id --deploy
-    wait_for_node $id "ready"
+    fuel node --env $1 --node $NODE_ID --deploy
+    wait_for_node $NODE_ID "ready"
 }
 
 wait_for_node() {
