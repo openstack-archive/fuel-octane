@@ -575,7 +575,7 @@ set_osd_noout() {
     ssh root@$(list_nodes $1 'controller' | head -1) ceph osd set noout
 }
 
-check_orig_ceph_cluster() {
+check_ceph_cluster() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$(ssh root@node-$1 ceph health | grep HEALTH_OK)" ] && \
         die "Ceph cluster is unhealthy, exiting"
@@ -590,7 +590,7 @@ patch_osd_node() {
 
 prepare_osd_node_upgrade() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    check_orig_ceph_cluster "$@"
+    check_ceph_cluster "$@"
     patch_osd_node "$@"
 }
 
