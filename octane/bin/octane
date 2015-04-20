@@ -11,11 +11,13 @@ cd $(dirname $0)
 usage() {
     echo "Usage: $(basename $0) [-d] COMMAND ENV_ID [ENV_ID]
 COMMAND:
+prepare-fuel                    - install packages and patch source code on Fuel
+                                  master node
 clone ENV_ID                    - clone envinroment settings and return seed env ID
 provision ORIG_ID SEED_ID       - start provisioning of nodes in seed env
 prepare ORIG_ID SEED_ID         - prepare provisioned seed env CICs for isolated deployment
 deploy ENV_ID                   - start deployment of nodes in seed env with isolation
-upgrade ORIG_ID SEED_ID         - isolate orig env CICs and replace them with seed CICs
+upgrade-cics ORIG_ID SEED_ID    - isolate orig env CICs and replace them with seed CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
 prepare-osd-upgrade SEED_ID     - configure Ceph cluster before OSD upgrade
