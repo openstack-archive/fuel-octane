@@ -7,6 +7,8 @@ if [ -z "$1" ]; then
         exit 2
 fi
 
+[ -f "/root/openrc" ] && . /root/openrc
+
 nova service-list --host $1
 
 nova service-list | grep -q 'nova-compute.*enabled' && {
