@@ -705,10 +705,12 @@ get_node_group_id() {
 get_nailgun_net_id() {
     local vip_type
     local net_id
+    local group_id
     [ -z "$1" ] && die "No group ID provided, exiting"
     [ -z "$2" ] && die "No bridge name provided, exiting"
+    group_id=$(get_node_group_id $1) 
     vip_type=$(echo $2 | sed -e 's/br-ex/public/;s/br-mgmt/management/')
-    net_id=$(echo "select id from network_groups where group_id = $1 and
+    net_id=$(echo "select id from network_groups where group_id = ${group_id} and
         name = '$vip_type';" | $postgres_cmd)
     echo $net_id
 }
