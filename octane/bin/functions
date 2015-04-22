@@ -532,6 +532,7 @@ assign_node_to_env(){
     apply_network_settings $id
     if [ $id -ne $1 ]
         then
+            fuel node --node $id --disks --download
             ./copy-node-settings disks node_$1/disks.yaml \
                 node_$id/disks.yaml by_extra
         else
