@@ -448,7 +448,7 @@ apply_disk_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     disk_file="./node_$1/disks.yaml"
     fuel node --node $1 --disk --download
-    ./copy-node-settings disks $disk_file ./disks.fixture.yaml \
+    ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_name \
         > /tmp/disks_$1.yaml
     mv /tmp/disks_$1.yaml $disk_file
     fuel node --node $1 --disk --upload
@@ -532,7 +532,8 @@ assign_node_to_env(){
     apply_network_settings $id
     if [ $id -ne $1 ]
         then
-            cp node_$1/disks.yaml node_$id/disks.yaml
+            ./copy-node-settings disks node_$1/disks.yaml \
+                node_$id/disks.yaml by_extra
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             apply_disk_settings $id
