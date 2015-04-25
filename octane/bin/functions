@@ -63,10 +63,11 @@ get_ips_from_deploy_info() {
 # deployment. These addresses must be replaced with addresses from the original
 # environment.
     local filename
+    local primary_cic
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
     [ -z "$2" ] && die "No bridge name provided, exiting"
-    filename=$(basename ./deployment_$1/primary-controller_*.yaml)
-    [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
+    primary_cic=$(basename ./deployment_$1/primary-controller_*.yaml)
+    filename=${3:-$primary_cic}
     echo $(python ./extract-cic-ips ./deployment_$1/$filename $2)
 }
 
@@ -75,12 +76,14 @@ get_vip_from_deploy_info() {
 # and that we want to replace with original VIP.
     local br_name
     local filename
+    local primary_cic
     [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
     br_name=$(echo ${2:-br-mgmt} \
         | awk '/br-ex/ {print "public_vip:"} \
         /br-mgmt/ {print "management_vip:"}')
     [ -z "$br_name" ] && die "No bridge name provided, exiting"
-    filename=$(basename ./deployment_$1/primary-controller_*.yaml)
+    primary_cic=$(basename ./deployment_$1/primary-controller_*.yaml)
+    filename=${3:-$primary_cic}
     [ -z "$filename" ] && filename=$(ls ./deployment_$1 | head -1)
     [ -n "$br_name" ] && echo $(grep $br_name ./deployment_$1/$filename \
         | awk '{print $2}')
@@ -134,7 +137,7 @@ replace_vip_address() {
     dirname=./deployment_$2
     orig_vip=$(get_vip_from_cics $1 $br_name)
     [ -z "$orig_vip" ] && die "Cannot find VIP on $br_name in 5.1 env, exiting"
-    seed_vip=$(get_vip_from_deploy_info $2 $br_name)
+    seed_vip=$(get_vip_from_deploy_info $2 $br_name $3)
     [ -z "$seed_vip" ] && die "Cannot find VIP for $br_name in 6.0 env, exiting"
     sed -i 's%'$seed_vip'$%'$orig_vip'%' $dirname/*.yaml
 }
@@ -532,9 +535,10 @@ assign_node_to_env(){
     apply_network_settings $id
     if [ $id -ne $1 ]
         then
-            fuel node --node $id --disks --download
-            ./copy-node-settings disks node_$1/disks.yaml \
-                node_$id/disks.yaml by_extra
+            fuel node --node $id --disk --download
+            ./copy-node-settings disks node_$id/disks.yaml \
+                node_$1/disks.yaml by_extra > /tmp/node-$id-disks.yaml
+            cp /tmp/node-$id-disks.yaml node_$id/disks.yaml
         else
             [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             apply_disk_settings $id
@@ -609,6 +613,8 @@ upgrade_node() {
     local roles
     local role
     local id
+    local filename
+    local discard_ips
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
     roles=$(fuel node --node $2 \
@@ -637,7 +643,14 @@ upgrade_node() {
     mv ./deployment_$1 ./deployment_$1.download
     get_deployment_info $1
     mv ./deployment_$1.download/* ./deployment_$1/
-    replace_seed_ips $1 $1
+    for br_name in br-ex br-mgmt
+        do
+            get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
+            filename=$(echo $roles | cut -d ' ' -f 1)_${NODE_ID}.yaml
+            discard_ips=$(get_ips_from_deploy_info $1 $br_name $filename)
+            replace_ip_addresses $1 $1 $br_name $discard_ips
+            replace_vip_address $1 $1 $br_name $filename
+        done
     remove_predefined_networks $1
     upload_deployment_info $1
     fuel node --env $1 --node $NODE_ID --deploy
