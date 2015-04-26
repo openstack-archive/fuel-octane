@@ -134,10 +134,12 @@ replace_vip_address() {
     local orig_vip
     local seed_vip
     local dirname
+    local br_name
     dirname=./deployment_$2
+    br_name=$3
     orig_vip=$(get_vip_from_cics $1 $br_name)
     [ -z "$orig_vip" ] && die "Cannot find VIP on $br_name in 5.1 env, exiting"
-    seed_vip=$(get_vip_from_deploy_info $2 $br_name $3)
+    seed_vip=$(get_vip_from_deploy_info $2 $br_name $4)
     [ -z "$seed_vip" ] && die "Cannot find VIP for $br_name in 6.0 env, exiting"
     sed -i 's%'$seed_vip'$%'$orig_vip'%' $dirname/*.yaml
 }
