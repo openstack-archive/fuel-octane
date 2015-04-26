@@ -512,7 +512,6 @@ assign_node_to_env(){
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
     host=$(get_host_ip_by_node_id $1)
-    get_node_settings $1
     if [ "$orig_id" == "None" ]
         then
             id=$1
@@ -622,11 +621,12 @@ upgrade_node() {
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
+    get_node_settings $2
     for role in $roles
         do
             case $role in 
                 compute)
-                    prepare_compute_upgrade $2
+                    prepare_compute_upgrade "$@"
                     ;;
                 ceph-osd)
                     prepare_osd_node_upgrade $2
@@ -642,7 +642,7 @@ upgrade_node() {
     fuel node --env $1 --node $NODE_ID --provision
     wait_for_node $NODE_ID "provisioned"
     get_deployment_info $1 download
-    mv ./deployment_$1 ./deployment_$1.download
+    rmdir ./deployment_$1.download && mv ./deployment_$1 ./deployment_$1.download
     get_deployment_info $1
     mv ./deployment_$1.download/* ./deployment_$1/
     for br_name in br-ex br-mgmt
