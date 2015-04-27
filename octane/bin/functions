@@ -583,6 +583,11 @@ set_osd_noout() {
     ssh root@$(list_nodes $1 'controller' | head -1) ceph osd set noout
 }
 
+unset_osd_noout() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    ssh root@$(list_nodes $1 'controller' | head -1) ceph osd unset noout
+}
+
 check_ceph_cluster() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$(ssh root@node-$1 ceph health | grep HEALTH_OK)" ] && \
@@ -657,6 +662,16 @@ upgrade_node() {
     upload_deployment_info $1
     fuel node --env $1 --node $NODE_ID --deploy
     wait_for_node $NODE_ID "ready"
+    for role in $roles
+        do
+            case $role in
+                compute)
+                    ;;
+                ceph-osd)
+                    unset_osd_noout $1
+                    ;;
+            esac
+        done
 }
 
 wait_for_node() {
