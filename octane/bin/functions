@@ -708,7 +708,7 @@ get_nailgun_pass() {
         | tr -d \")
 }
 
-postgres_cmd="dockerctl shell postgres psql -t \
+postgres_cmd="dockerctl shell postgres psql -At \
 postgresql://nailgun:$(get_nailgun_pass)@localhost/nailgun"
 
 get_node_group_id() {
@@ -762,9 +762,11 @@ update_ips_nailgun_db() {
     for node in $(list_nodes $2 controller | sed -re "s,node-(.*),\1," | sort)
         do
             orig_node=$(sed -i -e '1 w /dev/stdout' -e '1d' "$tmpfile")
-            echo "UPDATE ip_addrs SET node = '$node', network = '$seed_net_id'
-                WHERE node = '$orig_node' AND network = '$orig_net_id';" \
-                | $postgres_cmd
+            echo "SELECT INTO ip FROM ip_addr WHERE node = $node AND network = $origin_net_id;
+                DELETE FROM ip_addrs WHERE node = $node AND network = $origin_net_id;
+                INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node, (SELECT ip_addr FROM ip));
+            " | $postgres_cmd
+	
         done
 }
 
