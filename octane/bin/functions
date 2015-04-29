@@ -451,6 +451,7 @@ delete_patch_ports() {
 apply_disk_settings() {
     local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="./node_$1/disks.yaml"
     fuel node --node $1 --disk --download
     ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_name \
@@ -462,6 +463,7 @@ apply_disk_settings() {
 apply_network_settings() {
     local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     iface_file="./node_$1/interfaces.yaml"
     fuel node --node $1 --network --download
     ./copy-node-settings interfaces $iface_file \
@@ -532,7 +534,6 @@ assign_node_to_env(){
     fuel node --node $id --env $2 set --role ${roles:-compute,ceph-osd}
     [ "$orig_id" == "None" ] || prepare_cic_disk_fixture $orig_id compute
     [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
-    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     apply_network_settings $id
     if [ $id -ne $1 ]
         then
@@ -541,7 +542,6 @@ assign_node_to_env(){
                 node_$1/disks.yaml by_extra > /tmp/node-$id-disks.yaml
             cp /tmp/node-$id-disks.yaml node_$id/disks.yaml
         else
-            [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
             apply_disk_settings $id
         fi
     ./keep-ceph-partition node_$id/disks.yaml > /tmp/disks-ceph-partition.yaml
