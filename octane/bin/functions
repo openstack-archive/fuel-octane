@@ -841,6 +841,7 @@ install_cics() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     hosts=$(sed '1d' "/tmp/env-$2-cics.hosts")
+    [ -z "$hosts" ] && exit 0
     ./manage_services.sh start $2
     for node_id in $hosts
         do
