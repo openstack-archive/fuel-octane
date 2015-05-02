@@ -52,6 +52,7 @@ case $1 in
         [ -z "$3" ] && die "$(usage)"
         prepare_cic_disk_fixture $2
         prepare_cic_network_fixture $2
+        discover_nodes_to_cics $3
         for node in $(list_nodes $3 'controller' 'discover')
             do
                 node_id=$(echo $node | cut -d '-' -f2)

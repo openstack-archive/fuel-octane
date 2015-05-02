@@ -350,6 +350,14 @@ check_deployment_status() {
     [ "$status" == 'new' ] || die "Environment is not operational, exiting"
 }
 
+discover_nodes_to_cics() {
+    local node_ids
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    node_ids=$(fuel node | awk -F\| '$2~/discover/{print($1)}' \
+        | tr -d ' ' | sed ':a;N;$!ba;s/\n/,/g')
+    fuel node set --env $1 --node $node_ids --role controller
+}
+
 check_vip_down() {
     local vip
     [ -z "$1" ] && die "No env ID and bridge name provided, exiting"
