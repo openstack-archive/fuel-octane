@@ -2,7 +2,6 @@
 
 NODE_ID=0
 FUEL_CACHE="/tmp/octane/deployment"
-postgres_cmd="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 die() {
     echo "$1"
@@ -305,6 +304,8 @@ get_nailgun_db_pass() {
                /passwd:/ {if(out!=""){out="";print $2}}' \
         | tr -d '"')
 }
+
+postgres_cmd="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 copy_generated_settings() {
 # Update configuration of 6.0 environment in Nailgun DB to preserve generated
@@ -786,8 +787,8 @@ update_ips_nailgun_db() {
         do
             orig_node=$(sed -i -e '1 w /dev/stdout' -e '1d' "$tmpfile")
             echo "DROP TABLE IF EXISTS ip_$$;
-		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $node AND network = $orig_net_id;
-                DELETE FROM ip_addrs WHERE node = $node AND network = $orig_net_id;
+		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
+                DELETE FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
                 INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node, (SELECT ip_addr FROM ip_$$));
             " | $postgres_cmd
         done
