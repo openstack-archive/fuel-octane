@@ -891,7 +891,7 @@ upgrade_ceph() {
 
 disable_wsrep() {
     [ -z "$2" ] && die "Only one controller in the env, exiting"
-    ssh $2 mysql -e "SET GLOBAL wsrep_on='off';"
+    ssh root@$2 mysql -e "SET GLOBAL wsrep_on='off';"
 }
 
 update_admin_tenant_id() {
