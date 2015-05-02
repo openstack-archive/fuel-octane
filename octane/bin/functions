@@ -2,6 +2,7 @@
 
 NODE_ID=0
 FUEL_CACHE="/tmp/octane/deployment"
+postgres_cmd="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 die() {
     echo "$1"
@@ -732,8 +733,6 @@ provision_node() {
     fuel node --env $env_id --node $1 --provision
 }
 
-postgres_cmd="dockerctl shell postgres psql -At \
-postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 get_node_group_id() {
     [ -z "$1" ] && die "No env ID provided, exiting"
