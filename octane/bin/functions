@@ -732,16 +732,8 @@ provision_node() {
     fuel node --env $env_id --node $1 --provision
 }
 
-get_nailgun_pass() {
-    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
-        | awk 'BEGIN{out=""}
-        /DATABASE:/{out=$0}
-        /passwd:/{if(out!=""){print $2}}' \
-        | tr -d \")
-}
-
 postgres_cmd="dockerctl shell postgres psql -At \
-postgresql://nailgun:$(get_nailgun_pass)@localhost/nailgun"
+postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 get_node_group_id() {
     [ -z "$1" ] && die "No env ID provided, exiting"
