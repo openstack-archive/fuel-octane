@@ -1010,6 +1010,16 @@ update_admin_tenant_id() {
         restart neutron-server"
 }
 
+cleanup_services() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    local cic=$(list_nodes $1 controller | head -1)
+    ssh root@${cic} '. /root/openrc;
+    nova service-list | grep nova \
+    | grep -Ev "('$(list_nodes $1 "(controller|compute|ceph-osd)" \
+    | sed ':a;N;$!ba;s/\n/|/g')')"' | awk -F \| '{print($2)}' | tr -d ' ' \
+    | xargs -I{} ssh root@${cic} ". /root/openrc; nova service-delete {}"
+}
+
 install_seed() {
     local orig_env
     local seed_env
