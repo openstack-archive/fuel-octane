@@ -65,6 +65,22 @@ case $1 in
         prepare_seed_deployment_info $2 $3
         create_ovs_bridges $3
         ;;
+    prepare-nailgun)
+        [ -z "$2" ] && die "$(usage)"
+        [ -z "$3" ] && die "$(usage)"
+        for br_name in br-ex br-mgmt
+            do
+                update_ips_nailgun_db $2 $3 $br_name
+                update_vip_nailgun_db $2 $3 $br_name
+            done
+        get_deployment_info $3
+        backup_deployment_info $3
+        disable_ping_checker $3
+        remove_patch_transformations $3
+        remove_predefined_networks $3
+        upload_deployment_info $3
+        create_ovs_bridges $3
+        ;;
     deploy)
         [ -z "$2" ] && die "$(usage)"
         for br_name in br-ex br-mgmt
