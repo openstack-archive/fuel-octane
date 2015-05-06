@@ -497,9 +497,9 @@ get_node_settings() {
 prepare_fixtures_from_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     get_node_settings $1
-    mv node_$1/disks.yaml ./disks.fixture.yaml
-    mv node_$1/interfaces.yaml ./interfaces.fixture.yaml
-    rmdir node_$1
+    mv ${FUEL_CACHE}/node_$1/disks.yaml ./disks.fixture.yaml
+    mv ${FUEL_CACHE}/node_$1/interfaces.yaml ./interfaces.fixture.yaml
+    rmdir ${FUEL_CACHE}/node_$1
 }
 
 upload_node_settings() {
