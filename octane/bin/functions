@@ -454,7 +454,7 @@ apply_disk_settings() {
     [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="./node_$1/disks.yaml"
     fuel node --node $1 --disk --download
-    ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_name \
+    ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_extra \
         > /tmp/disks_$1.yaml
     mv /tmp/disks_$1.yaml $disk_file
     fuel node --node $1 --disk --upload
@@ -476,6 +476,14 @@ get_node_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     fuel node --node $1 --network --download
     fuel node --node $1 --disk --download
+}
+
+prepare_fixtures_from_node() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    get_node_settings $1
+    mv node_$1/disks.yaml ./disks.fixture.yaml
+    mv node_$1/interfaces.yaml ./interfaces.fixture.yaml
+    rmdir node_$1
 }
 
 upload_node_settings() {
@@ -501,6 +509,11 @@ get_last_node() {
            | sort -n | tail -1)
 }
 
+get_node_online() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    echo $(fuel node --node $1 | awk -F\| 'gsub(/\s+/, "", $9) {print($9)}')
+}
+
 assign_node_to_env(){
     local orig_id
     local roles
@@ -508,6 +521,8 @@ assign_node_to_env(){
     local host
     local id
     local last_node
+    local node_values
+    local node_online
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     roles=$(fuel node --node $1 \
@@ -516,38 +531,40 @@ assign_node_to_env(){
     host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" == "None" ]
         then
-            id=$1
+            prepare_cic_disk_fixture $orig_id compute
+            prepare_cic_network_fixture $orig_id compute
         else
+            node_values=$(echo "SELECT uuid, name, mac
+                                FROM nodes WHERE id = $1;" | \
+                          $postgres_cmd | \
+                          sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
+                          )
+            prepare_fixtures_from_node $1
             fuel node --node $1 --delete
             fuel --env $orig_id deploy-changes
-            last_node=$(get_last_node)
+            echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
+                                     timestamp, online, pending_addition,
+                                     pending_deletion)
+                  VALUES ($1, $node_values, 'discover',
+                          '{\"disks\": [], \"interfaces\": []}', now(), false,
+                          false, false);" | $postgres_cmd
             while :
                 do
-                    id=$(get_last_node)
-                    [[ $id > $last_node ]] && {
-                        echo "Found node $id, adding node to env $2 as $roles"
+                    node_online=$(get_node_online $1)
+                    [ "$node_online" == "True" ] && {
+                        echo "Node $id came back online."
                         break
                     }
                     sleep 30
                 done
         fi
-    fuel node --node $id --env $2 set --role ${roles:-compute,ceph-osd}
-    [ "$orig_id" == "None" ] || prepare_cic_disk_fixture $orig_id compute
-    [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
-    apply_network_settings $id
-    if [ $id -ne $1 ]
-        then
-            fuel node --node $id --disk --download
-            ./copy-node-settings disks node_$id/disks.yaml \
-                node_$1/disks.yaml by_extra > /tmp/node-$id-disks.yaml
-            cp /tmp/node-$id-disks.yaml node_$id/disks.yaml
-        else
-            apply_disk_settings $id
-        fi
-    ./keep-ceph-partition node_$id/disks.yaml > /tmp/disks-ceph-partition.yaml
+    fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
+    apply_network_settings $1
+    apply_disk_settings $1 by_extra
+    ./keep-ceph-partition node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml node_$id/disks.yaml
-    upload_node_settings $id
-    NODE_ID=$id
+    upload_node_settings $1
+    NODE_ID=$1
 }
 
 prepare_ceph_osd_upgrade() {
@@ -626,7 +643,6 @@ upgrade_node() {
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
-    get_node_settings $2
     for role in $roles
         do
             case $role in 
