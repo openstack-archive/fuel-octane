@@ -533,10 +533,8 @@ get_node_online() {
 assign_node_to_env(){
     local orig_id
     local roles
-    local mac
     local host
     local id
-    local last_node
     local node_values
     local node_online
     [ -z "$1" ] && die "No node ID provided, exiting"
