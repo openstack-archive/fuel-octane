@@ -60,18 +60,17 @@ Remember ID of your Seed environment. We will refer to it as `SEED_ID`.
 
 ### Add nodes
 
-Add nodes from pool of unallocated node to the new environment via Fuel UI or
-CLI. You need to add at least 1 CIC node. You may add Compute node, but it is
-optional.
+Make sure that you have 3 nodes you want to serve as CICs in 6.0 environment
+added to Fuel in 'discover' status.
 
 ```
-[root@fuel bin]# fuel node set --env SEED_ID --node ID[,ID,...] --role controller
+[root@fuel bin]# fuel node | grep discover
 ```
 
 ### Provision nodes
 
-Use Octane script to initiate provisioning of operating system to all nodes in
-Seed environment:
+Use Octane script to add all nodes in 'discover' status to Seed environment and
+initiate provisioning of operating system to these nodes:
 
 ```
 [root@fuel bin]# ./octane provision ORIG_ID SEED_ID
@@ -85,15 +84,17 @@ Use Octane script to configure network isolation of Seed environment and start
 deployment of OpenStack services:
 
 ```
-[root@fuel bin]# ./octane prepare ORIG_ID SEED_ID
+[root@fuel bin]# ./octane prepare-nailgun ORIG_ID SEED_ID
 [root@fuel bin]# ./octane deploy SEED_ID
 ```
 
-Wait for Seed environment to come into 'operational' state:
+Wait for all controller node in Seed environment to become 'ready':
 
 ```
-[root@fuel bin]# fuel env --env SEED_ID
+[root@fuel bin]# fuel node --env SEED_ID | grep ready
 ```
+
+There should be 3 nodes in output.
 
 ## Upgrade CICs to 6.0
 
@@ -106,7 +107,7 @@ State Database contains all metadata and status data of virtual resources in
 your cloud environment. Octane transfers that data to 6.0 environment as a part
 of upgrade of CIC.
 
-Before it starts datat transfer, Octane stops all services on 6.0 CICs, and
+Before it starts data transfer, Octane stops all services on 6.0 CICs, and
 disables APIs on 5.1 CICs, putting the environment into **Maintenance mode**.
 
 Run Octane script to upgrade databases:
@@ -156,36 +157,6 @@ Note that this script will affect all compute nodes in the environment.
 
 ## Upgrade nodes
 
-### Patch Fuel software
-
-To reinstall Ceph OSD with retention of data partitions requires modifications
-to certain components of Fuel, including Cobbler, Nailgun and Puppet manifests.
-Run following script on the Fuel Master node to update code of components and
-restart services.
-
-```
-[root@fuel bin]# cd /root/octane/octane/patches/pman
-[root@fuel pman]# ./update.sh
-```
-
-Run following script to update Puppet modules to disable initialization of Ceph
-data partition.
-
-```
-[root@fuel pman]# cd /root/octane/octane/patches/puppet
-[root@fuel puppet]# ./update.sh
-```
-
-### Prepare Ceph cluster to upgrade
-
-To avoid Ceph cluster rebalancing and pushing around data we need to tune its
-configuration a bit:
-
-```
-[root@fuel puppet]# cd /root/octane/octane/bin
-[root@fuel bin]# ./octane prepare-osd-upgrade SEED_ID
-```
-
 ### Pick node for upgrade
 
 Select a node to upgrade from the list of nodes in 5.1 environment:
@@ -194,7 +165,7 @@ Select a node to upgrade from the list of nodes in 5.1 environment:
 [root@fuel bin]# fuel node --env ORIG_ID
 ```
 
-Run an Octane script with 'upgrade-node' command to reassign node to 6.0
+Run Octane script with 'upgrade-node' command to reassign node to 6.0
 environment and upgrade it. You need to specify ID of the node as a second
 argument.
 
@@ -203,3 +174,14 @@ argument.
 ```
 
 Repeat this process until all nodes are reassigned from 5.1 to 6.0 environment.
+
+## Finish upgrade
+
+### Cleanup 6.0 environment
+
+Run Octane script with 'cleanup' command to delete pending services data from
+state database.
+
+```
+[root@fuel bin]# ./octane cleanup SEED_ID
+```
