@@ -72,7 +72,7 @@ for s in \$(<${SVC_LIST});
 do
     for cs in \$crm_services; do
         if [ "\$cs" == "\$s" ]; then
-            break 2;
+            continue 2;
         fi;
     done;
     start \$s;
