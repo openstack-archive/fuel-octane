@@ -24,6 +24,8 @@ prepare-osd-upgrade SEED_ID     - configure Ceph cluster before OSD upgrade
 upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
 upgrade-nova-compute NODE_ID    - update nova and neutron packages on the compute
                                   node NODE_ID and restart services
+cleanup ENV_ID                  - delete data about former environment from
+                                  upgraded OpenStack cloud
 help                            - display this message and exit"
 }
 
@@ -111,7 +113,7 @@ case $1 in
                 create_patch_ports $3 $br_name
             done
         ;;
-     upgrade-db)
+    upgrade-db)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         ./delete_fuel_resources.sh $3
@@ -119,27 +121,32 @@ case $1 in
         ./manage_services.sh disable $2
         ./upgrade-db.sh $2 $3
         ;;
-     upgrade-ceph)
+    upgrade-ceph)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         ./migrate-ceph-mon.sh $2 $3
         import_bootstrap_osd $3
         ;;
-     prepare-osd-upgrade)
+    prepare-osd-upgrade)
         [ -z "$2" ] && die "$(usage)"
         prepare_ceph_osd_upgrade $2;
         ;;
-     upgrade-node)
+    upgrade-node)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         upgrade_node $2 $3;
         ;;
-     upgrade-nova-compute)
+    upgrade-nova-compute)
         [ -z "$2" ] && die "$(usage)"
         list_nodes $2 compute \
         | xargs -I{} ./upgrade-nova-compute.sh {}
         ;;
-     help)
+    cleanup)
+        [ -z "$2" ] && die "$(usage)"
+        cleanup_nova_services $2
+        cleanup_neutron_services $2
+        ;;
+    help)
         usage
         ;;
      *)
