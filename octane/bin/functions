@@ -909,6 +909,7 @@ upgrade_ceph() {
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     ./migrate-ceph-mon.sh $1 $2
     import_bootstrap_osd $2
+    prepare_ceph_osd_upgrade $2
 }
 
 disable_wsrep() {
@@ -970,6 +971,5 @@ install_seed() {
     upgrade_db $args
     install_cics $args
     upgrade_ceph $args
-    prepare_ceph_osd_upgrade $seed_env
     update_admin_tenant_id $seed_env
 }
