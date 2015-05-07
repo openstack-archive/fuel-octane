@@ -556,11 +556,8 @@ assign_node_to_env(){
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
     host=$(get_host_ip_by_node_id $1)
-    if [ "$orig_id" == "None" ]
+    if [ "$orig_id" != "None" ]
         then
-            prepare_cic_disk_fixture $orig_id compute
-            prepare_cic_network_fixture $orig_id compute
-        else
             node_values=$(echo "SELECT uuid, name
                                 FROM nodes WHERE id = $1;" | \
                           $postgres_cmd | \
