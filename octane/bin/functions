@@ -530,10 +530,23 @@ get_node_online() {
     fuel node --node "$1" | tail -1 | awk -F\| '{gsub(" ", "", $9);print($9)}'
 }
 
+get_bootable_mac() {
+    local port1
+    local port2
+    local port3
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    port1=$(ssh "root@node-$1" "ovs-vsctl list-ifaces br-fw-admin")
+    port2=$(ssh "root@node-$1" "ovs-vsctl list interface $port1" |
+            awk -F\" '/^options/ { print $2; }')
+    port3=$(ssh "root@node-$1" "ovs-vsctl list-ifaces \$(ovs-vsctl port-to-br $port2)" | grep -v $port2)
+    ssh "root@node-$1" "ip link show $port3" | awk '/link\/ether/{print $2}'
+}
+
 assign_node_to_env(){
     local orig_id
     local roles
     local host
+    local node_mac
     local id
     local node_values
     local node_online
@@ -548,18 +561,19 @@ assign_node_to_env(){
             prepare_cic_disk_fixture $orig_id compute
             prepare_cic_network_fixture $orig_id compute
         else
-            node_values=$(echo "SELECT uuid, name, mac
+            node_values=$(echo "SELECT uuid, name
                                 FROM nodes WHERE id = $1;" | \
                           $postgres_cmd | \
                           sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
                           )
-            prepare_fixtures_from_node $1
+            node_mac=$(get_bootable_mac "$1")
+            prepare_fixtures_from_node "$1"
             fuel node --node $1 --env $orig_id --delete-from-db
             dockerctl shell cobbler cobbler system remove --name node-$1
             echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
                                      timestamp, online, pending_addition,
                                      pending_deletion)
-                  VALUES ($1, $node_values, 'discover',
+                  VALUES ($1, $node_values, '$node_mac', 'discover',
                           '{\"disks\": [], \"interfaces\": []}', now(), false,
                           false, false);" | $postgres_cmd
             ssh root@node-$1 shutdown -r now
@@ -576,10 +590,9 @@ assign_node_to_env(){
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
     apply_disk_settings $1
-    ./keep-ceph-partition ${FUEL_CACHE}/node_$id/disks.yaml > /tmp/disks-ceph-partition.yaml
-    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$id/disks.yaml
-    upload_node_settings $id
-    NODE_ID=$id
+    ./keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
+    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
+    upload_node_settings $1
 }
 
 nodes_disks_equal() {
@@ -689,10 +702,9 @@ upgrade_node() {
                     ;;
              esac
          done
-    assign_node_to_env $2 $1 # Set NODE_ID global var to the ID of reassigned node
-    [ $NODE_ID == 0 ] && die "Cannot determine ID of reassigned node, exiting"
-    fuel node --env $1 --node $NODE_ID --provision
-    wait_for_node $NODE_ID "provisioned"
+    assign_node_to_env $2 $1
+    fuel node --env $1 --node $2 --provision
+    wait_for_node $2 "provisioned"
     get_deployment_info $1 download
     rmdir ${FUEL_CACHE}/deployment_$1.download
     mv ${FUEL_CACHE}/deployment_$1 ${FUEL_CACHE}/deployment_$1.download
@@ -701,15 +713,15 @@ upgrade_node() {
     for br_name in br-ex br-mgmt
         do
             get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            filename=$(echo $roles | cut -d ' ' -f 1)_${NODE_ID}.yaml
+            filename=$(echo $roles | cut -d ' ' -f 1)_$2.yaml
             discard_ips=$(get_ips_from_deploy_info $1 $br_name $filename)
             replace_ip_addresses $1 $1 $br_name $discard_ips
             replace_vip_address $1 $1 $br_name $filename
         done
     remove_predefined_networks $1
     upload_deployment_info $1
-    fuel node --env $1 --node $NODE_ID --deploy
-    wait_for_node $NODE_ID "ready"
+    fuel node --env $1 --node $2 --deploy
+    wait_for_node $2 "ready"
     for role in $roles
         do
             case $role in
