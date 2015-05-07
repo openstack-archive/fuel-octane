@@ -34,6 +34,7 @@ KEY=0
 
 case $1 in
     prepare-fuel)
+        [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
         yum -y install postgresql.x86_64 pssh patch
         ./patch-fuel-manifests.sh
         ../patches/pman/update.sh
