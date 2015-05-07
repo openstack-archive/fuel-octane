@@ -527,7 +527,7 @@ get_last_node() {
 
 get_node_online() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    echo $(fuel node --node $1 | awk -F\| 'gsub(/\s+/, "", $9) {print($9)}')
+    fuel node --node "$1" | tail -1 | awk -F\| '{gsub(" ", "", $9);print($9)}'
 }
 
 assign_node_to_env(){
