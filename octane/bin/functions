@@ -188,16 +188,17 @@ prepare_seed_deployment_info() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
-    backup_deployment_info $2
-    disable_ping_checker $2
-    remove_patch_transformations $2
-    remove_predefined_networks $2
-    upload_deployment_info $2
     for br_name in br-ex br-mgmt
         do
             update_ips_nailgun_db $1 $2 $br_name
             update_vip_nailgun_db $1 $2 $br_name
         done
+    get_deployment_info $2
+    backup_deployment_info $2
+    disable_ping_checker $2
+    remove_patch_transformations $2
+    remove_predefined_networks $2
+    upload_deployment_info $2
 }
 
 remove_predefined_networks() {
@@ -688,14 +689,6 @@ upgrade_node() {
     mv ${FUEL_CACHE}/deployment_$1 ${FUEL_CACHE}/deployment_$1.download
     get_deployment_info $1
     mv ${FUEL_CACHE}/deployment_$1.download/* ${FUEL_CACHE}/deployment_$1/
-    for br_name in br-ex br-mgmt
-        do
-            get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            filename=$(echo $roles | cut -d ' ' -f 1)_${NODE_ID}.yaml
-            discard_ips=$(get_ips_from_deploy_info $1 $br_name $filename)
-            replace_ip_addresses $1 $1 $br_name $discard_ips
-            replace_vip_address $1 $1 $br_name $filename
-        done
     remove_predefined_networks $1
     upload_deployment_info $1
     fuel node --env $1 --node $NODE_ID --deploy
@@ -809,7 +802,7 @@ update_ips_nailgun_db() {
             orig_node=$(sed -i -e '1 w /dev/stdout' -e '1d' "$tmpfile")
             echo "DROP TABLE IF EXISTS ip_$$;
 		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
-                DELETE FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
+                DELETE FROM ip_addrs WHERE node = $node AND network = $seed_net_id;
                 INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node, (SELECT ip_addr FROM ip_$$));
             " | $postgres_cmd
         done
