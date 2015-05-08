@@ -103,16 +103,12 @@ case $1 in
     upgrade-db)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./delete_fuel_resources.sh $3
-        ./manage_services.sh stop $3
-        ./manage_services.sh disable $2
-        ./upgrade-db.sh $2 $3
+        upgrade_db $2 $3
         ;;
     upgrade-ceph)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./migrate-ceph-mon.sh $2 $3
-        import_bootstrap_osd $3
+        upgrade_ceph $2 $3
         ;;
     prepare-osd-upgrade)
         [ -z "$2" ] && die "$(usage)"
