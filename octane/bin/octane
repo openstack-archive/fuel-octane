@@ -85,7 +85,7 @@ case $1 in
         # all network resources on 6.0 CICs
         sleep 30
         prepare_ceph_osd_upgrade $2
-        update_admin_tenant_id $2
+        update_admin_tenant_id $3
         for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $2 $br_name
