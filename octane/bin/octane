@@ -68,22 +68,6 @@ case $1 in
         prepare_seed_deployment_info $2 $3
         create_ovs_bridges $3
         ;;
-    prepare-nailgun)
-        [ -z "$2" ] && die "$(usage)"
-        [ -z "$3" ] && die "$(usage)"
-        get_deployment_info $3
-        backup_deployment_info $3
-        disable_ping_checker $3
-        remove_patch_transformations $3
-        remove_predefined_networks $3
-        upload_deployment_info $3
-        for br_name in br-ex br-mgmt
-            do
-                update_ips_nailgun_db $2 $3 $br_name
-                update_vip_nailgun_db $2 $3 $br_name
-            done
-        create_ovs_bridges $3
-        ;;
     deploy)
         [ -z "$2" ] && die "$(usage)"
         for br_name in br-ex br-mgmt
@@ -101,7 +85,7 @@ case $1 in
         # all network resources on 6.0 CICs
         sleep 30
         prepare_ceph_osd_upgrade $2
-        update_admin_tenant_id $2
+        update_admin_tenant_id $3
         for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $2 $br_name
@@ -119,16 +103,12 @@ case $1 in
     upgrade-db)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./delete_fuel_resources.sh $3
-        ./manage_services.sh stop $3
-        ./manage_services.sh disable $2
-        ./upgrade-db.sh $2 $3
+        upgrade_db $2 $3
         ;;
     upgrade-ceph)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./migrate-ceph-mon.sh $2 $3
-        import_bootstrap_osd $3
+        upgrade_ceph $2 $3
         ;;
     prepare-osd-upgrade)
         [ -z "$2" ] && die "$(usage)"
