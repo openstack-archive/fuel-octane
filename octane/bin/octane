@@ -65,7 +65,7 @@ case $1 in
     prepare)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        prepare_seed_deployment_info $2 $3
+        prepare_seed_deployment_info_nailgun $2 $3
         create_ovs_bridges $3
         ;;
     deploy)
