@@ -188,6 +188,18 @@ prepare_seed_deployment_info() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
+    backup_deployment_info $2
+    replace_seed_ips $1 $2
+    disable_ping_checker $2
+    remove_patch_transformations $2
+    remove_predefined_networks $2
+    upload_deployment_info $2
+}
+
+prepare_seed_deployment_info_nailgun() {
+    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+    [ -z "$2" ] && "No seed env ID provided, exiting"
+    get_deployment_info $2
     for br_name in br-ex br-mgmt
         do
             update_ips_nailgun_db $1 $2 $br_name
