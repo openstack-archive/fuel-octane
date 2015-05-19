@@ -84,7 +84,7 @@ Use Octane script to configure network isolation of Seed environment and start
 deployment of OpenStack services:
 
 ```
-[root@fuel bin]# ./octane prepare-nailgun ORIG_ID SEED_ID
+[root@fuel bin]# ./octane prepare ORIG_ID SEED_ID
 [root@fuel bin]# ./octane deploy SEED_ID
 ```
 
