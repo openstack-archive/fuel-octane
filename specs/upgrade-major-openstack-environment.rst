@@ -57,7 +57,8 @@ Resource nodes are redirected to the new Controllers and eventually upgraded
 with minimal move of data. Under Resource nodes we understand nodes with Compute
 and/or Storage roles. Resource nodes are upgraded 'in place', i.e. on the same
 hardware, keeping user data intact on storage devices separated from Operating
-System boot device on the node.
+System boot device on the node. Operating system and all software on the node is
+reinstalled by Fuel installer.
 
 The reason to have external script that performs operations outlined above is
 that it have to orchestrate at least 2 OpenStack environments: the original one
@@ -179,19 +180,38 @@ Other contributors:
 Work Items
 ----------
 
+#. Develop a Python library capable of communicating to all components involved
+   in the upgrade procedure, including Fuel, OpenStack and nodes command shell.
+
+#. Implement business logic of upgrade procedure as a layer above library
+   developed in #1. This logic must support variable upgrade paths and
+   interchangeable architecture options as plugins.
+
+#. Implement CLI for the upgrade procedure logic. CLI must have split the
+   upgrade procedure into definite steps. Every step must allow validation of
+   the upgrade progress, integrity of data and availability of resources.
+
+#. Create functional tests to measure impact of the upgrade procedure on virtual
+   resources.
+
+#. Create integration tests to verify the flow of upgrade procedure in an
+   automated fashion.
 
 
 Dependencies
 ============
 
-* Include specific references to specs and/or blueprints in fuel, or in other
-  projects, that this one either depends on or is related to.
+* Extended environment object in Nailgun API ('upgrade seed' environment):
+  `<https://blueprints.launchpad.net/fuel/+spec/nailgun-api-env-upgrade-extensions>`_
 
-* If this requires functionality of another project that is not currently used
-  by Fuel, document that fact.
+* Versioned unified objects in Nailgun
+  `<https://blueprints.launchpad.net/fuel/+spec/nailgun-unified-object-model>`_
 
-* Does this feature require any new library dependencies or code otherwise not
-  included in Fuel? Or does it depend on a specific version of library?
+* Volume manager refactoring
+  `<https://blueprints.launchpad.net/fuel/+spec/volume-manager-refactoring>`_
+
+* Partition preservation
+  `<https://blueprints.launchpad.net/fuel/+spec/partition-preservation>`_
 
 
 Testing
