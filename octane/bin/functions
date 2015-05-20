@@ -15,7 +15,7 @@ clone_env() {
     [ -z $1 ] && die "Cannot clone environment with empty ID, exiting"
     env_name=$(fuel env --env $1 \
         | awk -F\| '$2~/(new|operational)/ {print $3}' \
-        | sed -re "s%^[ ]+.*[ ]+$%\1%")
+        | sed -re "s%^[ ]+(.*)[ ]+$%\1%")
     [ -n "$env_name" ] || die "No environment found with ID $1, exiting"
     [ -d "./$env_name" ] && rm -r "./$env_name"
     echo $(./clone-env --upgrade $env_name)
