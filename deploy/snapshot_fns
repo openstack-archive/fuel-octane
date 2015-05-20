@@ -18,6 +18,7 @@ snapshot_vms() {
   done
   for domain; do
     lvm_snapshot $domain $snapname
+    snap_arg=""
     case $domain in
     fuel )
       snap_arg="--diskspec hdb,snapshot=no"
