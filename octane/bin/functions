@@ -18,7 +18,7 @@ clone_env() {
         | sed -re "s%^[ ]+(.*)[ ]+$%\1%")
     [ -n "$env_name" ] || die "No environment found with ID $1, exiting"
     [ -d "./$env_name" ] && rm -r "./$env_name"
-    echo $(./clone-env --upgrade $env_name)
+    echo $(./clone-env --upgrade "$env_name")
 }
 
 get_ips_from_cics() {
