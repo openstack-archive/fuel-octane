@@ -4,95 +4,91 @@
 
  http://creativecommons.org/licenses/by/3.0/legalcode
 
-==========================================
-Example Spec - The title of your blueprint
-==========================================
+======================================
+API Extensions For Environment Upgrade
+======================================
 
-Include the URL of your launchpad blueprint:
+https://blueprints.launchpad.net/fuel/+spec/nailgun-api-env-upgrade-extensions
 
-https://blueprints.launchpad.net/fuel/+spec/example
-
-Introduction paragraph -- why are we doing anything? A single paragraph of
-prose that operators can understand.
-
-Some notes about using this template:
-
-* Your spec should be in ReSTructured text, like this template.
-
-* Please wrap text at 79 columns.
-
-* The filename in the git repository should match the launchpad URL, for
-  example a URL of: https://blueprints.launchpad.net/fuel/+spec/awesome-thing
-  should be named awesome-thing.rst
-
-* Please do not delete any of the sections in this template.  If you have
-  nothing to say for a whole section, just write: None
-
-* For help with syntax, see http://sphinx-doc.org/rest.html
-
-* To test out your formatting, build the docs using tox, or see:
-  http://rst.ninjs.org
-
-* If you would like to provide a diagram with your spec, ascii diagrams are
-  required.  http://asciiflow.com/ is a very nice tool to assist with making
-  ascii diagrams.  The reason for this is that the tool used to review specs is
-  based purely on plain text.  Plain text will allow review to proceed without
-  having to look at additional files which can not be viewed in gerrit.  It
-  will also allow inline feedback on the diagram itself.
+Certain aspects of side-by-side upgrade procedure outlined in `this blueprint
+<https://blueprints.launchpad.net/fuel/+spec/upgrade-major-openstack-environment>`_
+have to be performed on Fuel side, especially those operations that require
+database modifications. We propose extensions to Nailgun API that facilitate
+creation of special type of environment to serve as a replacement for original
+environment targeted for upgrade.
 
 
 Problem description
 ===================
 
-A detailed description of the problem:
+During the upgrade procedure, we create an special environment that must satisfy
+the following requirements:
 
-* For a new feature this might be use cases. Ensure you are clear about the
-  actors in each use case: End User vs Deployer
+* It must be created with a release you want to upgrade your original environment
+  to.
 
-* For a major reworking of something existing it would describe the
-  problems in that feature that are being addressed.
+* It must have the same settings as the original environment in terms of selected
+  components and architecture options.
+
+* Settings changed in the new release must be properly upgraded and semantics of
+  the settings must be preserved.
+
+* Assignment of IP addresses of Controllers and Virtual IP addresses must
+  duplicate the assignment in the original environment.
 
 
 Proposed change
 ===============
 
-Here is where you cover the change you propose to make in detail. How do you
-propose to solve this problem?
+We propose to extend definition of environment with Upgrade Seed environment
+type. Such environment must refer to the original environment and have settings
+copied from the original environment instead of generated in a usual way.
 
-If this is one part of a larger effort make it clear where this piece ends. In
-other words, what's the scope of this effort?
+Separate API call will be added to create Upgrade Seed environment. Handler to
+that call must copy and upgrade settings of the original environment and create
+a new environment with those settings, both editable and generated.
 
 Alternatives
 ------------
 
-What other ways could we do this thing? Why aren't we using those? This doesn't
-have to be a full literature review, but it should demonstrate that thought has
-been put into why the proposed solution is an appropriate one.
+Alternative implementation of Upgrade Seed environment logic is external script
+that performs the following actions:
+
+* Copy editable env settings via Nailgun API
+
+* Copy generated settings from original to upgrade seed environment in Nailgun
+  DB via ``psql`` client
+
+* Modify IP address assignments in Nailgun DB via ``psql`` client
+
+* Change deployment information for nodes in the Upgrade Seed environment to
+  ensure changes in Fuel installer behavior during deployment of the Seed.
+
+This methodology, while working and producing acceptable results, is difficult
+to maintain outside of Fuel mainstream. Direct communications with database pose
+data consistency threats. It is also hard to integrate with the Fuel Web UI in
+future.
 
 Data model impact
 -----------------
 
-Changes which require modifications to the data model often have a wider impact
-on the system.  The community often has strong opinions on how the data model
-should be evolved, from both a functional and performance perspective. It is
-therefore important to capture and gain agreement as early as possible on any
-proposed changes to the data model.
+Proposed class ``UpgradeSeedCluster`` extends base class ``Cluster`` with a few
+new and modified attributes and methods:
 
-Questions which need to be addressed by this section include:
+* ``UpgradeSeedCluster.original_env_id`` is ID of environment that was picked
+  for upgrade using this particular Seed.
 
-* What new data objects and/or database schema changes is this going to
-  require?
-
-* What database migrations will accompany this change.
-
-* How will the initial set of new data objects be generated, for example if you
-  need to take into account existing instances, or modify other existing data
-  describe how that will work.
+* ``UpgradeSeedCluster.create_attributes()`` method must be modified to derive
+  editable and generated attributes from the Cluster instance idenified by
+  ``UpgradeSeedCluster.original_env_id``. 
 
 REST API impact
 ---------------
 
-Each API method which is either added or changed should have the following
+We propose to add the following extensions to the Nailgun API.
+
+Create Upgrade Seed environment
++++++++++++++++++++++++++++++++
 
 * Specification for the method
 
