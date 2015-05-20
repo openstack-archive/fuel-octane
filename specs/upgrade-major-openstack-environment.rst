@@ -168,6 +168,14 @@ script must be run against any changes that are being backported to 7.0 branch.
 Implementation
 ==============
 
+This is an overview of architecture of the upgrade script and how the things
+work with each other during the procedure.
+
+Fuel API allows to manage a single environment and perform operations on nodes
+in the environment. Side-by-side upgrade concept implies that some operations
+have to be performed on more than one environment at a time. This logic doesn't
+belong to Fuel API and must be implemented as an outside script.
+
 Assignee(s)
 -----------
 
@@ -221,14 +229,20 @@ Testing of the script itself will require lab with two versions Fuel Master node
 to be set up:
 
 * Fuel 5.1.1 must be installed and environment created by it
+
 * The Fuel Master node must be upgraded to version 7.0 (potentially through
   version 6.x as an interim stage)
+
 * Script shall be executed on the Fuel Master node.
+
 * Environment of version 7.0 will be created with a set of Controller nodes.
+
 * Compute/Storage nodes will be moved from original version 5.1.1 environment to
   the new 7.0 environment.
+
 * Integration tests must validate that the resulting environment has all the
   capabilities and parameters of the original environment.
+
 * Functional tests must validate impact on the cloud end user's workloads.
 
 
