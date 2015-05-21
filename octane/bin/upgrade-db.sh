@@ -33,7 +33,14 @@ get_ctrl() {
     echo $(fuel node --env $1 | awk '/controller/ {print "node-" $1;exit}')
 }
 
+get_primary_controller() {
+    [ -z "$1" ] && exit 1
+    fuel --env $1 deployment --default --dir /tmp/tmp-$$
+    echo $(ls /tmp/tmp-$$/* \
+        | sed -nre "s%.*primary-controller_([0-9]+).yaml%node-\1%p")
+}
+
 orig_ctrl=$(get_ctrl $1)
-seed_ctrl=$(get_ctrl $2)
+seed_ctrl=$(get_primary_controller $2)
 main $orig_ctrl $seed_ctrl
 exit 0
