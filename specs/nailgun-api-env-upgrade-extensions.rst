@@ -72,15 +72,18 @@ future.
 Data model impact
 -----------------
 
-Proposed class ``UpgradeSeedCluster`` extends base class ``Cluster`` with a few
-new and modified attributes and methods:
+Proposed modifications to base class ``Cluster`` include additional attributes,
+changed attributes and methods:
 
-* ``UpgradeSeedCluster.original_env_id`` is ID of environment that was picked
-  for upgrade using this particular Seed.
+* Add ``Cluster.original_env_id`` attribute. This is an ID of environment that
+  was picked for upgrade and for which the given environment will serve as an
+  Upgrade Seed.
 
-* ``UpgradeSeedCluster.create_attributes()`` method must be modified to derive
-  editable and generated attributes from the Cluster instance idenified by
-  ``UpgradeSeedCluster.original_env_id``. 
+* ``UpgradeS
+
+* ``Cluster.create_attributes()`` method must be modified to derive
+  editable and generated attributes from the Cluster instance idenified by;
+  ``Cluster.original_env_id`` if this attribute has value (i.e. not ``None``).
 
 REST API impact
 ---------------
