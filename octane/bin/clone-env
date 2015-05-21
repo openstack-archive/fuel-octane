@@ -2,6 +2,7 @@
 
 import sys
 import os
+import uuid
 sys.path.append(os.path.normpath("{0}/../../helpers/".format(__file__)))
 import cluster
 import argparse
@@ -10,7 +11,7 @@ import json
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Clone environment settings "
-                                                 "to upgrade seed")
+                                                 "to new environment")
     parser.add_argument("environment",
                         help="A name of environment picked for upgrade")
     parser.add_argument("--endpoint",
@@ -26,9 +27,10 @@ def get_parser():
                         default="admin",
                         help="Fuel password for auth user, defaults to "
                              "'admin'")
-    parser.add_argument("--seed",
+    parser.add_argument("--clone",
                         default=None,
-                        help="Name of upgrade seed environment")
+                        help="Name of clone environment, defaults to the name "
+                        "of the original environment plus random UUID")
     parser.add_argument("--upgrade",
                         action="store_true",
                         help="Translate cluster settings into new version "
@@ -36,25 +38,34 @@ def get_parser():
     return parser
 
 
+def update_env_name(orig_name, seed_name):
+    if not seed_name:
+        seed_name = "{0}-{1}".format(orig_name, uuid.uuid4())
+    cluster_json = "{0}/cluster.json".format(orig_name)
+    with open(cluster_json, "r") as f:
+        cluster_config = json.load(f)
+    cluster_config.update(name=seed_name)
+    with open(cluster_json, "w") as f:
+        json.dump(cluster_config, f, indent=1)
+
+
 def main():
     args = get_parser().parse_args()
+
+    cluster_dir = "./{0}".format(args.environment)
+
+    if os.path.exists(cluster_dir):
+        for root, dirs, files in os.walk(cluster_dir):
+            for p in files:
+                os.unlink("{0}/{1}".format(root, p))
+        os.rmdir(cluster_dir)
 
     cluster.dump_cluster(args.environment,
                          args.endpoint,
                          user=args.user,
                          password=args.password,
                          tenant=args.tenant)
-    if args.seed:
-        seed_name = args.seed
-    else:
-        seed_name = "{0}_upgrade".format(args.environment)
-
-    cluster_json = "{0}/cluster.json".format(args.environment)
-    with open(cluster_json, "r") as f:
-        cluster_config = json.load(f)
-    cluster_config.update(name=seed_name)
-    with open(cluster_json, "w") as f:
-        json.dump(cluster_config, f, indent=1)
+    update_env_name(args.environment, args.clone)
 
     try:
         new_id = cluster.restore_cluster(args.environment,
