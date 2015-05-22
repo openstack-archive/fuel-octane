@@ -12,16 +12,20 @@ Environments with the following configuration can be upgraded with Octane:
 - KVM Compute
 - Neutron with VLAN segmentation
 - Ceph backend for Cinder AND Glance
-- No additional services instlled (like Sahara, Murano, Ceilometer, etc)
+- No additional services installed (like Sahara, Murano, Ceilometer, etc)
 
 ## Clean up nodes for 6.0 Seed environment
 
 This is an optional step. Select nodes in your environment and use live
 migration to evacuate all virtual instances from the node. Delete the node from
-environment. Repeat for at least 2 nodes (CIC and Compute/Ceph OSD in 6.0 Seed
-environment). Wait for nodes to be discovered in Fuel as `unallocated'.
+environment. Repeat for at least 1 node (Cloud Infrastructure Controller and in
+6.0 Seed environment). Wait for nodes to be available in the Fuel Web UI as
+`discover`.
 
 ## Install Octane
+
+Create archive from this repository with `git archive` command and copy it to
+your Fuel Master host.
 
 Unpack Octane tarball to /root/ directory. Change to bin/ directory of Octane.
 
