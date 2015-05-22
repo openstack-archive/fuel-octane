@@ -662,6 +662,13 @@ prepare_compute_upgrade() {
     ssh root@$cic "/var/tmp/host_evacuation.sh node-$2"
 }
 
+cleanup_compute_upgrade() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    cic=$(list_nodes $1 controller | head -1)
+    ssh root@$cic "source openrc; nova service-enable node-$2 nova-compute"
+}
+
 upgrade_node() {
     local roles
     local role
@@ -712,6 +719,7 @@ upgrade_node() {
         do
             case $role in
                 compute)
+                    cleanup_compute_upgrade "$@"
                     ;;
                 ceph-osd)
                     unset_osd_noout $1
