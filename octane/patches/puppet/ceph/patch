@@ -1,0 +1,122 @@
+diff --git a/deployment/puppet/ceph/lib/facter/ceph_osd.rb b/deployment/puppet/ceph/lib/facter/ceph_osd.rb
+index c9b7aae..f3d7cdc 100644
+--- a/deployment/puppet/ceph/lib/facter/ceph_osd.rb
++++ b/deployment/puppet/ceph/lib/facter/ceph_osd.rb
+@@ -22,7 +22,15 @@ Facter.add("osd_devices_list") do
+                 when "4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D"
+                     # Only use unmounted devices
+                     if %x{grep -c #{device}#{p} /proc/mounts}.to_i == 0
+-                        osds << "#{device}#{p}"
++                        mp = %x{mktemp -d}.strip()
++                        begin
++                            mp_code = %x{mount #{device}#{p} #{mp} && test -f #{mp}/fsid && echo 0 || echo 1}.to_i
++                        rescue
++                        else
++                            osds << ["#{device}#{p}", !mp_code.zero?]
++                        ensure
++                            %x{umount -f #{mp}}
++                        end
+                     end
+                 when "45B0969E-9B03-4F30-B4C6-B4B80CEFF106"
+                     if %x{grep -c #{device}#{p} /proc/mounts}.to_i == 0
+@@ -32,21 +40,21 @@ Facter.add("osd_devices_list") do
+             }
+         }
+ 
+-        if journals.length > 0
+-          osds.each { |osd|
+-            journal = journals.shift
+-            if (not journal.nil?) && (not journal.empty?)
+-              devlink = %x{udevadm info -q property -n #{journal} | awk 'BEGIN {FS="="} {if ($1 == "DEVLINKS") print $2}'}
+-              devlink = devlink.split(' ')
+-              journal = (devlink.find { |s| s.include? 'by-id' } or journal)
+-              output << "#{osd}:#{journal}"
+-            else
+-              output << osd
+-            end
+-          }
+-        else
+-            output = osds
+-        end
++        osds.each { |osd, prep|
++          journal = journals.shift
++          if (not journal.nil?) && (not journal.empty?)
++            devlink = %x{udevadm info -q property -n #{journal} | awk 'BEGIN {FS="="} {if ($1 == "DEVLINKS") print $2}'}
++            devlink = devlink.split(' ')
++            journal = (devlink.find { |s| s.include? 'by-id' } or journal)
++            osd_disk = "#{osd}:#{journal}"
++          else
++            osd_disk = osd
++          end
++          if prep == true
++              osd_disk += "!prep"
++          end
++          output << osd_disk
++        }
+         output.join(" ")
+     end
+ end
+diff --git a/deployment/puppet/ceph/manifests/osds/osd.pp b/deployment/puppet/ceph/manifests/osds/osd.pp
+index 814ccab..f8cd740 100644
+--- a/deployment/puppet/ceph/manifests/osds/osd.pp
++++ b/deployment/puppet/ceph/manifests/osds/osd.pp
+@@ -1,22 +1,34 @@
+ define ceph::osds::osd () {
+ 
+-  $deploy_device_name = "${::hostname}:${name}"
++  $prepare_device = split($name, '!')
++  $deploy_device_name = "${::hostname}:${prepare_device[0]}"
+ 
+-  exec { "ceph-deploy osd prepare ${deploy_device_name}":
+-    # ceph-deploy osd prepare is ensuring there is a filesystem on the
+-    # disk according to the args passed to ceph.conf (above).
+-    #
+-    # It has a long timeout because of the format taking forever. A
+-    # resonable amount of time would be around 300 times the length of
+-    # $osd_nodes. Right now its 0 to prevent puppet from aborting it.
+-    command   => "ceph-deploy osd prepare ${deploy_device_name}",
+-    returns   => 0,
+-    timeout   => 0, # TODO: make this something reasonable
+-    tries     => 2, # This is necessary because of race for mon creating keys
+-    try_sleep => 1,
+-    logoutput => true,
+-    unless    => "grep -q ${name} /proc/mounts",
+-  } ->
++#  $prepare_device = delete_at($prepare_device, 0)
++#  $prepare_device = grep($prepare_device, 'prep')
++#  $prepare_device = intersection($prepare_device, ['prep'])
++#  $prepare_device = prefix($prepare_device, 'prep')
++#  $prepare_device = suffix($prepare_device, 'prep')
++#  $prepare_device = reject($prepare_device, $prepare_device[0])
++
++#  if ! empty($prepare_device) {
++# if member($prepare_device, ['prep']) {
++ if size($prepare_device) == 2 {
++    exec { "ceph-deploy osd prepare ${deploy_device_name}":
++      # ceph-deploy osd prepare is ensuring there is a filesystem on the
++      # disk according to the args passed to ceph.conf (above).
++      #
++      # It has a long timeout because of the format taking forever. A
++      # resonable amount of time would be around 300 times the length of
++      # $osd_nodes. Right now its 0 to prevent puppet from aborting it.
++      command   => "ceph-deploy osd prepare ${deploy_device_name}",
++      returns   => 0,
++      timeout   => 0, # TODO: make this something reasonable
++      tries     => 2, # This is necessary because of race for mon creating keys
++      try_sleep => 1,
++      logoutput => true,
++      unless    => "grep -q ${name} /proc/mounts",
++    }
++  }
+ 
+   exec { "ceph-deploy osd activate ${deploy_device_name}":
+     command   => "ceph-deploy osd activate ${deploy_device_name}",
+@@ -27,4 +39,8 @@ define ceph::osds::osd () {
+     unless    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|${name}\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
+   }
+ 
++  if ! empty($prepare_device) {
++      Exec["ceph-deploy osd prepare ${deploy_device_name}"] ->
++      Exec["ceph-deploy osd activate ${deploy_device_name}"]
++  }
+ }
