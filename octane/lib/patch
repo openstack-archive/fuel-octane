@@ -24,10 +24,16 @@ function docker_patchfile() {
     [ -z "$1" ] && die "No original file provided, exiting"
     [ -z "$2" ] && die "No patch file provided, exiting"
     local tmp="$run/`basename $1`.patchfile"
+    local patch_args="-p1"
     dockerctl copy $1 $tmp
-    patch -Np1 $tmp $2 && cp $tmp "$tmp.backup" || return 0
+    if [ "$3" == "revert" ]; then
+        patch_args="-R ${patch_args}"
+    else
+        patch_args="-N ${patch_args}"
+    fi
+    patch $patch_args $tmp $2 && cp $tmp "$tmp.backup" || return 0
     dockerctl copy $tmp $1
-    copyfile $tmp $1
+    docker_copyfile $tmp $1
 }
 
 patchfile() {
