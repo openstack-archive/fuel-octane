@@ -5,7 +5,7 @@ FUNCTIONS_PATH="$(dirname $0)/../../lib"
 
 PATCH_DIR=$(dirname $0)
 CONTAINER="astute"
-SRC_PATH="/usr/lib64/ruby/gems/2.1.0/gems/astute-6.0.0/lib/astute/"
+SRC_PATH="/usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute"
 
 dockerctl restart ${CONTAINER}
 sleep 10
