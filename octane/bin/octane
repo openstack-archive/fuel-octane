@@ -24,6 +24,8 @@ prepare-osd-upgrade SEED_ID     - configure Ceph cluster before OSD upgrade
 upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
 upgrade-nova-compute NODE_ID    - update nova and neutron packages on the compute
                                   node NODE_ID and restart services
+cleanup ENV_ID                  - delete data about former environment from
+                                  upgraded OpenStack cloud
 help                            - display this message and exit"
 }
 
@@ -32,6 +34,7 @@ KEY=0
 
 case $1 in
     prepare-fuel)
+        [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
         yum -y install postgresql.x86_64 pssh patch
         ./patch-fuel-manifests.sh
         ../patches/pman/update.sh
@@ -52,6 +55,7 @@ case $1 in
         [ -z "$3" ] && die "$(usage)"
         prepare_cic_disk_fixture $2
         prepare_cic_network_fixture $2
+        discover_nodes_to_cics $3
         for node in $(list_nodes $3 'controller' 'discover')
             do
                 node_id=$(echo $node | cut -d '-' -f2)
@@ -61,7 +65,7 @@ case $1 in
     prepare)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        prepare_seed_deployment_info $2 $3
+        prepare_seed_deployment_info_nailgun $2 $3
         create_ovs_bridges $3
         ;;
     deploy)
@@ -79,7 +83,9 @@ case $1 in
         ./manage_services.sh start $3
         # Wait for corosync cluster to sync and start, and for Neutron to create
         # all network resources on 6.0 CICs
-        sleep 120
+        sleep 30
+        prepare_ceph_osd_upgrade $2
+        update_admin_tenant_id $3
         for br_name in br-ex br-mgmt br-prv
             do
                 delete_patch_ports $2 $br_name
@@ -94,35 +100,36 @@ case $1 in
                 create_patch_ports $3 $br_name
             done
         ;;
-     upgrade-db)
+    upgrade-db)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./delete_fuel_resources.sh $3
-        ./manage_services.sh stop $3
-        ./manage_services.sh disable $2
-        ./upgrade-db.sh $2 $3
+        upgrade_db $2 $3
         ;;
-     upgrade-ceph)
+    upgrade-ceph)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        ./migrate-ceph-mon.sh $2 $3
-        import_bootstrap_osd $3
+        upgrade_ceph $2 $3
         ;;
-     prepare-osd-upgrade)
+    prepare-osd-upgrade)
         [ -z "$2" ] && die "$(usage)"
         prepare_ceph_osd_upgrade $2;
         ;;
-     upgrade-node)
+    upgrade-node)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         upgrade_node $2 $3;
         ;;
-     upgrade-nova-compute)
+    upgrade-nova-compute)
         [ -z "$2" ] && die "$(usage)"
         list_nodes $2 compute \
         | xargs -I{} ./upgrade-nova-compute.sh {}
         ;;
-     help)
+    cleanup)
+        [ -z "$2" ] && die "$(usage)"
+        cleanup_nova_services $2
+        cleanup_neutron_services $2
+        ;;
+    help)
         usage
         ;;
      *)

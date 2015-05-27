@@ -13,10 +13,12 @@ clone_env() {
 # helper Python script `clone-env'
     local env_name
     [ -z $1 ] && die "Cannot clone environment with empty ID, exiting"
-    env_name=$(fuel env --env $1 | awk '/(new|operational)/ {print $5}')
+    env_name=$(fuel env --env $1 \
+        | awk -F\| '$2~/(new|operational)/ {print $3}' \
+        | sed -re "s%^[ ]+(.*)[ ]+$%\1%")
     [ -n "$env_name" ] || die "No environment found with ID $1, exiting"
     [ -d "./$env_name" ] && rm -r "./$env_name"
-    echo $(./clone-env --upgrade $env_name)
+    echo $(./clone-env --upgrade "$env_name")
 }
 
 get_ips_from_cics() {
@@ -189,8 +191,25 @@ prepare_seed_deployment_info() {
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
     backup_deployment_info $2
-    disable_ping_checker $2
     replace_seed_ips $1 $2
+    disable_ping_checker $2
+    remove_patch_transformations $2
+    remove_predefined_networks $2
+    upload_deployment_info $2
+}
+
+prepare_seed_deployment_info_nailgun() {
+    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+    [ -z "$2" ] && "No seed env ID provided, exiting"
+    get_deployment_info $2
+    for br_name in br-ex br-mgmt
+        do
+            update_ips_nailgun_db $1 $2 $br_name
+            update_vip_nailgun_db $1 $2 $br_name
+        done
+    get_deployment_info $2
+    backup_deployment_info $2
+    disable_ping_checker $2
     remove_patch_transformations $2
     remove_predefined_networks $2
     upload_deployment_info $2
@@ -305,6 +324,8 @@ get_nailgun_db_pass() {
         | tr -d '"')
 }
 
+postgres_cmd="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
+
 copy_generated_settings() {
 # Update configuration of 6.0 environment in Nailgun DB to preserve generated
 # parameters values from the original environmen.
@@ -348,6 +369,14 @@ check_deployment_status() {
         | awk -F"|" '/^'$1'/{print $2}' \
         | tr -d ' ')
     [ "$status" == 'new' ] || die "Environment is not operational, exiting"
+}
+
+discover_nodes_to_cics() {
+    local node_ids
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    node_ids=$(fuel node | awk -F\| '$2~/discover/{print($1)}' \
+        | tr -d ' ' | sed ':a;N;$!ba;s/\n/,/g')
+    fuel node set --env $1 --node $node_ids --role controller
 }
 
 check_vip_down() {
@@ -456,6 +485,7 @@ delete_patch_ports() {
 apply_disk_settings() {
     local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
     ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_name \
@@ -467,6 +497,7 @@ apply_disk_settings() {
 apply_network_settings() {
     local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     ./copy-node-settings interfaces $iface_file \
@@ -480,6 +511,14 @@ get_node_settings() {
     [ -d "$FUEL_NODE" ] || mkdir -p "$FUEL_CACHE"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
+}
+
+prepare_fixtures_from_node() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    get_node_settings $1
+    mv ${FUEL_CACHE}/node_$1/disks.yaml ./disks.fixture.yaml
+    mv ${FUEL_CACHE}/node_$1/interfaces.yaml ./interfaces.fixture.yaml
+    rmdir ${FUEL_CACHE}/node_$1
 }
 
 upload_node_settings() {
@@ -505,83 +544,87 @@ get_last_node() {
            | sort -n | tail -1)
 }
 
+get_node_online() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    fuel node --node "$1" | tail -1 | awk -F\| '{gsub(" ", "", $9);print($9)}'
+}
+
+get_bootable_mac() {
+    local port1
+    local port2
+    local port3
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    port1=$(ssh "root@node-$1" "ovs-vsctl list-ifaces br-fw-admin")
+    port2=$(ssh "root@node-$1" "ovs-vsctl list interface $port1" |
+            awk -F\" '/^options/ { print $2; }')
+    port3=$(ssh "root@node-$1" "ovs-vsctl list-ifaces \$(ovs-vsctl port-to-br $port2)" | grep -v $port2)
+    ssh "root@node-$1" "ip link show $port3" | awk '/link\/ether/{print $2}'
+}
+
 assign_node_to_env(){
     local orig_id
     local roles
-    local mac
     local host
+    local node_mac
     local id
-    local last_node
+    local node_values
+    local node_online
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     orig_id=$(get_env_by_node $1)
     host=$(get_host_ip_by_node_id $1)
-    if [ "$orig_id" == "None" ]
+    if [ "$orig_id" != "None" ]
         then
-            id=$1
-        else
-            fuel node --node $1 --delete
-            fuel --env $orig_id deploy-changes
-            last_node=$(get_last_node)
+            node_values=$(echo "SELECT uuid, name
+                                FROM nodes WHERE id = $1;" | \
+                          $postgres_cmd | \
+                          sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
+                          )
+            node_mac=$(get_bootable_mac "$1")
+            prepare_fixtures_from_node "$1"
+            fuel node --node $1 --env $orig_id --delete-from-db
+            dockerctl shell cobbler cobbler system remove --name node-$1
+            echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
+                                     timestamp, online, pending_addition,
+                                     pending_deletion)
+                  VALUES ($1, $node_values, '$node_mac', 'discover',
+                          '{\"disks\": [], \"interfaces\": []}', now(), false,
+                          false, false);" | $postgres_cmd
+            ssh root@node-$1 shutdown -r now
             while :
                 do
-                    id=$(get_last_node)
-                    [[ $id > $last_node ]] && {
-                        echo "Found node $id, adding node to env $2 as $roles"
+                    node_online=$(get_node_online $1)
+                    [ "$node_online" == "True" ] && {
+                        echo "Node $id came back online."
                         break
                     }
                     sleep 30
                 done
         fi
-    fuel node --node $id --env $2 set --role ${roles:-compute,ceph-osd}
-    [ "$orig_id" == "None" ] || prepare_cic_disk_fixture $orig_id compute
-    [ "$orig_id" == "None" ] || prepare_cic_network_fixture $orig_id compute
-    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
-    apply_network_settings $id
-    if [ $id -ne $1 ]
-        then
-            fuel node --node $id --disk --download --dir $FUEL_CACHE
-            ./copy-node-settings disks ${FUEL_CACHE}/node_$id/disks.yaml \
-                ${FUEL_CACHE}/node_$1/disks.yaml by_extra > /tmp/node-$id-disks.yaml
-            cp /tmp/node-$id-disks.yaml ${FUEL_CACHE}/node_$id/disks.yaml
-        else
-            [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
-            apply_disk_settings $id
-        fi
-    ./keep-ceph-partition ${FUEL_CACHE}/node_$id/disks.yaml > /tmp/disks-ceph-partition.yaml
-    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$id/disks.yaml
-    upload_node_settings $id
-    NODE_ID=$id
+    fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
+    apply_network_settings $1
+    apply_disk_settings $1
+    ./keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
+    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
+    upload_node_settings $1
 }
 
-prepare_ceph_osd_upgrade() {
-    local seed_id
-    local nodes
-    local node
-    [ -z "${seed_id:=$1}" ] && die "No 6.0 env ID provided, exiting"
-    nodes=$(list_nodes $seed_id '(controller)')
-    for node in $nodes
-        do
-            ssh root@$node sh -c "'
-                f=\$(mktemp)
-                awk -f /dev/stdin /etc/ceph/ceph.conf > \$f
-                mv \$f /etc/ceph/ceph.conf
-            '" <<EOF
-BEGIN {
-    flag = 0
-}
-/^$|^\[/ && flag == 1 {
-    flag = 0;
-    print "osd_crush_update_on_start = false"
-}
-/^\[global\]$/ {
-    flag = 1
-}
-{ print \$0 }
-EOF
-        done
+nodes_disks_equal() {
+    set -e
+    [ -z "$2" ] && die "IDs of 2 nodes required but not provided, exiting"
+    [ -f "${FUEL_CACHE}/node_$1/disks.yaml" ]
+    [ -f "${FUEL_CACHE}/node_$2/disks.yaml" ]
+    python -c "import yaml; import sys;
+disks1 = yaml.load(open('"$FUEL_CACHE"/node_$1/disks.yaml'));
+disks2 = yaml.load(open('"$FUEL_CACHE"/node_$2/disks.yaml'));
+for disk in disks1:
+    if disk['extra'] in [d['extra'] for d in disks2]:
+        continue;
+    else:
+        sys.exit(1)"
+    return $?
 }
 
 set_osd_noout() {
@@ -621,6 +664,13 @@ prepare_compute_upgrade() {
     ssh root@$cic "/var/tmp/host_evacuation.sh node-$2"
 }
 
+cleanup_compute_upgrade() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    cic=$(list_nodes $1 controller | head -1)
+    ssh root@$cic "source openrc; nova service-enable node-$2 nova-compute"
+}
+
 upgrade_node() {
     local roles
     local role
@@ -632,7 +682,6 @@ upgrade_node() {
     roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
-    get_node_settings $2
     for role in $roles
         do
             case $role in 
@@ -648,10 +697,9 @@ upgrade_node() {
                     ;;
              esac
          done
-    assign_node_to_env $2 $1 # Set NODE_ID global var to the ID of reassigned node
-    [ $NODE_ID == 0 ] && die "Cannot determine ID of reassigned node, exiting"
-    fuel node --env $1 --node $NODE_ID --provision
-    wait_for_node $NODE_ID "provisioned"
+    assign_node_to_env $2 $1
+    fuel node --env $1 --node $2 --provision
+    wait_for_node $2 "provisioned"
     get_deployment_info $1 download
     rmdir ${FUEL_CACHE}/deployment_$1.download
     mv ${FUEL_CACHE}/deployment_$1 ${FUEL_CACHE}/deployment_$1.download
@@ -660,19 +708,20 @@ upgrade_node() {
     for br_name in br-ex br-mgmt
         do
             get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            filename=$(echo $roles | cut -d ' ' -f 1)_${NODE_ID}.yaml
+            filename=$(echo $roles | cut -d ' ' -f 1)_$2.yaml
             discard_ips=$(get_ips_from_deploy_info $1 $br_name $filename)
             replace_ip_addresses $1 $1 $br_name $discard_ips
             replace_vip_address $1 $1 $br_name $filename
         done
     remove_predefined_networks $1
     upload_deployment_info $1
-    fuel node --env $1 --node $NODE_ID --deploy
-    wait_for_node $NODE_ID "ready"
+    fuel node --env $1 --node $2 --deploy
+    wait_for_node $2 "ready"
     for role in $roles
         do
             case $role in
                 compute)
+                    cleanup_compute_upgrade "$@"
                     ;;
                 ceph-osd)
                     unset_osd_noout $1
@@ -724,16 +773,6 @@ provision_node() {
     fuel node --env $env_id --node $1 --provision
 }
 
-get_nailgun_pass() {
-    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
-        | awk 'BEGIN{out=""}
-        /DATABASE:/{out=$0}
-        /passwd:/{if(out!=""){print $2}}' \
-        | tr -d \")
-}
-
-postgres_cmd="dockerctl shell postgres psql -At \
-postgresql://nailgun:$(get_nailgun_pass)@localhost/nailgun"
 
 get_node_group_id() {
     [ -z "$1" ] && die "No env ID provided, exiting"
@@ -787,8 +826,8 @@ update_ips_nailgun_db() {
         do
             orig_node=$(sed -i -e '1 w /dev/stdout' -e '1d' "$tmpfile")
             echo "DROP TABLE IF EXISTS ip_$$;
-		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $node AND network = $orig_net_id;
-                DELETE FROM ip_addrs WHERE node = $node AND network = $orig_net_id;
+		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
+                DELETE FROM ip_addrs WHERE node = $node AND network = $seed_net_id;
                 INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node, (SELECT ip_addr FROM ip_$$));
             " | $postgres_cmd
         done
@@ -891,8 +930,13 @@ upgrade_ceph() {
 }
 
 disable_wsrep() {
-    [ -z "$2" ] && die "Only one controller in the env, exiting"
-    ssh $2 mysql -e "SET GLOBAL wsrep_on='off';"
+    [ -z "$1" ] && die "No node ID provided, exiting, exiting"
+    ssh root@$1 "echo \"SET GLOBAL wsrep_on='off';\" | mysql"
+}
+
+enable_wsrep() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    ssh root@$1 "echo \"SET GLOBAL wsrep_on='ON';\" | mysql"
 }
 
 update_admin_tenant_id() {
@@ -905,6 +949,26 @@ update_admin_tenant_id() {
     list_nodes $1 controller | xargs -I{} ssh root@{} \
         "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' -i /etc/neutron/neutron.conf;
         restart neutron-server"
+}
+
+cleanup_nova_services() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    local cic=$(list_nodes $1 controller | head -1)
+    ssh root@${cic} '. /root/openrc;
+    nova service-list | grep nova \
+    | grep -Ev "('$(list_nodes $1 "(controller|compute|ceph-osd)" \
+    | sed ':a;N;$!ba;s/\n/|/g')')"' | awk -F \| '{print($2)}' | tr -d ' ' \
+    | xargs -I{} ssh root@${cic} ". /root/openrc; nova service-delete {}"
+}
+
+cleanup_neutron_services() {
+    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    local cic=$(list_nodes $1 controller | head -1)
+    ssh root@${cic} '. /root/openrc;
+    neutron agent-list | grep neutron \
+    | grep -Ev "('$(list_nodes $1 "(controller|compute|ceph-osd)" \
+    | sed ':a;N;$!ba;s/\n/|/g')')"' | awk -F \| '{print($2)}' | tr -d ' ' \
+    | xargs -I{} ssh root@${cic} ". /root/openrc; neutron agent-delete {}"
 }
 
 install_seed() {
@@ -924,6 +988,5 @@ install_seed() {
     upgrade_db $args
     install_cics $args
     upgrade_ceph $args
-    prepare_ceph_osd_upgrade $seed_env
     update_admin_tenant_id $seed_env
 }

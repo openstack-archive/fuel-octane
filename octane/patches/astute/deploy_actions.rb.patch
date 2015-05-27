@@ -1,0 +1,12 @@
+diff --git a/deploy_actions.rb b/deploy_actions.rb
+index 0d80c47..45c5f99 100644
+--- a/deploy_actions.rb
++++ b/deploy_actions.rb
+@@ -142,7 +142,6 @@ module Astute
+       super
+       @actions = [
+         UpdateNoQuorumPolicy.new,
+-        UploadCirrosImage.new,
+         RestartRadosgw.new,
+         UpdateClusterHostsInfo.new
+       ]
