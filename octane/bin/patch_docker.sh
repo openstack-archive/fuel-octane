@@ -53,7 +53,7 @@ function docker_patch() {
 
 	test -d $patch_dir && rm -rf ${patch_dir} 
 } 
-set -x
+#set -x
 
 CONTAINER_NAME=$1
 PATCH_PREFIX=$2
