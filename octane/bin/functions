@@ -831,6 +831,7 @@ update_vip_nailgun_db() {
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     [ -z "$3" ] && die "No bridge provided, exiting"
     orig_net_id=$(get_nailgun_net_id $1 $3)
+
     seed_net_id=$(get_nailgun_net_id $2 $3)
     vip=$(echo "select ip_addr from ip_addrs where network = $orig_net_id and
         node is null;" | $postgres_cmd)
@@ -955,16 +956,6 @@ upgrade_ceph() {
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     ./migrate-ceph-mon.sh $1 $2
     import_bootstrap_osd $2
-}
-
-disable_wsrep() {
-    [ -z "$1" ] && die "No node ID provided, exiting, exiting"
-    ssh root@$1 "echo \"SET GLOBAL wsrep_on='off';\" | mysql"
-}
-
-enable_wsrep() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    ssh root@$1 "echo \"SET GLOBAL wsrep_on='ON';\" | mysql"
 }
 
 update_admin_tenant_id() {
