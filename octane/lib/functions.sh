@@ -3,14 +3,9 @@
 clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
-    local env_name
-    [ -z $1 ] && die "Cannot clone environment with empty ID, exiting"
-    env_name=$(fuel env --env $1 \
-        | awk -F\| '$2~/(new|operational)/ {print $3}' \
-        | sed -re "s%^[ ]+(.*)[ ]+$%\1%")
-    [ -n "$env_name" ] || die "No environment found with ID $1, exiting"
-    [ -d "./$env_name" ] && rm -r "./$env_name"
-    echo $(./clone-env --upgrade "$env_name")
+    [ -z "$1" ] && die "Cannot clone environment with empty ID, exiting"
+    [ -d "./cluster_$1" ] && rm -r "./cluster_$1"
+    echo $(./clone-env --upgrade "$1")
 }
 
 get_ips_from_cics() {

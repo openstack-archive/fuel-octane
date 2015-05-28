@@ -108,7 +108,7 @@ class NailgunClient(object):
         return requests.get(endpoint, headers=self.headers)
 
 
-def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
+def dump_cluster(cluster_id, fuel_node, user="admin", password="admin",
                  tenant="admin"):
     client = NailgunClient(fuel_node, username=user, password=password,
                            tenant_name=tenant)
@@ -120,7 +120,7 @@ def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
         else:
             raise NameError("Can not find cluster with specified name")
 
-    cluster_id = get_cluster_id(cluster_name)
+    cluster_name = "cluster_{0}".format(str(cluster_id))
     os.makedirs(cluster_name)
 
     with open("{0}/cluster.json".format(cluster_name), "w") as cluster:
@@ -157,11 +157,12 @@ def dump_cluster(cluster_name, fuel_node, user="admin", password="admin",
                       sort_keys=False, indent=4)
 
 
-def restore_cluster(folder, fuel_node, user="admin", password="admin",
+def restore_cluster(cluster_id, fuel_node, user="admin", password="admin",
                     tenant="admin", upgrade=None):
     client = NailgunClient(fuel_node, username=user, password=password,
                            tenant_name=tenant)
 
+    folder = "cluster_{0}".format(str(cluster_id))
     if os.path.isfile("{0}/cluster.json".format(folder)):
         with open("{0}/cluster.json".format(folder)) as cluster:
             cluster_data = json.load(cluster)
