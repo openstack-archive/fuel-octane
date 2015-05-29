@@ -82,3 +82,37 @@ EOF
 )
     $PSSH_RUN "$command"
 }
+
+evacuate_neutron_agents() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    [ -z "$(fuel node --node $1 | grep controller)" ] && \
+        die "Node $1 is not a controller, exiting"
+    local res
+    local dst_node=$(list_nodes $(get_env_by_node $1) controller \
+        | grep -v "node-$1" | head -1)
+    local src_node=$(get_host_ip_by_node_id $1)
+    for res in p_neutron-l3-agent p_neutron-dhcp-agent;
+    do
+        ssh root@$src_node "crm resource status $res \
+            | grep node-$1 && pcs resource move $res $dst_node"
+    done
+}
+
+env_maintenance_mode() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+}
+
+cic_maintenance_mode() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    host_ip=$(get_host_ip_by_node_id $1)
+    case "$2" in
+        activate)
+            ssh root@$host_ip "crm node maintenance"
+            disable_wsrep $1
+            ;;
+        deactivate)
+            enable_wsrep $1
+            ssh root@$host_ip "crm node ready"
+            ;;
+    esac
+}
