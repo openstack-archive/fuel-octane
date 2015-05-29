@@ -98,8 +98,26 @@ evacuate_neutron_agents() {
     done
 }
 
-env_maintenance_mode() {
+mysql_maintenance_mode() {
     [ -z "$1" ] && die "No env ID provided, exiting"
+    local cmd
+    case "$2" in
+        activate)
+            cmd="disable server"
+            ;;
+        deactivate)
+            cmd="enable server"
+            ;;
+        *)
+            die "Use 'activate/deactivate' as a second argument"
+            ;;
+    esac
+    for node in $(list_nodes $1 controller);
+    do
+        ssh root@$(get_host_ip_by_node_id ${node#node-}) \
+            "echo '${cmd} mysqld/${node}' \
+            | socat stdio /var/lib/haproxy/stats"
+    done
 }
 
 cic_maintenance_mode() {
