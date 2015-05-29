@@ -1,27 +1,23 @@
 #!/bin/bash -xe
 
-export LIBDIR=$(dirname `readlink -f "$0"`)
-. ${LIBDIR}/utils.sh
-. ${LIBDIR}/maintenance.sh
-
 disable_wsrep() {
     [ -z "$1" ] && die "No node ID provided, exiting, exiting"
-    ssh root@node-$1 "echo \"SET GLOBAL wsrep_on='off';\" | mysql"
+    ssh root@$(get_host_ip_by_node_id $1) "echo \"SET GLOBAL wsrep_on='off';\" | mysql"
 }
 
 enable_wsrep() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    ssh root@node-$1 "echo \"SET GLOBAL wsrep_on='ON';\" | mysql"
+    ssh root@$(get_host_ip_by_node_id $1) "echo \"SET GLOBAL wsrep_on='ON';\" | mysql"
 }
 
 xtrabackup_install() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    ssh root@node-$1 "yum -y install percona-xtrabackup.x86_64"
+    ssh root@$(get_host_ip_by_node_id $1) "apt-get -y install percona-xtrabackup"
 }
 
 xtrabackup_stream_from_node() {
     [ -z "$1" ] && die "No backup source node ID provided, exiting"
-    ssh root@node-$1 "xtrabackup --backup --stream=tar ./ | gzip " \
+    ssh root@$(get_host_ip_by_node_id $1) "xtrabackup --backup --stream=tar ./ | gzip " \
         | cat - > /tmp/dbs.original.tar.gz
 }
 
