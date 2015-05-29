@@ -3,11 +3,6 @@
 NODE_ID=0
 FUEL_CACHE="/tmp/octane/deployment"
 
-die() {
-    echo "$1"
-    exit ${2:-1}
-}
-
 clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
@@ -526,27 +521,6 @@ upload_node_settings() {
     [ -d "${FUEL_CACHE}/node_$1" ] || die "Local node settings not found, exiting"
     fuel node --node $1 --network --upload --dir $FUEL_CACHE
     fuel node --node $1 --disk --upload --dir $FUEL_CACHE
-}
-
-get_env_by_node() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    echo "$(fuel node --node $1 \
-        | awk -F\| '/^'$1'/ {gsub(" ", "", $4); print $4}')"
-}
-
-get_host_ip_by_node_id() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    echo $(fuel node | awk -F"|" '/^'$1'/{print($5)}' | tr -d ' ')
-}
-
-get_last_node() {
-    echo $(fuel node | awk -F\| '$1 ~ /[0-9]+[ ]+/{print($1)}' \
-           | sort -n | tail -1)
-}
-
-get_node_online() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    fuel node --node "$1" | tail -1 | awk -F\| '{gsub(" ", "", $9);print($9)}'
 }
 
 get_bootable_mac() {
