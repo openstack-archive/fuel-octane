@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export LIBDIR=$(dirname `readlink -f "$0"`)
-. ${LIBDIR}/utils.sh
-
 export SVC_LIST="/root/services_list"
 export SVC_LIST_TMP="${SVC_LIST}.tmp"
 
