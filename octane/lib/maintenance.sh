@@ -4,10 +4,13 @@ export SVC_LIST="/root/services_list"
 export SVC_LIST_TMP="${SVC_LIST}.tmp"
 
 disable_apis() {
-    $PSSH_RUN "grep -q 'backend maintenance' /etc/haproxy/haproxy.cfg || echo 'backend maintenance' >> /etc/haproxy/haproxy.cfg"
+    $PSSH_RUN "grep -q 'backend maintenance' /etc/haproxy/haproxy.cfg || echo \
+        'backend maintenance' >> /etc/haproxy/haproxy.cfg;
+        sed -re 's%(stats socket /var/lib/haproxy/stats)%\1 level admin%' \
+        -i /etc/haproxy/haproxy.cfg"
     $PSSH_RUN "for f in \$(grep -L 'mode *tcp' /etc/haproxy/conf.d/*); \
         do echo '  use_backend maintenance if TRUE' >> \$f; done"
-    $PSSH_RUN "pkill haproxy"
+    $PSSH_RUN "crm resource restart p_haproxy"
 }
 
 enable_apis() {
