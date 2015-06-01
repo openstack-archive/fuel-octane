@@ -811,11 +811,17 @@ update_ips_nailgun_db() {
 upgrade_db() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    ./delete_fuel_resources.sh $2
+    delete_fuel_resources $2
     sleep 7
-    ./manage_services.sh stop $2
-    ./manage_services.sh disable $1
-    ./upgrade-db.sh "$@"
+    set_pssh_hosts $1 && {
+        disable_apis
+    } && unset PSSH_RUN
+    set_pssh_hosts $2 && {
+        stop_corosync_services
+        stop_upstart_services
+    } && unset PSSH_RUN
+    xtrabackup_from_env $1
+    xtrabackup_restore_to_env $2
 }
 
 init_seed() {
