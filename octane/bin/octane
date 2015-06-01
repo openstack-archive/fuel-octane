@@ -1,7 +1,14 @@
 #!/bin/bash
 
-cd $(dirname $0)
-. functions
+BINPATH="$(dirname `readlink -f "$0"`)"
+LIBPATH="$(dirname \"$BINPATH\")/lib"
+HELPER_PATH="$(dirname \"$BINPATH\")/helpers"
+cd ${LIBPATH}
+. functions.sh
+. db.sh
+. utils.sh
+. maintenance.sh
+. patch.sh
 
 [ "$1" == "-d" ] && {
     set -x
