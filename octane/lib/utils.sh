@@ -1,7 +1,5 @@
 #!/bin/bash
 
-PSSH_RUN="pssh -i"
-
 die() {
     echo "$1"
     exit ${2:-1}
@@ -9,7 +7,8 @@ die() {
 
 set_pssh_hosts() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
-    for node in $(list_nodes $1 controller);
+    PSSH_RUN="pssh -i"
+    for node in $(list_nodes $1 ${2:controller});
     do
         PSSH_RUN+=" -H $node"
     done
