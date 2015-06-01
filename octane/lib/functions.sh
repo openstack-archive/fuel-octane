@@ -955,3 +955,16 @@ install_seed() {
     upgrade_ceph $args
     update_admin_tenant_id $seed_env
 }
+
+delete_fuel_resources() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    local node=$(list_nodes $1 controller | head -1)
+    scp $HELPER_PATH/delete_fuel_resources.py \
+        root@$(get_host_ip_by_node_id ${node#node-})
+    ssh root@$(get_host_ip_by_node_id ${node#node-}) \
+        "python delete_fuel_resources.py \$(cat openrc | grep OS_USER \\
+        | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_PASS \\
+        | tr\"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
+        | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
+            keystone endpoint-list | egrep ':5000' | awk '{print \$6}')"
+}
