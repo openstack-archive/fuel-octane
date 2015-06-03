@@ -24,10 +24,11 @@ xtrabackup_stream_from_node() {
 xtrabackup_from_env() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     local node=$(list_nodes $1 controller | head -1)
+    node=${node#node-}
     xtrabackup_install $node
     disable_wsrep $node
     xtrabackup_stream_from_node $node
-    enable wsrep $node
+    enable_wsrep $node
 }
 
 xtrabackup_restore_to_env() {
