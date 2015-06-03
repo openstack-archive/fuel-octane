@@ -40,7 +40,7 @@ def get_parser():
 
 def update_env_name(orig_name, seed_name):
     if not seed_name:
-        seed_name = "{0}-{1}".format(orig_name, uuid.uuid4())
+        seed_name = "{0}".format(uuid.uuid4())
     cluster_json = "{0}/cluster.json".format(orig_name)
     with open(cluster_json, "r") as f:
         cluster_config = json.load(f)
