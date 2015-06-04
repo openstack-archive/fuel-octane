@@ -1,4 +1,6 @@
+from nailgun import consts
 from nailgun.db import db
+from nailgun.db.sqlalchemy import models
 from nailgun.logger import logger
 from nailgun.task import manager
 
@@ -10,7 +12,7 @@ class ClusterCloneTaskManager(manager.TaskManager):
                 self.cluster.name or self.cluster.id
             )
         )
-        task = Task(name=consts.TASK_NAMES.deploy, cluster=self.cluster)
+        task = models.Task(name=consts.TASK_NAMES.deploy, cluster=self.cluster)
         db().add(task)
         db().commit()
         return task
