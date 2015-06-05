@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash -ex
 
 host=${1:-"cz5545-fuel"}
 branch=${2:-$(git rev-parse --abbrev-ref HEAD)}
