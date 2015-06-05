@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 host=${1:-"cz5545-fuel"}
-branch=${2:-"master"}
+branch=${2:-$(git rev-parse --abbrev-ref HEAD)}
 
 version=$(awk -F\" '/version/{print $2}' < setup.py)
 wheel="octane_nailgun-${version}-py2-none-any.whl"
