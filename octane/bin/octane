@@ -1,14 +1,13 @@
 #!/bin/bash
 
 BINPATH="$(dirname `readlink -f "$0"`)"
-LIBPATH="$(dirname \"$BINPATH\")/lib"
+LIBPATH="$(dirname $BINPATH)/lib"
 HELPER_PATH="$(dirname \"$BINPATH\")/helpers"
-cd ${LIBPATH}
-. functions.sh
-. db.sh
-. utils.sh
-. maintenance.sh
-. patch.sh
+. ${LIBPATH}/functions.sh
+. ${LIBPATH}/db.sh
+. ${LIBPATH}/utils.sh
+. ${LIBPATH}/maintenance.sh
+. ${LIBPATH}/patch.sh
 
 [ "$1" == "-d" ] && {
     set -x

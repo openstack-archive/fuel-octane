@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-. ../lib/patch
+. ../lib/patch.sh
 
 PATCH_DIR=$(dirname $0)/../patches/
 
