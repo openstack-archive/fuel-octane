@@ -634,6 +634,34 @@ patch_osd_node() {
     cd $OLDPWD
 }
 
+prepare_ceph_osd_upgrade() {
+    local seed_id
+    local nodes
+    local node
+    [ -z "${seed_id:=$1}" ] && die "No 6.0 env ID provided, exiting"
+    nodes=$(list_nodes $seed_id '(controller)')
+    for node in $nodes
+        do
+            ssh root@$node sh -c "'
+                f=\$(mktemp)
+                awk -f /dev/stdin /etc/ceph/ceph.conf > \$f
+                mv \$f /etc/ceph/ceph.conf
+            '" <<EOF
+BEGIN {
+    flag = 0
+}
+/^$|^\[/ && flag == 1 {
+    flag = 0;
+    print "osd_crush_update_on_start = false"
+}
+/^\[global\]$/ {
+    flag = 1
+}
+{ print \$0 }
+EOF
+        done
+}
+
 prepare_osd_node_upgrade() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     check_ceph_cluster "$@"
@@ -918,6 +946,7 @@ upgrade_ceph() {
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     ./migrate-ceph-mon.sh $1 $2
     import_bootstrap_osd $2
+    prepare_ceph_osd_upgrade $2
 }
 
 update_admin_tenant_id() {
