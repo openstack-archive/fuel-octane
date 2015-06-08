@@ -22,4 +22,4 @@ ssh $host "cd ${location}; python setup.py bdist_wheel"
 
 ssh $host "cd ${location}; dockerctl copy dist/${wheel} nailgun:/root/${wheel}"
 ssh $host "docker exec ${container} pip install -U ${wheel}"
-ssh $host "docker restart ${container}"
+ssh $host "dockerctl shell ${container} pkill -f wsgi"
