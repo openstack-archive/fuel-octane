@@ -12,14 +12,14 @@ class ClusterCloneHandler(base.BaseHandler):
     @base.content
     def POST(self, cluster_id):
         params = self.checked_data()
-
         cluster = self.get_object_or_404(self.single, cluster_id)
+        release = self.get_object_or_404(objects.Release, params["release_id"])
         clone = self.single.create({
             "name": params["name"],
             "mode": consts.CLUSTER_MODES.ha_full,
             "status": consts.CLUSTER_STATUSES.new,
             "net_provider": consts.CLUSTER_NET_PROVIDERS.neutron,
             "grouping": consts.CLUSTER_GROUPING.roles,
-            "release_id": params["release_id"],
+            "release_id": release.id,
         })
         return self.single.to_json(clone)
