@@ -1,15 +1,13 @@
 #!/bin/sh -ex
 
-FUNCTIONS_PATH="$(dirname $0)/../../lib"
-. ${FUNCTIONS_PATH}/patch
+. ${LIBPATH}/patch.sh
 
-PATCH_DIR=$(dirname $0)
-CONTAINER="astute"
+COMPONENT="astute"
 SRC_PATH="/usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute"
 
-dockerctl restart ${CONTAINER}
+dockerctl restart ${COMPONENT}
 sleep 10
-docker_patchfile ${CONTAINER}:${SRC_PATH}/deploy_actions.rb \
-    ${PATCH_DIR}/deploy_actions.rb.patch
+docker_patchfile ${COMPONENT}:${SRC_PATH}/deploy_actions.rb \
+    ${PATCH_DIR}/${COMPONENT}/deploy_actions.rb.patch
 sleep 5
-dockerctl shell ${CONTAINER} supervisorctl restart ${CONTAINER}
+dockerctl shell ${COMPONENT} supervisorctl restart ${COMPONENT}
