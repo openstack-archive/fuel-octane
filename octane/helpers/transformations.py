@@ -24,6 +24,11 @@ def get_parser():
                                      help="Remove predefined networks.")
     parser_b.set_defaults(action=remove_predefined_nets)
 
+    parser_c = subparsers.add_parser("remove_physical_ports",
+                                     help="Remove physical ports from linux "
+                                     "bridge.")
+    parser_c.set_defaults(action=remove_physical_ports)
+
     return parser
 
 
@@ -46,9 +51,24 @@ def remove_patch_port(host_config, bridge_name):
     return host_config
 
 
+def remove_physical_port(host_config, bridge_name):
+    transformations = host_config['network_scheme']['transformations']
+    for action in transformations:
+        if (action['action'] == 'add-port') and (bridge_name
+                in action['bridge']):
+            transformations.remove(action)
+    return host_config
+
+
 def remove_patch_ports(host_config):
     for bridge_name in BRIDGES:
         host_config = remove_patch_port(host_config, bridge_name)
+    return host_config
+
+
+def remove_physical_ports(host_config):
+    for bridge_name in BRIDGES:
+        host_config = remove_physical_port(host_config, bridge_name)
     return host_config
 
 

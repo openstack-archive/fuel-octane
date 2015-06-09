@@ -172,6 +172,12 @@ remove_patch_transformations() {
     python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 remove_patch_ports
 }
 
+remove_physical_transformations(){
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 \
+        remove_physical_ports
+}
+
 disable_ping_checker() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     [ -d "${FUEL_CACHE}/deployment_$1" ] || die "Deployment info directory not found, exiting"
