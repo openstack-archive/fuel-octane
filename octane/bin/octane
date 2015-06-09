@@ -49,9 +49,7 @@ case $1 in
     prepare-fuel)
         [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
         yum -y install postgresql.x86_64 pssh patch percona-xtrabackup.x86_64
-        ./patch-fuel-manifests.sh
-        ../patches/pman/update.sh
-        ../patches/puppet/update.sh
+        patch_fuel_components astute puppet pman
         ;;
     clone)
         [ -z "$2" ] && die "$(usage)"
