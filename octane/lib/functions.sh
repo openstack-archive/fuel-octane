@@ -210,12 +210,19 @@ prepare_seed_deployment_info_nailgun() {
     disable_ping_checker $2
     remove_patch_transformations $2
     remove_predefined_networks $2
+    reset_gateways_admin $2
     upload_deployment_info $2
 }
 
 remove_predefined_networks() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 remove_predefined_nets
+}
+
+reset_gateways_admin() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    python ${HELPER_PATH}/transformations.py \
+        ${FUEL_CACHE}/deployment_$1 reset_gw_admin
 }
 
 prepare_cic_disk_fixture() {

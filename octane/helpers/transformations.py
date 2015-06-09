@@ -29,6 +29,11 @@ def get_parser():
                                      "bridge.")
     parser_c.set_defaults(action=remove_physical_ports)
 
+    parser_d = subparsers.add_parser("reset_gw_admin",
+                                     help="Move gateway from external net to "
+                                     "admin net.")
+    parser_d.set_defaults(action=reset_gw_admin)
+
     return parser
 
 
@@ -74,6 +79,14 @@ def remove_physical_ports(host_config):
 
 def remove_predefined_nets(host_config):
     host_config["quantum_settings"]["predefined_networks"] = {}
+    return host_config
+
+
+def reset_gw_admin(host_config):
+    gw = host_config["master_ip"]
+    if host_config["network_scheme"]["endpoints"]["br-ex"].get("gateway"):
+        del host_config["network_scheme"]["endpoints"]["br-ex"]["gateway"]
+        host_config["network_scheme"]["endpoints"]["br-fw-admin"]["gateway"] = gw
     return host_config
 
 
