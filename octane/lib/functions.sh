@@ -1,8 +1,5 @@
 #!/bin/bash
 
-NODE_ID=0
-FUEL_CACHE="/tmp/octane/deployment"
-
 clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
@@ -319,24 +316,20 @@ get_nailgun_db_pass() {
         | tr -d '"')
 }
 
-postgres_cmd="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
-
 copy_generated_settings() {
 # Update configuration of 6.0 environment in Nailgun DB to preserve generated
 # parameters values from the original environmen.
-    local db_pass
     local generated
-    db_pass=$(get_nailgun_db_pass)
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     generated=$(echo "select generated from attributes where cluster_id = $2;
 select generated from attributes where cluster_id = $1;" \
-        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun \
+        | $PG_CMD \
         | grep -v ^$ \
         | python ../helpers/join-jsons.py);
     [ -z "$generated" ] && die "No generated attributes found for env $1"
     echo "update attributes set generated = '$generated' where cluster_id = $2" \
-        | psql -t postgresql://nailgun:$db_pass@localhost/nailgun
+        | $PG_CMD
 }
 
 env_action() {
@@ -553,7 +546,7 @@ assign_node_to_env(){
         then
             node_values=$(echo "SELECT uuid, name
                                 FROM nodes WHERE id = $1;" | \
-                          $postgres_cmd | \
+                          $PG_CMD | \
                           sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
                           )
             node_mac=$(get_bootable_mac "$1")
@@ -565,7 +558,7 @@ assign_node_to_env(){
                                      pending_deletion)
                   VALUES ($1, $node_values, '$node_mac', 'discover',
                           '{\"disks\": [], \"interfaces\": []}', now(), false,
-                          false, false);" | $postgres_cmd
+                          false, false);" | $PG_CMD
             ssh root@node-$1 shutdown -r now
             while :
                 do
@@ -751,7 +744,7 @@ provision_node() {
 get_node_group_id() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     echo "select id from nodegroups where cluster_id = $1" \
-        | $postgres_cmd
+        | $PG_CMD
 }
 
 get_nailgun_net_id() {
@@ -763,7 +756,7 @@ get_nailgun_net_id() {
     group_id=$(get_node_group_id $1) 
     vip_type=$(echo $2 | sed -e 's/br-ex/public/;s/br-mgmt/management/')
     net_id=$(echo "select id from network_groups where group_id = ${group_id} and
-        name = '$vip_type';" | $postgres_cmd)
+        name = '$vip_type';" | $PG_CMD)
     echo $net_id
 }
 
@@ -780,9 +773,9 @@ update_vip_nailgun_db() {
 
     seed_net_id=$(get_nailgun_net_id $2 $3)
     vip=$(echo "select ip_addr from ip_addrs where network = $orig_net_id and
-        node is null;" | $postgres_cmd)
+        node is null and vip_type = 'haproxy';" | $PG_CMD)
     echo "update ip_addrs set ip_addr = '$vip' where network = $seed_net_id and
-        node is null;" | $postgres_cmd
+        node is null and vip_type = 'haproxy';" | $PG_CMD
 }
 
 update_ips_nailgun_db() {
@@ -803,8 +796,9 @@ update_ips_nailgun_db() {
             echo "DROP TABLE IF EXISTS ip_$$;
 		SELECT ip_addr INTO ip_$$ FROM ip_addrs WHERE node = $orig_node AND network = $orig_net_id;
                 DELETE FROM ip_addrs WHERE node = $node AND network = $seed_net_id;
-                INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node, (SELECT ip_addr FROM ip_$$));
-            " | $postgres_cmd
+                INSERT INTO ip_addrs VALUES(DEFAULT, $seed_net_id, $node,
+                (SELECT ip_addr FROM ip_$$), DEFAULT);
+            " | $PG_CMD
         done
 }
 
