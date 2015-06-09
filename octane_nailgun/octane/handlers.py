@@ -1,6 +1,8 @@
 from nailgun.api.v1.handlers import base
 from nailgun import consts
+from nailgun.db import db
 from nailgun import objects
+from nailgun import utils
 
 from octane import validators
 
@@ -27,4 +29,8 @@ class ClusterCloneHandler(base.BaseHandler):
                 cluster.network_config.segmentation_type
             data["net_l23_provider"] = cluster.network_config.net_l23_provider
         clone = self.single.create(data)
+        clone.attributes.generated = utils.dict_merge(
+            clone.attributes.generated,
+            cluster.attributes.generated)
+        db().flush()
         return self.single.to_json(clone)
