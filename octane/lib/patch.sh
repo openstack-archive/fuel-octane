@@ -1,6 +1,7 @@
 #!/bin/bash -xe
 
 run=".state"
+[ -d "$run" ] || mkdir -p "$run"
 
 docker_copyfile() {
     [ -z "$1" ] && die "No source file provided, exiting"
