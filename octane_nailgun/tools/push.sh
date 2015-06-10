@@ -9,7 +9,7 @@ wheel="octane_nailgun-${version}-py2-none-any.whl"
 location="octane/octane_nailgun"
 container="fuel-core-6.1-nailgun"
 
-git push --force $host HEAD
+git push --force "$host" "$branch"
 
 ssh $host "cd ${location}; git reset --hard $branch"
 ssh $host "cd ${location}; git clean -x -d -f"
