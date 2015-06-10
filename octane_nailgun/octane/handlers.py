@@ -16,10 +16,30 @@ class ClusterCloneHandler(base.BaseHandler):
     @base.content
     def POST(self, cluster_id):
         """Create a clone of the cluster.
+
+        Creates a new cluster with specified name and release_id. The
+        new cluster are created with parameters that are copied from the
+        cluster with cluster_id. The values of the generated and
+        editable attributes are just copied from one to the other.
+
+        :param cluster_id: ID of the cluster to copy parameters from it
+        :returns: JSON representation of the created cluster
+
+        :http: * 200 (OK)
+               * 404 (cluster or release did not found in db)
         """
         params = self.checked_data()
         cluster = self.get_object_or_404(self.single, cluster_id)
         release = self.get_object_or_404(objects.Release, params["release_id"])
+        # TODO(ikharin): Here should be more elegant code that verifies
+        #                release versions of the original cluster and
+        #                the future cluster. The upgrade process itself
+        #                is meaningful only to upgrade the cluster
+        #                between the major releases.
+        # TODO(ikharin): This method should properly handle the upgrade
+        #                from one major release to another but now it's
+        #                hardcoded to perform the upgrade from 5.1.1 to
+        #                6.1 release.
         data = {
             "name": params["name"],
             "mode": cluster.mode,
@@ -46,8 +66,11 @@ class ClusterCloneHandler(base.BaseHandler):
     def merge_attributes(a, b):
         """Merge values of editable attributes.
 
-        :param a: a dict of editable attributes
-        :param b: a dict of editable attributes
+        The values of the b attributes have precedence over the values
+        of the a attributes.
+
+        :param a: a dict of dicts with editable attributes
+        :param b: a dict of dicts with editable attributes
         """
         attrs = copy.deepcopy(b)
         for section, pairs in attrs.iteritems():
