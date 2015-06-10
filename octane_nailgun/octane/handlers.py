@@ -1,3 +1,5 @@
+import copy
+
 from nailgun.api.v1.handlers import base
 from nailgun import consts
 from nailgun.db import db
@@ -13,6 +15,8 @@ class ClusterCloneHandler(base.BaseHandler):
 
     @base.content
     def POST(self, cluster_id):
+        """Create a clone of the cluster.
+        """
         params = self.checked_data()
         cluster = self.get_object_or_404(self.single, cluster_id)
         release = self.get_object_or_404(objects.Release, params["release_id"])
@@ -32,5 +36,25 @@ class ClusterCloneHandler(base.BaseHandler):
         clone.attributes.generated = utils.dict_merge(
             clone.attributes.generated,
             cluster.attributes.generated)
+        clone.attributes.editable = self.merge_attributes(
+            cluster.attributes.editable,
+            clone.attributes.editable)
         db().flush()
         return self.single.to_json(clone)
+
+    @staticmethod
+    def merge_attributes(a, b):
+        """Merge values of editable attributes.
+
+        :param a: a dict of editable attributes
+        :param b: a dict of editable attributes
+        """
+        attrs = copy.deepcopy(b)
+        for section, pairs in attrs.iteritems():
+            if section not in a:
+                continue
+            a_values = a[section]
+            for key, values in pairs.iteritems():
+                if key != "metadata" and key in a_values:
+                    values["value"] = a_values[key]["value"]
+        return attrs
