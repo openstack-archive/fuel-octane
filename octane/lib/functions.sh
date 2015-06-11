@@ -51,7 +51,8 @@ get_deployment_info() {
     [ -d "$FUEL_CACHE" ] || mkdir -p "$FUEL_CACHE"
     [ -d "${FUEL_CACHE}/deployment_$1" ] && rm -r ${FUEL_CACHE}/deployment_$1
     cmd=${2:-default}
-    fuel --env $1 deployment --$cmd --dir ${FUEL_CACHE}
+    fuel deployment --env $1 --$cmd --dir ${FUEL_CACHE}
+    fuel env --env $1 --deployment-task --download --dir ${FUEL_CACHE}
 }
 
 get_ips_from_deploy_info() {
@@ -99,7 +100,8 @@ upload_deployment_info() {
 # environment ENV.
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
-    fuel --env $1 deployment --upload --dir $FUEL_CACHE
+    fuel deployment --env $1 --upload --dir $FUEL_CACHE &&
+    fuel env --env $1 --deployment-task --upload --dir $FUEL_CACHE
 }
 
 replace_ip_addresses() {
@@ -181,7 +183,13 @@ remove_physical_transformations(){
 disable_ping_checker() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     [ -d "${FUEL_CACHE}/deployment_$1" ] || die "Deployment info directory not found, exiting"
-    ls ${FUEL_CACHE}/deployment_$1/** | xargs -I@ sh -c "echo 'run_ping_checker: \"false\"' >> @"
+    ls ${FUEL_CACHE}/deployment_$1/** | xargs -I@ sh -c "echo 'run_ping_checker: false' >> @"
+}
+
+skip_deployment_tasks() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -d "${FUEL_CACHE}/cluster_$1" ] || die "Cluster info directory not found, exiting"
+    python ../helpers/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
 }
 
 prepare_seed_deployment_info() {
@@ -208,9 +216,10 @@ prepare_seed_deployment_info_nailgun() {
     get_deployment_info $2
     backup_deployment_info $2
     disable_ping_checker $2
-    remove_patch_transformations $2
+    remove_physical_transformations $2
     remove_predefined_networks $2
     reset_gateways_admin $2
+    skip_deployment_tasks $2
     upload_deployment_info $2
 }
 
@@ -753,7 +762,6 @@ provision_node() {
     fuel node --env $env_id --node $1 --provision
 }
 
-
 get_node_group_id() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     echo "select id from nodegroups where cluster_id = $1" \
@@ -856,9 +864,8 @@ install_primary_cic() {
     [ -z "$node_id" ] && die "No primary CIC ID in $hosts file, exiting"
     provision_node $node_id
     wait_for_node $node_id "provisioned"
-    prepare_seed_deployment_info $1 $2
-    create_ovs_bridges $2
-    fuel node --env $2 --node $node_id --deploy
+    prepare_seed_deployment_info_nailgun $1 $2
+    env_action $2 deploy
     wait_for_node $node_id "ready"
 }
 
@@ -885,7 +892,7 @@ install_cics() {
                 fi
             sleep 300
        done
-    prepare_seed_deployment_info $1 $2
+    prepare_seed_deployment_info_nailgun $1 $2
     create_ovs_bridges $2
     for  br_name in br-ex br-mgmt
         do
