@@ -956,7 +956,7 @@ cleanup_neutron_services() {
     | xargs -I{} ssh root@${cic} ". /root/openrc; neutron agent-delete {}"
 }
 
-install_seed() {
+upgrade_env() {
     local orig_env
     local seed_env
     local args

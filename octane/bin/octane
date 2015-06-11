@@ -14,6 +14,8 @@ clone ENV_ID                    - clone envinroment settings and return seed env
 provision ENV_ID                - start provisioning of nodes in seed env
 prepare ORIG_ID SEED_ID         - prepare provisioned seed env CICs for isolated deployment
 deploy ENV_ID                   - start deployment of nodes in seed env with isolation
+upgrade-env ENV_ID              - install upgrade seed env for env ENV_ID and
+                                  copy state from ENV_ID to upgrade seed env
 upgrade-cics ORIG_ID SEED_ID    - isolate orig env CICs and replace them with seed CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
@@ -51,6 +53,10 @@ case $1 in
         yum -y install postgresql.x86_64 pssh patch percona-xtrabackup.x86_64
         patch_fuel_components astute puppet pman
         ;;
+    upgrade-env)
+        [ -z "$2" ] && die "$(usage)"
+        upgrade_env $2
+        ;;
     clone)
         [ -z "$2" ] && die "$(usage)"
         # (TODO:ogelbukh) Clone environment will be implemented as an API call in
@@ -61,10 +67,6 @@ case $1 in
         prepare_cic_disk_fixture $2
         prepare_cic_network_fixture $2
         echo "6.0 seed environment ID is $SEED_ENV"
-        ;;
-    install-seed)
-        shift
-        install_seed "$@"
         ;;
     provision)
         [ -z "$2" ] && die "$(usage)"
