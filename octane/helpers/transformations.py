@@ -85,7 +85,7 @@ def remove_predefined_nets(host_config):
 def reset_gw_admin(host_config):
     gw = host_config["master_ip"]
     if host_config["network_scheme"]["endpoints"]["br-ex"].get("gateway"):
-        del host_config["network_scheme"]["endpoints"]["br-ex"]["gateway"]
+        host_config["network_scheme"]["endpoints"]["br-ex"]["gateway"] = 'none'
         host_config["network_scheme"]["endpoints"]["br-fw-admin"]["gateway"] = gw
     return host_config
 
