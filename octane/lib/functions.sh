@@ -843,14 +843,14 @@ init_seed() {
     local filename
     [ -z "$1" ] && die "No 6.0 env IDs provided, exiting"
     fuel node set --env $1 --node $2 --role controller
-    ENV=$1 && shift
-    filename="/tmp/env-$ENV-cics.hosts"
-    [ -f "$filename" ] && die "Seed env $ENV already initialized, exiting"
-    while [ -n "$*" ]
-        do
-            echo "$1" >> $filename
-            shift
-        done
+    local env=$1 && shift
+    filename="/tmp/env-${env}-cics.hosts"
+    [ -f "$filename" ] && die "Seed env $env already initialized, exiting"
+    while [ -n "$*" ];
+    do
+        echo "$1" >> $filename
+        shift
+    done
 }
 
 install_primary_cic() {
