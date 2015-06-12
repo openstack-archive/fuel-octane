@@ -53,7 +53,7 @@ xtrabackup_restore_to_env() {
         export OCF_ROOT=/usr/lib/ocf;
         export OCF_RESKEY_socket=/var/run/mysqld/mysqld.sock;
         export OCF_RESKEY_additional_parameters="\""--wsrep-new-cluster"\"";
-        /usr/lib/ocf/resource.d/mirantis/mysql-wss start;"
+        /usr/lib/ocf/resource.d/fuel/mysql-wss start;"
     db_sync ${primary_cic#node-}
     for cic in $(echo "$cics" | grep -v $primary_cic);
     do
@@ -61,7 +61,7 @@ xtrabackup_restore_to_env() {
         "export OCF_RESOURCE_INSTANCE=p_mysql;
         export OCF_ROOT=/usr/lib/ocf;
         export OCF_RESKEY_socket=/var/run/mysqld/mysqld.sock;
-        /usr/lib/ocf/resource.d/mirantis/mysql-wss start;"
+        /usr/lib/ocf/resource.d/fuel/mysql-wss start;"
     done
 }
 
