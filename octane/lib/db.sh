@@ -20,7 +20,7 @@ xtrabackup_install() {
 xtrabackup_stream_from_node() {
     [ -z "$1" ] && die "No backup source node ID provided, exiting"
     ssh root@$(get_host_ip_by_node_id $1) "xtrabackup --backup --stream=tar ./ | gzip " \
-        | cat - > /tmp/dbs.original.tar.gz
+        | cat - > $FUEL_CACHE/dbs.original.tar.gz
 }
 
 xtrabackup_from_env() {
@@ -43,7 +43,7 @@ xtrabackup_restore_to_env() {
         "mv /var/lib/mysql/grastate.dat /var/lib/mysql/grastate.old"
     done
     local primary_cic=$(echo "$cics" | head -1)
-    scp /tmp/dbs.original.tar.gz \
+    scp $FUEL_CACHE/dbs.original.tar.gz \
         root@$(get_host_ip_by_node_id ${primary_cic#node-}):/var/lib/mysql
     ssh root@$(get_host_ip_by_node_id ${primary_cic#node-}) \
         "cd /var/lib/mysql;
@@ -73,4 +73,25 @@ heat-manage db_sync;
 neutron-db-manage --config-file=/etc/neutron/neutron.conf upgrade head;
 glance-manage db upgrade;
 cinder-manage db sync"
+}
+
+mysqldump_from_env() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    local node=$(list_nodes $1 controller | head -1)
+    local databases="keystone nova heat neutron glance cinder"
+     | ssh $dst_node "zcat | mysql"
+    ssh root@$(get_host_ip_by_node_id ${node#node-}) "mysqldump \
+        --add-drop-database --lock-all-tables \
+        --databases $databases | gzip" > $FUEL_CACHE/dbs.original.sql.gz
+    cp $FUEL_CACHE/dbs.original.sql.gz \
+        $FUEL_CACHE/dbs.original.cluster_$1.sql.gz
+}
+
+mysqldump_restore_to_env() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    local cic="$(list_nodes $1 controller | head -1)"
+    [ -s $FUEL_CACHE/dbs.original.sql.gz ] &&
+    cat $FUEL_CACHE/dbs.original.sql.gz \
+        | ssh root@$(get_host_ip_by_node_id ${cic#node-}) "zcat | mysql"
+    db_sync ${cic#node-}
 }

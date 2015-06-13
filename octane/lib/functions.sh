@@ -826,6 +826,7 @@ update_ips_nailgun_db() {
 upgrade_db() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
+    local method=${3:mysqldump}
     delete_fuel_resources $2
     sleep 7
     set_pssh_hosts $1 && {
@@ -835,8 +836,8 @@ upgrade_db() {
         stop_corosync_services
         stop_upstart_services
     } && unset PSSH_RUN
-    xtrabackup_from_env $1
-    xtrabackup_restore_to_env $2
+    ${method}_from_env $1
+    ${method}_restore_to_env $2
 }
 
 init_seed() {

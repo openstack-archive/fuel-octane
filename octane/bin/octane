@@ -59,7 +59,7 @@ case $1 in
         ;;
     clone)
         [ -z "$2" ] && die "$(usage)"
-        # (TODO:ogelbukh) Clone environment will be implemented as an API call in
+        # TODO(ogelbukh) Clone environment will be implemented as an API call in
         # Fuel API. Function `clone_env' must be rewritten to leverage an API.
         # Function `copy_generate_settings' must be deleted.
         SEED_ENV="$(clone_env $2)"
