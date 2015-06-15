@@ -3,7 +3,9 @@ import copy
 from nailgun.api.v1.handlers import base
 from nailgun import consts
 from nailgun.db import db
+from nailgun.logger import logger
 from nailgun import objects
+from nailgun.objects.serializers import network_configuration
 from nailgun import utils
 
 from octane import validators
@@ -12,6 +14,12 @@ from octane import validators
 class ClusterCloneHandler(base.BaseHandler):
     single = objects.Cluster
     validator = validators.ClusterCloneValidator
+    network_serializers = {
+        consts.CLUSTER_NET_PROVIDERS.neutron:
+        network_configuration.NeutronNetworkConfigurationSerializer,
+        consts.CLUSTER_NET_PROVIDERS.nova_network:
+        network_configuration.NovaNetworkConfigurationSerializer,
+    }
 
     @base.content
     def POST(self, cluster_id):
@@ -28,9 +36,9 @@ class ClusterCloneHandler(base.BaseHandler):
         :http: * 200 (OK)
                * 404 (cluster or release did not found in db)
         """
-        params = self.checked_data()
+        data = self.checked_data()
         cluster = self.get_object_or_404(self.single, cluster_id)
-        release = self.get_object_or_404(objects.Release, params["release_id"])
+        release = self.get_object_or_404(objects.Release, data["release_id"])
         # TODO(ikharin): Here should be more elegant code that verifies
         #                release versions of the original cluster and
         #                the future cluster. The upgrade process itself
@@ -41,7 +49,7 @@ class ClusterCloneHandler(base.BaseHandler):
         #                hardcoded to perform the upgrade from 5.1.1 to
         #                6.1 release.
         data = {
-            "name": params["name"],
+            "name": data["name"],
             "mode": cluster.mode,
             "status": consts.CLUSTER_STATUSES.new,
             "net_provider": cluster.net_provider,
@@ -59,7 +67,13 @@ class ClusterCloneHandler(base.BaseHandler):
         clone.attributes.editable = self.merge_attributes(
             cluster.attributes.editable,
             clone.attributes.editable)
+        nets_serializer = self.network_serializers[cluster.net_provider]
+        nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
+                               nets_serializer.serialize_for_cluster(clone))
+        self.single.get_network_manager(instance=clone).update(clone, nets)
         db().flush()
+        logger.debug("The cluster %s was created as a clone of the cluster %s",
+                     clone.id, cluster.id)
         return self.single.to_json(clone)
 
     @staticmethod
@@ -69,8 +83,9 @@ class ClusterCloneHandler(base.BaseHandler):
         The values of the b attributes have precedence over the values
         of the a attributes.
 
-        :param a: a dict of dicts with editable attributes
-        :param b: a dict of dicts with editable attributes
+        :param a: a dict with editable attributes
+        :param b: a dict with editable attributes
+        :returns: a dict with merged editable attributes
         """
         attrs = copy.deepcopy(b)
         for section, pairs in attrs.iteritems():
@@ -81,3 +96,33 @@ class ClusterCloneHandler(base.BaseHandler):
                 if key != "metadata" and key in a_values:
                     values["value"] = a_values[key]["value"]
         return attrs
+
+    @classmethod
+    def merge_nets(cls, a, b):
+        """Merge network settings.
+
+        Some parameters are copied from a to b.
+
+        :param a: a dict with network settings
+        :param b: a dict with network settings
+        :returns settings: a dict with merged network settings
+        """
+        settings = copy.deepcopy(b)
+        source_networks = dict((n["name"], n) for n in a["networks"])
+        # NOTE(akscram): In 6.1 clusters the private network is present
+        #                only in case the segmentation type of is GRE.
+        for net in settings["networks"]:
+            if net["name"] not in source_networks:
+                continue
+            source_net = source_networks[net["name"]]
+            for key, value in net.iteritems():
+                if (key in ("cluster_id", "id", "meta", "group_id") and
+                        key in source_net):
+                    net[key] = source_net[key]
+        settings_params = settings["networking_parameters"]
+        source_params = a["networking_parameters"]
+        for key, value in settings_params.iteritems():
+            if key not in source_params:
+                continue
+            settings_params[key] = source_params[key]
+        return settings
