@@ -54,7 +54,6 @@ xtrabackup_restore_to_env() {
         export OCF_RESKEY_socket=/var/run/mysqld/mysqld.sock;
         export OCF_RESKEY_additional_parameters="\""--wsrep-new-cluster"\"";
         /usr/lib/ocf/resource.d/fuel/mysql-wss start;"
-    db_sync ${primary_cic#node-}
     for cic in $(echo "$cics" | grep -v $primary_cic);
     do
         ssh root@$(get_host_ip_by_node_id ${cic#node-}) \
@@ -63,6 +62,7 @@ xtrabackup_restore_to_env() {
         export OCF_RESKEY_socket=/var/run/mysqld/mysqld.sock;
         /usr/lib/ocf/resource.d/fuel/mysql-wss start;"
     done
+    db_sync ${primary_cic#node-}
 }
 
 db_sync() {
@@ -79,7 +79,6 @@ mysqldump_from_env() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     local node=$(list_nodes $1 controller | head -1)
     local databases="keystone nova heat neutron glance cinder"
-     | ssh $dst_node "zcat | mysql"
     ssh root@$(get_host_ip_by_node_id ${node#node-}) "mysqldump \
         --add-drop-database --lock-all-tables \
         --databases $databases | gzip" > $FUEL_CACHE/dbs.original.sql.gz
