@@ -5,6 +5,12 @@ die() {
     exit ${2:-1}
 }
 
+check_env_exists() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+	local env_id=$1
+    fuel env --env-id $env_id  | grep -qE "$env_id[ ]+?\|"
+}
+
 set_pssh_hosts() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
     PSSH_RUN="pssh -i"

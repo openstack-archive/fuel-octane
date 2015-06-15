@@ -611,63 +611,6 @@ for disk in disks1:
     return $?
 }
 
-set_osd_noout() {
-    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
-    ssh root@$(list_nodes $1 'controller' | head -1) ceph osd set noout
-}
-
-unset_osd_noout() {
-    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
-    ssh root@$(list_nodes $1 'controller' | head -1) ceph osd unset noout
-}
-
-check_ceph_cluster() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -z "$(ssh root@node-$1 ceph health | grep HEALTH_OK)" ] && \
-        die "Ceph cluster is unhealthy, exiting"
-}
-
-patch_osd_node() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    cd ../patches/pman/
-    ./update_node.sh node-$1
-    cd $OLDPWD
-}
-
-prepare_ceph_osd_upgrade() {
-    local seed_id
-    local nodes
-    local node
-    [ -z "${seed_id:=$1}" ] && die "No 6.0 env ID provided, exiting"
-    nodes=$(list_nodes $seed_id '(controller)')
-    for node in $nodes
-        do
-            ssh root@$node sh -c "'
-                f=\$(mktemp)
-                awk -f /dev/stdin /etc/ceph/ceph.conf > \$f
-                mv \$f /etc/ceph/ceph.conf
-            '" <<EOF
-BEGIN {
-    flag = 0
-}
-/^$|^\[/ && flag == 1 {
-    flag = 0;
-    print "osd_crush_update_on_start = false"
-}
-/^\[global\]$/ {
-    flag = 1
-}
-{ print \$0 }
-EOF
-        done
-}
-
-prepare_osd_node_upgrade() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    check_ceph_cluster "$@"
-    patch_osd_node "$@"
-}
-
 prepare_compute_upgrade() {
     [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
@@ -757,14 +700,6 @@ wait_for_node() {
             counter=$(expr $counter + 1)
             sleep 300
         done
-}
-
-import_bootstrap_osd() {
-    local node
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    node=$(list_nodes $1 controller | head -1)
-    ssh root@$node ceph auth import -i /root/ceph.bootstrap-osd.keyring
-    ssh root@$node ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
 }
 
 check_env_nodes() {
@@ -944,7 +879,9 @@ install_cics() {
 upgrade_ceph() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    ./migrate-ceph-mon.sh $1 $2
+    ceph_extract_conf $1
+    ceph_set_new_mons "$@"
+    ceph_push_update_conf $2
     import_bootstrap_osd $2
     prepare_ceph_osd_upgrade $2
 }
