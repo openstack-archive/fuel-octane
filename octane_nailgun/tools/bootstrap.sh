@@ -6,7 +6,7 @@ branch=${3:-$(git rev-parse --abbrev-ref HEAD)}
 
 ssh $host \
     "set -ex;" \
-    "yum install -y git python-pip;" \
+    "yum install -y git python-pip patch;" \
     "pip install wheel;" \
     "mkdir -p ${location};" \
     "git init ${location};" \
