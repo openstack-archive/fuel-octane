@@ -14,4 +14,4 @@ ssh $host \
     "git reset --hard $branch;" \
     "git clean -x -d -f;" \
     "python setup.py bdist_wheel;" \
-    "docker build -t octane/nailgun_6.1 .;" \
+    "docker build -t octane/nailgun_6.1 .;"
