@@ -4,4 +4,4 @@ COPY dist/octane_nailgun-${OCTANE_WHEEL_VERSION}-py2-none-any.whl /root/
 COPY tools/*.patch /root/
 RUN pip install octane_nailgun-${OCTANE_WHEEL_VERSION}-py2-none-any.whl \
         && yum install -y patch \
-        && patch -bNp1 -d / <(cat /root/*.patch)
+        && cat /root/*.patch | patch -bNp1 -d /
