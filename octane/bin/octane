@@ -57,17 +57,8 @@ case $1 in
         [ -z "$2" ] && die "$(usage)"
         upgrade_env $2
         ;;
-    clone)
-        [ -z "$2" ] && die "$(usage)"
-        # TODO(ogelbukh) Clone environment will be implemented as an API call in
-        # Fuel API. Function `clone_env' must be rewritten to leverage an API.
-        # Function `copy_generate_settings' must be deleted.
-        SEED_ENV="$(clone_env $2)"
-        copy_generated_settings $2 $SEED_ENV
-        prepare_cic_disk_fixture $2
-        prepare_cic_network_fixture $2
-        echo "6.0 seed environment ID is $SEED_ENV"
-        ;;
+    # TODO(ogelbukh) Delete 'provision' subcommand as obsoleted by 'upgrade-env'
+    # subcommand.
     provision)
         [ -z "$2" ] && die "$(usage)"
         discover_nodes_to_cics $2
@@ -77,12 +68,16 @@ case $1 in
                 provision_node $node_id
             done
         ;;
+    # TODO(ogelbukh) Delete 'prepare' subcommand as obsoleted by 'upgrade-env'
+    # subcommand.
     prepare)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         prepare_seed_deployment_info_nailgun $2 $3
         create_ovs_bridges $3
         ;;
+    # TODO(ogelbukh) Delete 'deploy' subcommand as obsoleted by 'upgrade-env'
+    # subcommand.
     deploy)
         [ -z "$2" ] && die "$(usage)"
         for br_name in br-ex br-mgmt
@@ -126,6 +121,8 @@ case $1 in
         upgrade_ceph $2 $3
         ;;
     prepare-osd-upgrade)
+    # TODO(ogelbukh) Delete this subcommand, it is included in 'upgrade-ceph'
+    # command functions.
         [ -z "$2" ] && die "$(usage)"
         prepare_ceph_osd_upgrade $2;
         ;;
