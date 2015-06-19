@@ -20,7 +20,7 @@ class EnvClone(env_commands.EnvMixIn, base.BaseShowCommand):
 
     def take_action(self, parsed_args):
         new_env = self.client.connection.post_request(
-            "clusters/{0}/changes".format(parsed_args.id),
+            "clusters/{0}/upgrade/clone".format(parsed_args.id),
             {
                 'name': parsed_args.name,
                 'release_id': parsed_args.release,
