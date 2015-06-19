@@ -6,8 +6,7 @@ docker_patch() {
         return 1
     } 
 
-    cp /usr/bin ../docker/${CONTAINER}/resources/ 
+    cp /usr/bin/patch ../docker/${CONTAINER}/resources/
     tag=`grep -Eim1 ^from ../docker/${CONTAINER}/Dockerfile | awk '{print $2 "_upgrade"}'`
-    docker build ../docker/${CONTAINER} 
-    
+    docker build -t "${tag}" ../docker/${CONTAINER}
 } 
