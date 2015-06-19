@@ -19,7 +19,10 @@ class EnvClone(env_commands.EnvMixIn, base.BaseShowCommand):
         return parser
 
     def take_action(self, parsed_args):
-        new_env = self.client.connection.post_request(
+        # TODO(akscram): While the clone procedure is not a part of
+        #                fuelclient.objects.Environment the connection
+        #                colled directly.
+        new_env = self.client._entity_wrapper.connection.post_request(
             "clusters/{0}/upgrade/clone".format(parsed_args.id),
             {
                 'name': parsed_args.name,
