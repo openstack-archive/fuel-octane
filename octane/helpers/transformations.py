@@ -101,13 +101,38 @@ def update_env_deployment_info(dirname, action):
             dump_yaml_file(host_config, host_file)
 
 
-def patch_port_params(host_file, bridge_name):
-    host_config = load_yaml_file(host_file)
-    transformations = host_config['network_scheme']['transformations']
-    patches = [action for action in transformations
-               if (action['action'] == 'add-patch')
-               and (bridge_name in action['bridges'])]
-    return([(patch['bridges'], patch['trunks']) for patch in patches])
+def get_bridge_provider(actions, bridge):
+    add_br_actions = [action for action in actions
+                      if action.get("action") == "add-br"]
+    providers = [action.get("provider") for action in add_br_actions
+                 if action.get("name") == bridge]
+    if len(providers):
+        return providers[-1]
+    else:
+        return None
+
+
+def lnx_add_port(actions, bridge):
+    for action in actions:
+        if (action.get("action") == "add-port" and
+                action.get("bridge") == bridge):
+            port = action.get("name")
+    if port:
+        return ["brctl add-port {0} {1}".format(bridge, port)]
+
+
+def ovs_add_patch_ports(actions, bridge):
+    for action in actions:
+        if (action.get("action") == "add-patch" and
+                bridge in action.get("bridges")):
+            bridges = action.get("bridges")
+    if bridges:
+        return ["ovs-vsctl add-port {0} {0}--{1} "
+                "-- set interface {0}--{1} type=patch "
+                "options:peer={1}--{0}".format(bridges[0], bridges[1]),
+                "ovs-vsctl add-port {1} {1}--{0} "
+                "-- set interface {1}--{0} type=patch "
+                "options:peer={0}--{1}".format(bridges[0], bridges[1])]
 
 
 def main():
