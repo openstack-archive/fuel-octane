@@ -457,7 +457,7 @@ create_patch_ports() {
         do
             local filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_${node_#node-}.yaml \
                 | head -1)
-            ./create-patch-ports $filename $br_name \
+            ./create-controller-ports $filename $br_name \
                 | xargs -I {} ssh root@$node {}
         done
 }
@@ -699,7 +699,7 @@ upgrade_cics() {
     done
     for br_name in br-ex br-mgmt;
     do
-        connect_network $2 $br_name
+        create_patch_ports $2 $br_name
     done
 }
 
