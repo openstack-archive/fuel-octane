@@ -57,7 +57,7 @@ class ClusterCloneHandler(base.BaseHandler):
             "release_id": release.id,
         }
         if cluster.net_provider == consts.CLUSTER_NET_PROVIDERS.neutron:
-            data["net_segmentation_type"] = \
+            data["net_segment_type"] = \
                 cluster.network_config.segmentation_type
             data["net_l23_provider"] = cluster.network_config.net_l23_provider
         clone = self.single.create(data)
@@ -71,6 +71,7 @@ class ClusterCloneHandler(base.BaseHandler):
         nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
                                nets_serializer.serialize_for_cluster(clone))
         self.single.get_network_manager(instance=clone).update(clone, nets)
+        clone.is_customized = True
         db().flush()
         logger.debug("The cluster %s was created as a clone of the cluster %s",
                      clone.id, cluster.id)
