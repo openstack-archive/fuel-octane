@@ -685,6 +685,29 @@ upgrade_node() {
         done
 }
 
+upgrade_cics() {
+    [ -z "$1" ] && die "$FUNCNAME: No 5.1.1 env ID provided, exiting"
+    [ -z "$2" ] && die "$FUNCNAME: No 6.0 env ID provided, exiting"
+    check_deployment_status $2
+    set_pssh_hosts $1 && {
+        enable_apis
+    } && unset PSSH_RUN
+    set_pssh_hosts $2 && {
+        start_corosync_services
+        start_upstart_services
+    } && unset PSSH_RUN
+    prepare_ceph_admin_upgrade $2
+    update_admin_tenant $2
+    for br_name in br-ex br-mgmt br-prv;
+    do
+        delete_patch_ports $1 $br_name
+    done
+    for br_name in br-ex br-mgmt;
+    do
+        connect_network $2 $br_name
+    done
+}
+
 wait_for_node() {
     local counter
     local status
