@@ -448,20 +448,15 @@ list_ports() {
 create_patch_ports() {
 # Create patch interface to connect logical interface to Public or Management
 # network to the physical interface to that network.
-    local br_name
-    local ph_name
-    local nodes
     local node
-    local node_id
-    local filename
     [ -d ${FUEL_CACHE}/deployment_$1.orig ] || die "Deployment information not found for env $1, exiting"
     [ -z "$1" ] && die "No env ID provided, exiting"
-    br_name=$2
-    nodes=$(list_nodes $1 'controller')
+    local br_name=$2
+    local nodes=$(list_nodes $1 'controller')
     for node in $nodes
         do
-            node_id=$(echo $node | awk -F"-" '{print $2}')
-            filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_$node_id.yaml | head -1)
+            local filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_${node_#node-}.yaml \
+                | head -1)
             ./create-patch-ports $filename $br_name \
                 | xargs -I {} ssh root@$node {}
         done
