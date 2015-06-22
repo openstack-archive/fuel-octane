@@ -1,6 +1,8 @@
---- a/pmanager.py	2015-03-13 16:14:43.955031037 +0300
-+++ b/pmanager.py	2015-03-13 18:57:27.173407487 +0300
-@@ -672,8 +672,26 @@
+diff --git a/pmanager.py b/pmanager.py
+index 2c081d8..78013df 100644
+--- a/pmanager.py
++++ b/pmanager.py
+@@ -696,8 +696,26 @@ class PreseedPManager(object):
      def num_ceph_osds(self):
          return self.get_partition_count('ceph')
  
@@ -27,7 +29,7 @@
              self.early("test -e {0} && "
                         "dd if=/dev/zero of={0} "
                         "bs=1M count=10".format(self._disk_dev(disk)))
-@@ -861,6 +879,9 @@
+@@ -913,6 +931,9 @@ class PreseedPManager(object):
                  self.late("cat /proc/mdstat")
                  self.late("cat /proc/partitions")
  
