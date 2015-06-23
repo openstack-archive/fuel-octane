@@ -8,19 +8,6 @@ clone_env() {
     echo $(./clone-env --upgrade "$1")
 }
 
-get_ips_from_cics() {
-# Return a list of addresses assigned to the bridge identified by its name in
-# the first argument on nodes in the original environment.
-    [ -z "$1" ] && die "No environment ID and bridge name, exiting"
-    [ -z "$2" ] && die "No bridge name, exiting"
-    echo $(fuel nodes --env $1 \
-        | grep controller \
-        | cut -d\| -f5  \
-        | xargs -I{} ssh root@{} ip addr\
-        | awk '/'$2':/ {getline; getline; print $2}' \
-        | sed -re 's%([^/]+)/[0-9]{2}%\1%' | sort)
-}
-
 get_vip_from_cics() {
 # Return VIP of the given type (management or external) assgined to the original
 # environment.
@@ -50,46 +37,6 @@ get_deployment_info() {
     fuel env --env $1 --deployment-task --download --dir ${FUEL_CACHE}
 }
 
-get_ips_from_deploy_info() {
-# Returns a list of addresses that Fuel wants to assign to nodes in the 6.0
-# deployment. These addresses must be replaced with addresses from the original
-# environment.
-    local filename
-    local primary_cic
-    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
-    [ -z "$2" ] && die "No bridge name provided, exiting"
-    primary_cic=$(basename ${FUEL_CACHE}/deployment_$1/primary-controller_*.yaml)
-    filename=${3:-$primary_cic}
-    echo $(python ./extract-cic-ips ${FUEL_CACHE}/deployment_$1/$filename $2)
-}
-
-get_vip_from_deploy_info() {
-# Returns a VIP of given type that Fuel wants to assign to the 6.0 environment
-# and that we want to replace with original VIP.
-    local br_name
-    local filename
-    local primary_cic
-    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
-    br_name=$(echo ${2:-br-mgmt} \
-        | awk '/br-ex/ {print "public_vip:"} \
-        /br-mgmt/ {print "management_vip:"}')
-    [ -z "$br_name" ] && die "No bridge name provided, exiting"
-    primary_cic=$(basename ${FUEL_CACHE}/deployment_$1/primary-controller_*.yaml)
-    filename=${3:-$primary_cic}
-    [ -z "$filename" ] && filename=$(ls ${FUEL_CACHE}/deployment_$1 | head -1)
-    [ -n "$br_name" ] && echo $(grep $br_name ${FUEL_CACHE}/deployment_$1/$filename \
-        | awk '{print $2}')
-}
-
-get_primary_ip() {
-    local filename
-    local primary_id
-    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
-    [ -z "$2" ] && die "No bridge name provided, exiting"
-    filename=$(basename ${FUEL_CACHE}/deployment_$1/primary-controller_*.yaml)
-    echo $(python ./extract-primary-ip "${FUEL_CACHE}/deployment_$1/$filename" $2)
-}
-
 upload_deployment_info() {
 # Upload deployment configration with modifications to Fuel master for
 # environment ENV.
@@ -97,60 +44,6 @@ upload_deployment_info() {
     [ -d "$FUEL_CACHE" ] &&
     fuel deployment --env $1 --upload --dir $FUEL_CACHE &&
     fuel env --env $1 --deployment-task --upload --dir $FUEL_CACHE
-}
-
-replace_ip_addresses() {
-# Replace IP addresses assigned to new env's controllers and VIPs with addresses
-# of the original environment in deployment config dump.
-    local dirname
-    local orig_ip
-    local seed_ip
-    local tmpfile
-    [ -z "$1" ] && die "No orig, seed env IDs, bridge name and IP addresses provided, exiting"
-    [ -z "$2" ] && die "No seed env ID, bridge name and IP addresses provided, exiting"
-    [ -z "$3" ] && die "No bridge name and IP addresses provided, exiting"
-    dirname="${FUEL_CACHE}/deployment_$2"
-    tmpfile="/tmp/env-$1-cic-$3-ips"
-    shift 3
-    for orig_ip in $(cat "$tmpfile")
-        do
-            if [ -n "$*" ]
-                then
-                    seed_ip=$1
-                    sed -i 's%'$seed_ip'$%'$orig_ip'%' $dirname/*.yaml
-                    sed -i 's%- '$seed_ip'/%- '$orig_ip'/%' $dirname/*.yaml
-                    shift
-                fi
-        done
-}
-
-replace_vip_address() {
-    local orig_vip
-    local seed_vip
-    local dirname
-    local br_name
-    dirname="${FUEL_CACHE}/deployment_$2"
-    br_name=$3
-    orig_vip=$(get_vip_from_cics $1 $br_name)
-    [ -z "$orig_vip" ] && die "Cannot find VIP on $br_name in 5.1 env, exiting"
-    seed_vip=$(get_vip_from_deploy_info $2 $br_name $4)
-    [ -z "$seed_vip" ] && die "Cannot find VIP for $br_name in 6.0 env, exiting"
-    sed -i 's%'$seed_vip'$%'$orig_vip'%' $dirname/*.yaml
-}
-
-replace_seed_ips() {
-    local br_name
-    local discard_ips
-    local primary_ip
-    [ -z "$1" ] && die "No orig and seed env IDs provided, exiting"
-    [ -z "$2" ] && die "No seed env ID provided, exiting"
-    for br_name in br-ex br-mgmt
-        do
-            get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            discard_ips=$(get_ips_from_deploy_info $2 $br_name)
-            replace_ip_addresses $1 $2 $br_name $discard_ips
-            replace_vip_address $1 $2 $br_name
-        done
 }
 
 backup_deployment_info() {
@@ -185,18 +78,6 @@ skip_deployment_tasks() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     [ -d "${FUEL_CACHE}/cluster_$1" ] || die "Cluster info directory not found, exiting"
     python ../helpers/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
-}
-
-prepare_seed_deployment_info() {
-    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
-    [ -z "$2" ] && "No seed env ID provided, exiting"
-    get_deployment_info $2
-    backup_deployment_info $2
-    replace_seed_ips $1 $2
-    disable_ping_checker $2
-    remove_patch_transformations $2
-    remove_predefined_networks $2
-    upload_deployment_info $2
 }
 
 prepare_seed_deployment_info_nailgun() {
