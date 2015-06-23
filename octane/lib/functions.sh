@@ -677,32 +677,6 @@ upgrade_cics() {
     done
 }
 
-wait_for_node() {
-    local counter
-    local status
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -z "$2" ] && die "No expected status provided, exiting"
-    counter=0
-    while :
-        do
-            [ $counter -gt 30 ] && die "Wait for node-$1 $2 timed out, exiting"
-            status=$(fuel node --node $1 \
-                | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
-            [ "$status" == "$2" ] && break
-            counter=$(expr $counter + 1)
-            sleep 300
-        done
-}
-
-check_env_nodes() {
-    local node
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    for node in  $(list_nodes $1 "(controller|compute|ceph-osd)")
-        do
-            ping -c1 $node || die "Node $node inaccessible, exiting"
-        done
-}
-
 provision_node() {
     local env_id
     [ -z "$1" ] && die "No node ID provided, exiting"
