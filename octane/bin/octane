@@ -19,10 +19,7 @@ upgrade-env ENV_ID              - install upgrade seed env for env ENV_ID and
 upgrade-cics ORIG_ID SEED_ID    - isolate orig env CICs and replace them with seed CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
-prepare-osd-upgrade SEED_ID     - configure Ceph cluster before OSD upgrade
 upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
-upgrade-nova-compute NODE_ID    - update nova and neutron packages on the compute
-                                  node NODE_ID and restart services
 cleanup ENV_ID                  - delete data about former environment from
                                   upgraded OpenStack cloud
 help                            - display this message and exit"
@@ -39,9 +36,10 @@ export LIBPATH="$(dirname $BINPATH)/lib"
 export HELPER_PATH="$(dirname $BINPATH)/helpers"
 export PATCH_DIR="$(dirname $BINPATH)/patches"
 
+. ${LIBPATH}/utils.sh
+. ${LIBPATH}/nailgundb.sh
 . ${LIBPATH}/functions.sh
 . ${LIBPATH}/db.sh
-. ${LIBPATH}/utils.sh
 . ${LIBPATH}/maintenance.sh
 . ${LIBPATH}/patch.sh
 

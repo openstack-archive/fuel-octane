@@ -1,7 +1,5 @@
 #!/bin/bash -xe
 
-PG_CMD="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
-
 disable_wsrep() {
     [ -z "$1" ] && die "No node ID provided, exiting, exiting"
     ssh root@$(get_host_ip_by_node_id $1) "echo \"SET GLOBAL wsrep_on='off';\" | mysql"
