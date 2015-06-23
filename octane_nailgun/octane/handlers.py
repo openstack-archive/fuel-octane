@@ -90,7 +90,7 @@ class ClusterCloneHandler(base.BaseHandler):
         """
         attrs = copy.deepcopy(b)
         for section, pairs in attrs.iteritems():
-            if section not in a:
+            if section == "repo_setup" or section not in a:
                 continue
             a_values = a[section]
             for key, values in pairs.iteritems():
