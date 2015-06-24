@@ -1,5 +1,15 @@
 #!/bin/bash
 
+get_nailgun_db_pass() {
+# Parse nailgun configuration to get DB password for 'nailgun' database. Return
+# the password.
+    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
+        | awk 'BEGIN {out=""}
+               /DATABASE/ {out=$0;next}
+               /passwd:/ {if(out!=""){out="";print $2}}' \
+        | tr -d '"')
+}
+
 PG_CMD="psql -At postgresql://nailgun:$(get_nailgun_db_pass)@localhost/nailgun"
 
 get_node_group_id() {
@@ -61,16 +71,6 @@ update_ips_nailgun_db() {
                 (SELECT ip_addr FROM ip_$$), DEFAULT);
             " | $PG_CMD
         done
-}
-
-get_nailgun_db_pass() {
-# Parse nailgun configuration to get DB password for 'nailgun' database. Return
-# the password.
-    echo $(dockerctl shell nailgun cat /etc/nailgun/settings.yaml \
-        | awk 'BEGIN {out=""}
-               /DATABASE/ {out=$0;next}
-               /passwd:/ {if(out!=""){out="";print $2}}' \
-        | tr -d '"')
 }
 
 copy_generated_settings() {
