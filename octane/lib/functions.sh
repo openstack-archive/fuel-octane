@@ -402,7 +402,15 @@ delete_node_preserve_id() {
                   sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
                   )
     local node_mac=$(get_bootable_mac "$1")
-    fuel node --node $1 --env $orig_id --delete-from-db
+    local node_ip=$(get_host_ip_by_node_id "$1")
+    fuel node --node $1 --env $orig_id --delete-from-db --force
+    while :;
+    do
+        [ -z "$(fuel node --node $1 | grep ^$1)" ] &&
+        echo "${FUNCNAME}: Node $1 was deleted from DB; deleting from Cobbler" &&
+        break
+        sleep 3
+    done
     dockerctl shell cobbler cobbler system remove --name node-$1
     echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
                              timestamp, online, pending_addition,
@@ -410,12 +418,12 @@ delete_node_preserve_id() {
           VALUES ($1, $node_values, '$node_mac', 'discover',
                   '{\"disks\": [], \"interfaces\": []}', now(), false,
                   false, false);" | $PG_CMD
-    ssh root@node-$1 shutdown -r now
+    ssh root@$node_ip shutdown -r now
     while :
         do
             node_online=$(get_node_online $1)
             [ "$node_online" == "True" ] && {
-                echo "Node $id came back online."
+                echo "Node $1 came back online."
                 break
             }
             sleep 30
@@ -438,36 +446,14 @@ assign_node_to_env(){
     host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]
         then
-            node_values=$(echo "SELECT uuid, name
-                                FROM nodes WHERE id = $1;" | \
-                          $PG_CMD | \
-                          sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
-                          )
-            node_mac=$(get_bootable_mac "$1")
             prepare_fixtures_from_node "$1"
-            fuel node --node $1 --env $orig_id --delete-from-db
-            dockerctl shell cobbler cobbler system remove --name node-$1
-            echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
-                                     timestamp, online, pending_addition,
-                                     pending_deletion)
-                  VALUES ($1, $node_values, '$node_mac', 'discover',
-                          '{\"disks\": [], \"interfaces\": []}', now(), false,
-                          false, false);" | $PG_CMD
-            ssh root@node-$1 shutdown -r now
-            while :
-                do
-                    node_online=$(get_node_online $1)
-                    [ "$node_online" == "True" ] && {
-                        echo "Node $id came back online."
-                        break
-                    }
-                    sleep 30
-                done
+            delete_node_preserve_id "$1"
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
     apply_disk_settings $1
-    ./keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
+    echo "$roles" | grep -q ceph-osd &&
+    ${BINDIR}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
     upload_node_settings $1
 }
