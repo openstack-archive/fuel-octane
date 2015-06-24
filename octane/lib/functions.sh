@@ -232,9 +232,8 @@ check_deployment_status() {
 }
 
 discover_nodes_to_cics() {
-    local node_ids
     [ -z "$1" ] && die "No env ID provided, exiting"
-    node_ids=$(fuel node | awk -F\| '$2~/discover/{print($1)}' \
+    local node_ids=$(fuel node | awk -F\| '$2~/discover/{print($1)}' \
         | tr -d ' ' | sed ':a;N;$!ba;s/\n/,/g')
     fuel node set --env $1 --node $node_ids --role controller
 }
@@ -477,14 +476,11 @@ cleanup_compute_upgrade() {
 }
 
 upgrade_node() {
-    local roles
     local role
     local id
-    local filename
-    local discard_ips
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    roles=$(fuel node --node $2 \
+    local roles=$(fuel node --node $2 \
         | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
     for role in $roles
