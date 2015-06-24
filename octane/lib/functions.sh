@@ -394,6 +394,34 @@ get_bootable_mac() {
     ssh "root@node-$1" "ip link show $port3" | awk '/link\/ether/{print $2}'
 }
 
+delete_node_preserve_id() {
+    [ -z "$1" ] && die "${FUNCNAME}: No node ID provided, exiting"
+    local node_values=$(echo "SELECT uuid, name
+                              FROM nodes WHERE id = $1;" | \
+                  $PG_CMD | \
+                  sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
+                  )
+    local node_mac=$(get_bootable_mac "$1")
+    fuel node --node $1 --env $orig_id --delete-from-db
+    dockerctl shell cobbler cobbler system remove --name node-$1
+    echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
+                             timestamp, online, pending_addition,
+                             pending_deletion)
+          VALUES ($1, $node_values, '$node_mac', 'discover',
+                  '{\"disks\": [], \"interfaces\": []}', now(), false,
+                  false, false);" | $PG_CMD
+    ssh root@node-$1 shutdown -r now
+    while :
+        do
+            node_online=$(get_node_online $1)
+            [ "$node_online" == "True" ] && {
+                echo "Node $id came back online."
+                break
+            }
+            sleep 30
+        done
+}
+
 assign_node_to_env(){
     local orig_id
     local roles
