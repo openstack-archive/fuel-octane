@@ -11,6 +11,7 @@ ssh $host \
     "mkdir -p ${location};" \
     "git init ${location};" \
     "git config --file ${location}/.git/config receive.denyCurrentBranch warn;"
+[ -z "$(git remote | grep ${host})" ] &&
 git remote add "$host" "ssh://${host}${location}"
 git push --force "$host" "$branch"
 ssh $host \
