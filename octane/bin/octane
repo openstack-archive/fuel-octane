@@ -31,10 +31,11 @@ NODE_ID=0 # This constant stores ID of a node after it is reassigned to the seed
 export FUEL_CACHE="/tmp/octane/deployment" # Directory to store deployment information
 export PUPPET_PATH="/etc/puppet/2014.2.2-6.1/modules"
 
-export BINPATH="$(dirname `readlink -f "$0"`)"
-export LIBPATH="$(dirname $BINPATH)/lib"
-export HELPER_PATH="$(dirname $BINPATH)/helpers"
-export PATCH_DIR="$(dirname $BINPATH)/patches"
+export CWD="$(dirname $(dirname `readlink -f "$0"`))"
+export BINPATH="$CWD/bin"
+export LIBPATH="$CWD/lib"
+export HELPER_PATH="$CWD/helpers"
+export PATCH_DIR="$CWD/patches"
 
 . ${LIBPATH}/utils.sh
 . ${LIBPATH}/nailgundb.sh
