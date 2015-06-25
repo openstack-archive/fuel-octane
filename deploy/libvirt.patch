@@ -36,3 +36,14 @@
  
  if test "$with_storage_zfs" = "yes" ||
     test "$with_storage_zfs" = "check"; then
+--- src/storage/storage_backend_zfs.c
++++ src/storage/storage_backend_zfs.c.new
+@@ -282,7 +282,7 @@
+      *                   will lookup vfs.zfs.vol.mode sysctl value
+      * -V -- tells to create a volume with the specified size
+      */
+-    cmd = virCommandNewArgList(ZFS, "create", "-o", "volmode=dev",
++    cmd = virCommandNewArgList(ZFS, "create",// "-o", "volmode=dev",
+                                "-V", NULL);
+     virCommandAddArgFormat(cmd, "%lluK",
+                            VIR_DIV_UP(vol->target.capacity, 1024));
