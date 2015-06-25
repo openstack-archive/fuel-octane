@@ -238,27 +238,6 @@ discover_nodes_to_cics() {
     fuel node set --env $1 --node $node_ids --role controller
 }
 
-check_vip_down() {
-    local vip
-    [ -z "$1" ] && die "No env ID and bridge name provided, exiting"
-    [ -z "$2" ] && die "No bridge name provided, exiting"
-    vip=$(get_vip_from_cics $1 $2)
-    [ -n "$vip" ] && die "VIP is not down, exiting" 3
-}
-
-vips_down() {
-    local nodes
-    local node
-    [ -z "$1" ] && die "No env ID and bridge name provided, exiting"
-    nodes=$(list_nodes $1 'controller')
-    for node in $nodes
-        do
-            echo vip__management vip__public vip__management_old vip__public_old \
-                | xargs -I{} -d ' ' \
-                ssh root@$node crm resource stop {}
-        done
-}
-
 delete_tunnel() {
 # Delete tunnel between src_node and dst_node.
     local src_node
