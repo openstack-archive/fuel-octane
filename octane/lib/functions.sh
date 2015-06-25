@@ -531,7 +531,6 @@ upgrade_cics() {
         start_upstart_services
     } && unset PSSH_RUN
     prepare_ceph_admin_upgrade $2
-    update_admin_tenant $2
     for br_name in br-ex br-mgmt br-prv;
     do
         delete_patch_ports $1 $br_name
@@ -540,6 +539,7 @@ upgrade_cics() {
     do
         create_patch_ports $2 $br_name
     done
+    list_nodes $1 compute | xargs -I{} ./upgrade-nova-compute.sh {}
 }
 
 provision_node() {

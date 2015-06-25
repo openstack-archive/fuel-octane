@@ -88,26 +88,7 @@ case $1 in
     upgrade-cics)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        check_deployment_status $3
-        ./manage_services.sh start $3
-        # Wait for corosync cluster to sync and start, and for Neutron to create
-        # all network resources on 6.0 CICs
-        sleep 30
-        prepare_ceph_osd_upgrade $2
-        update_admin_tenant_id $3
-        for br_name in br-ex br-mgmt br-prv
-            do
-                delete_patch_ports $2 $br_name
-            done
-        for br_name in br-ex br-mgmt
-            do
-                create_tunnels $2 $br_name
-            done
-        for br_name in br-ex br-mgmt
-            do
-                remove_tunnels $3 $br_name
-                create_patch_ports $3 $br_name
-            done
+        upgrade_cics $2 $3
         ;;
     upgrade-db)
         [ -z "$2" ] && die "$(usage)"
