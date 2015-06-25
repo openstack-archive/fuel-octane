@@ -84,11 +84,7 @@ prepare_seed_deployment_info_nailgun() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     get_deployment_info $2
-    for br_name in br-ex br-mgmt
-        do
-            update_ips_nailgun_db $1 $2 $br_name
-            update_vip_nailgun_db $1 $2 $br_name
-        done
+    update_seed_ips "$@"
     get_deployment_info $2
     backup_deployment_info $2
     disable_ping_checker $2
@@ -97,6 +93,16 @@ prepare_seed_deployment_info_nailgun() {
     reset_gateways_admin $2
     skip_deployment_tasks $2
     upload_deployment_info $2
+}
+
+update_seed_ips() {
+    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+    [ -z "$2" ] && "No seed env ID provided, exiting"
+    for br_name in br-ex br-mgmt
+        do
+            update_ips_nailgun_db $1 $2 $br_name
+            update_vip_nailgun_db $1 $2 $br_name
+        done
 }
 
 remove_predefined_networks() {
