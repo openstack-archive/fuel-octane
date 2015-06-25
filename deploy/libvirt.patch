@@ -1,0 +1,38 @@
+--- tests/storagepoolxml2xmltest.c
++++ tests/storagepoolxml2xmltest.c.new
+@@ -106,8 +106,8 @@
+     DO_TEST("pool-gluster-sub");
+     DO_TEST("pool-scsi-type-scsi-host-stable");
+ #ifdef WITH_STORAGE_ZFS
+-    DO_TEST("pool-zfs");
+-    DO_TEST("pool-zfs-sourcedev");
++//    DO_TEST("pool-zfs");
++//    DO_TEST("pool-zfs-sourcedev");
+ #endif
+ 
+     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+--- debian/rules
++++ debian/rules.new
+@@ -76,6 +76,7 @@
+ 	$(WITH_POLKIT)		 \
+ 	$(WITH_UDEV)		 \
+ 	--with-storage-fs        \
++	--with-storage-zfs       \
+ 	$(WITH_STORAGE_LVM)	 \
+ 	$(WITH_STORAGE_ISCSI)	 \
+ 	$(WITH_STORAGE_DISK)	 \
+--- configure.ac
++++ configure.ac.new
+@@ -1977,9 +1977,9 @@
+     with_storage_zfs=$with_freebsd
+ fi
+ 
+-if test "$with_storage_zfs" = "yes" && test "$with_freebsd" = "no"; then
+-    AC_MSG_ERROR([The ZFS storage driver can be enabled on FreeBSD only.])
+-fi
++#if test "$with_storage_zfs" = "yes" && test "$with_freebsd" = "no"; then
++    #AC_MSG_ERROR([The ZFS storage driver can be enabled on FreeBSD only.])
++#fi
+ 
+ if test "$with_storage_zfs" = "yes" ||
+    test "$with_storage_zfs" = "check"; then

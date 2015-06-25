@@ -1,16 +1,22 @@
 #!/bin/bash -ex
-# In debian-installer's shell run:
-# anna-install network-console
-# it'll bring up password settings and SSH setup after network setup
-# BTW, 172.18.184.58:3142 is a good choice for mirror in cz ;)
-
-# After system is booted
-sudo apt-get install libvirt-bin qemu-kvm lvm2
-# Logout/login to get into libvirtd group
+MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
+# Use provided preseed.cfg to install everything
 # Fucking https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1343245
 printf '  /dev/vms/* rw,\n  /dev/dm-* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
-# Setup LVM
-virsh pool-define-as vms logical --source-dev /dev/sdc
+# Build and install Libvirt package with ZFS support
+mkdir ~/libvirt-build
+pushd ~/libvirt-build
+apt-get source libvirt-bin
+sudo apt-get build-dep libvirt-bin
+sudo apt-get install devscripts
+cd libvirt-1.2.12
+patch -p0 < "$MYDIR/libvirt.patch"
+debuild -uc -us -b
+cd ..
+sudo dpkg -i --force-confnew libvirt0_1.2.12-0ubuntu13_amd64.deb libvirt-bin_1.2.12-0ubuntu13_amd64.deb
+popd
+# Setup ZFS
+virsh pool-define-as vms zfs --source-dev /dev/sdc
 virsh pool-build vms
 virsh pool-autostart vms
 virsh pool-start vms
