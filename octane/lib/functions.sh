@@ -416,47 +416,36 @@ delete_node_preserve_id() {
 }
 
 assign_node_to_env(){
-    local orig_id
-    local roles
-    local host
     local node_mac
     local id
     local node_values
     local node_online
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
-    roles=$(fuel node --node $1 \
+    local roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
-    orig_id=$(get_env_by_node $1)
-    host=$(get_host_ip_by_node_id $1)
+    # TODO(ogelbukh) Check that $orig_id is either 'None' or the ID of upgrade
+    # target environment. Don't let upgrade arbitrary node from other
+    # environment by mistake.
+    local orig_id=$(get_env_by_node $1)
+    local host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]
         then
             prepare_fixtures_from_node "$1"
             delete_node_preserve_id "$1"
+        else
+            local orig_node=$(list_nodes $orig_id $roles)
+            [ -z "$orig_node" ] && die "${FUNCNAME}: No node with roles $roles in env $orig_id, exiting"
+            prepare_fixtures_from_node $orig_node
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
     apply_disk_settings $1
     echo "$roles" | grep -q ceph-osd &&
-    ${BINDIR}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml > /tmp/disks-ceph-partition.yaml
+        ${BINDIR}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
+            > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
     upload_node_settings $1
-}
-
-nodes_disks_equal() {
-    set -e
-    [ -z "$2" ] && die "IDs of 2 nodes required but not provided, exiting"
-    [ -f "${FUEL_CACHE}/node_$1/disks.yaml" ]
-    [ -f "${FUEL_CACHE}/node_$2/disks.yaml" ]
-    python -c "import yaml; import sys;
-disks1 = yaml.load(open('"$FUEL_CACHE"/node_$1/disks.yaml'));
-disks2 = yaml.load(open('"$FUEL_CACHE"/node_$2/disks.yaml'));
-for disk in disks1:
-    if disk['extra'] in [d['extra'] for d in disks2]:
-        continue;
-    else:
-        sys.exit(1)"
-    return $?
 }
 
 prepare_compute_upgrade() {
@@ -577,84 +566,7 @@ upgrade_db() {
     } && unset PSSH_RUN
     ${method}_from_env $1
     ${method}_restore_to_env $2
-}
-
-init_seed() {
-    local filename
-    [ -z "$1" ] && die "No 6.0 env IDs provided, exiting"
-    fuel node set --env $1 --node $2 --role controller
-    local env=$1 && shift
-    filename="/tmp/env-${env}-cics.hosts"
-    [ -f "$filename" ] && die "Seed env $env already initialized, exiting"
-    while [ -n "$*" ];
-    do
-        echo "$1" >> $filename
-        shift
-    done
-}
-
-install_primary_cic() {
-    local hosts
-    local node_id
-    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
-    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    hosts="/tmp/env-$2-cics.hosts"
-    [ -f "$hosts" ] || die "Seed env $2 not initialized and $hosts file not found, exiting"
-    node_id=$(head -1 "$hosts")
-    [ -z "$node_id" ] && die "No primary CIC ID in $hosts file, exiting"
-    provision_node $node_id
-    wait_for_node $node_id "provisioned"
-    prepare_seed_deployment_info_nailgun $1 $2
-    env_action $2 deploy
-    wait_for_node $node_id "ready"
-}
-
-install_cics() {
-    local hosts
-    local node_id
-    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
-    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    hosts=$(sed '1d' "/tmp/env-$2-cics.hosts")
-    [ -z "$hosts" ] && exit 0
-    ./manage_services.sh start $2
-    for node_id in $hosts
-        do
-            fuel node set --env $2 --node $node_id --role controller
-            provision_node $node_id
-        done
-    for i in $(seq 30)
-        do
-            if [ "$(fuel node --env $2 \
-                | awk -F\| '$8 ~ /controller/ && $2 ~ /provisioned/ {print $0}' \
-                | wc -l)" == "$(sed '1d' /tmp/env-$2-cics.hosts | wc -l)" ]
-                then
-                    break
-                fi
-            sleep 300
-       done
-    prepare_seed_deployment_info_nailgun $1 $2
-    create_ovs_bridges $2
-    for  br_name in br-ex br-mgmt
-        do
-            create_tunnels $2 $br_name 'controller'
-        done
-    fuel node --env $2 --node $(sed '1d' "/tmp/env-$2-cics.hosts" \
-        | awk 'BEGIN {f = ""}
-        {
-            if (f == "") {f = $1}
-            else {printf f","; f = $1}
-        }
-        END {printf f}') --deploy
-    for i in $(seq 30)
-        do
-            if [ "$(fuel node --env $2 \
-                | awk -F\| '$7 ~ /controller/ && $2 ~ /ready/ {print $0}' \
-                | wc -l)" == "$(cat /tmp/env-$2-cics.hosts | wc -l)" ]
-                then
-                    break
-                fi
-            sleep 300
-       done
+    update_admin_tenant_id $2
 }
 
 upgrade_ceph() {
