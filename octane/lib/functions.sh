@@ -94,6 +94,7 @@ prepare_seed_deployment_info_nailgun() {
 }
 
 update_seed_ips() {
+# TODO(ogelbukh) Implement this as a call to /cluster/*/clone_ips endpoint in Fuel API
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
     for br_name in br-ex br-mgmt
@@ -227,9 +228,8 @@ env_action() {
 
 check_deployment_status() {
 # Verify operational status of environment.
-    local status
     [ -z "$1" ] && die "No env ID provided, exiting"
-    status=$(fuel env --env $1 \
+    local status=$(fuel env --env $1 \
         | awk -F"|" '/^'$1'/{print $2}' \
         | tr -d ' ')
     [ "$status" == 'new' ] || die "Environment is not operational, exiting"
@@ -462,12 +462,15 @@ cleanup_compute_upgrade() {
 }
 
 upgrade_node() {
+# This function takes IDs of upgrade seed env and a node, deletes the node
+# from original env and adds it to the seed env.
     local role
     local id
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
+    local orig_env=$(get_env_by_node $2)
     local roles=$(fuel node --node $2 \
-        | awk -F\| '/^'$2'/ {gsub(" ", "", $7);print $7}' \
+        | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
     for role in $roles
         do
