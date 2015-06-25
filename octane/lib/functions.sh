@@ -83,7 +83,6 @@ skip_deployment_tasks() {
 prepare_seed_deployment_info_nailgun() {
     [ -z "$1" ] && "No orig and seed env ID provided, exiting"
     [ -z "$2" ] && "No seed env ID provided, exiting"
-    get_deployment_info $2
     update_seed_ips "$@"
     get_deployment_info $2
     backup_deployment_info $2
@@ -92,7 +91,6 @@ prepare_seed_deployment_info_nailgun() {
     remove_predefined_networks $2
     reset_gateways_admin $2
     skip_deployment_tasks $2
-    upload_deployment_info $2
 }
 
 update_seed_ips() {
@@ -489,19 +487,15 @@ upgrade_node() {
     assign_node_to_env $2 $1
     fuel node --env $1 --node $2 --provision
     wait_for_node $2 "provisioned"
+    get_deployment_info $2
+    if $(echo $roles | grep -q 'controller');
+    then
+        prepare_seed_deployment_info_nailgun $orig_env $1
+    fi
+    mv "${FUEL_CACHE}/deployment_$1" "${FUEL_CACHE}/deployment_$1.default"
     get_deployment_info $1 download
-    rmdir ${FUEL_CACHE}/deployment_$1.download
-    mv ${FUEL_CACHE}/deployment_$1 ${FUEL_CACHE}/deployment_$1.download
-    get_deployment_info $1
-    mv ${FUEL_CACHE}/deployment_$1.download/* ${FUEL_CACHE}/deployment_$1/
-    for br_name in br-ex br-mgmt
-        do
-            get_ips_from_cics $1 $br_name > "/tmp/env-$1-cic-$br_name-ips"
-            filename=$(echo $roles | cut -d ' ' -f 1)_$2.yaml
-            discard_ips=$(get_ips_from_deploy_info $1 $br_name $filename)
-            replace_ip_addresses $1 $1 $br_name $discard_ips
-            replace_vip_address $1 $1 $br_name $filename
-        done
+    mv ${FUEL_CACHE}/deployment_$1.default/* ${FUEL_CACHE}/deployment_$1/ &&
+        rmdir ${FUEL_CACHE}/deployment_$1.default
     remove_predefined_networks $1
     upload_deployment_info $1
     fuel node --env $1 --node $2 --deploy
