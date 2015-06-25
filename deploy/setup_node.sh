@@ -1,6 +1,29 @@
 #!/bin/bash -ex
+# Config-ish
+MAGNET_511_ISO='magnet:?xt=urn:btih:63907abc2acf276d595cd12f9723088fd66cbe24&dn=MirantisOpenStack-5.1.1.iso&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Fseed-qa.msk.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Ffuel-storage.srt.mirantis.net%2Ffuelweb%2FMirantisOpenStack-5.1.1.iso'
+MAGNET_60_LRZ='magnet:?xt=urn:btih:d8bda80a9079e1fc0c598bc71ed64376103f2c4f&dn=MirantisOpenStack-6.0-upgrade.tar.lrz&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Fseed-qa.msk.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Ffuel-storage.srt.mirantis.net%2Ffuelweb%2FMirantisOpenStack-6.0-upgrade.tar.lrz'
+MAGNET_61_LRZ='magnet:?xt=urn:btih:baf78dcbffae42cfb5226c6b1d94b079035a74af&dn=MirantisOpenStack-6.1-upgrade.tar.lrz&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Fvault.infra.mirantis.net%2FMirantisOpenStack-6.1-upgrade.tar.lrz'
+DOWNLOAD_TORRENTS="$MAGNET_511_ISO $MAGNET_60_LRZ $MAGNET_61_LRZ"
+FUEL_ISO='MirantisOpenStack-5.1.1.iso'
+
 MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
 # Use provided preseed.cfg to install everything
+
+# Transmission
+DOWNLOADS_DIR="$HOME/Downloads"
+mkdir -p "$DOWNLOADS_DIR"
+setfacl -m 'user:debian-transmission:rwx' "$DOWNLOADS_DIR"
+sudo apt-get install transmission-cli transmission-daemon
+sudo service transmission-daemon stop
+EDIT_SCRIPT='import sys,json; i=iter(sys.argv); next(i); fname=next(i); s=json.load(open(fname)); s.update(zip(i,i)); json.dump(s,open(fname,"w"),indent=4,sort_keys=True)' 
+sudo python -c "$EDIT_SCRIPT" /etc/transmission-daemon/settings.json download-dir "$DOWNLOADS_DIR"
+sudo service transmission-daemon start
+alias tr='transmission-remote -n transmission:transmission'
+for magnet in $DOWNLOAD_TORRENTS; do
+    transmission-remote -n transmission:transmission -a "$magnet"
+done
+
+# Libvirt
 # Fucking https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1343245
 printf '  /dev/vms/* rw,\n  /dev/dm-* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
 # Build and install Libvirt package with ZFS support
@@ -15,6 +38,7 @@ debuild -uc -us -b
 cd ..
 sudo dpkg -i --force-confnew libvirt0_1.2.12-0ubuntu13_amd64.deb libvirt-bin_1.2.12-0ubuntu13_amd64.deb
 popd
+
 # Setup ZFS pool
 virsh pool-define-as vms zfs --source-name vms
 # no pool-build since we need -f flag for zpool create
@@ -38,9 +62,11 @@ for net in admin management private public storage; do
 done
 
 # Master node
-# Download ISO from some node
+while [ ! -f "$DOWNLOADS_DIR/$FUEL_ISO" ]; do
+  sleep 10
+done
 virsh vol-create-as vms fuel 100G
-virsh define "$MYDIR/fuel.xml"
+virsh define <(sed "s|%ISO%|$DOWNLOADS_DIR/$FUEL_ISO|" "$MYDIR/fuel.xml")
 virsh start fuel
 virsh event fuel lifecycle  # wait for shutdown on reboot
 virsh event fuel lifecycle --timeout 5  # wait for final shutdown on reboot

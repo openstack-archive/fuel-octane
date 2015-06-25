@@ -15,7 +15,7 @@
       <target dev='hda'/>
     </disk>
     <disk type='file' device='cdrom'>
-      <source file='/home/ubuntu/MirantisOpenStack-5.1.1.iso'/>
+      <source file='%ISO%'/>
       <target dev='hdb'/>
       <address type='drive' bus='1'/>
     </disk>
