@@ -461,6 +461,11 @@ cleanup_compute_upgrade() {
     ssh root@$cic "source openrc; nova service-enable node-$2 nova-compute"
 }
 
+prepare_controller_upgrade() {
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+}
+
 upgrade_node() {
 # This function takes IDs of upgrade seed env and a node, deletes the node
 # from original env and adds it to the seed env.
@@ -481,6 +486,9 @@ upgrade_node() {
                 ceph-osd)
                     prepare_osd_node_upgrade $2
                     set_osd_noout $1
+                    ;;
+                controller)
+                    prepare_controller_upgrade "$@"
                     ;;
                 *)
                     echo "Role $role unsupported, skipping"
