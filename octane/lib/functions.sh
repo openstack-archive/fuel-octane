@@ -700,23 +700,14 @@ cleanup_neutron_services() {
 }
 
 upgrade_env() {
-    local orig_env
-    local seed_env
-    local args
+    # TODO(ogelbukh) Modify this function to use 'fuel2 env clone' to create
+    # upgrade seed environment.
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
     [ -z "$2" ] && die "No node IDs for 6.0 controllers provided, exiting"
-    orig_env=$1 && shift
-    seed_env=$(clone_env $orig_env)
-    args="$orig_env $seed_env"
+    local orig_env=$1 && shift
+    local seed_env=$(clone_env $orig_env)
+    local args="$orig_env $seed_env"
     copy_generated_settings $args
-    init_seed $seed_env "$@"
-    prepare_cic_disk_fixture $orig_env
-    prepare_cic_network_fixture $orig_env
-    install_primary_cic $args
-    upgrade_db $args
-    install_cics $args
-    upgrade_ceph $args
-    update_admin_tenant_id $seed_env
 }
 
 delete_fuel_resources() {
