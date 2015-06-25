@@ -226,6 +226,24 @@ env_action() {
     [ $? -ne 0 ] && die "Cannot start $2 for env $1, exiting" 2
 }
 
+check_neutron_agents() {
+    [ -z "$1" ] && die "${FUNCNAME}: No env ID provided, exiting"
+    local l3_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
+        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+            | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
+    local dhcp_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
+        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+            | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
+    for n in $l3_nodes;
+    do
+        [ "$n" == "$1" ] && exit 1
+    done
+    for n in $dhcp_nodes;
+    do
+        [ "$n" == "$1" ] && exit 1
+    done
+}
+
 check_deployment_status() {
 # Verify operational status of environment.
     [ -z "$1" ] && die "No env ID provided, exiting"
