@@ -15,9 +15,10 @@ debuild -uc -us -b
 cd ..
 sudo dpkg -i --force-confnew libvirt0_1.2.12-0ubuntu13_amd64.deb libvirt-bin_1.2.12-0ubuntu13_amd64.deb
 popd
-# Setup ZFS
-virsh pool-define-as vms zfs --source-dev /dev/sdc
-virsh pool-build vms
+# Setup ZFS pool
+virsh pool-define-as vms zfs --source-name vms
+# no pool-build since we need -f flag for zpool create
+sudo zpool create -f vms /dev/sdc
 virsh pool-autostart vms
 virsh pool-start vms
 
