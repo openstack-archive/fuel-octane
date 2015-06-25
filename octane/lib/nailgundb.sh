@@ -83,7 +83,7 @@ copy_generated_settings() {
 select generated from attributes where cluster_id = $1;" \
         | $PG_CMD \
         | grep -v ^$ \
-        | python ../helpers/join-jsons.py);
+        | python ${HELPER_PATH}/helpers/join-jsons.py);
     [ -z "$generated" ] && die "No generated attributes found for env $1"
     echo "update attributes set generated = '$generated' where cluster_id = $2" \
         | $PG_CMD

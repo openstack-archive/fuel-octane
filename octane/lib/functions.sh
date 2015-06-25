@@ -59,12 +59,12 @@ remove_patch_transformations() {
 # controllers from original environment while physically connected to the same
 # L2 segment.
     [ -z "$1" ] && die "No env ID provided, exiting"
-    python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 remove_patch_ports
+    python ${HELPER_PATH}/transformations.py ${FUEL_CACHE}/deployment_$1 remove_patch_ports
 }
 
 remove_physical_transformations(){
     [ -z "$1" ] && die "No env ID provided, exiting"
-    python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 \
+    python ${HELPER_PATH}/transformations.py ${FUEL_CACHE}/deployment_$1 \
         remove_physical_ports
 }
 
@@ -77,7 +77,7 @@ disable_ping_checker() {
 skip_deployment_tasks() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     [ -d "${FUEL_CACHE}/cluster_$1" ] || die "Cluster info directory not found, exiting"
-    python ../helpers/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
+    python ${HELPER_PATH}/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
 }
 
 prepare_seed_deployment_info_nailgun() {
@@ -107,7 +107,7 @@ update_seed_ips() {
 
 remove_predefined_networks() {
     [ -z "$1" ] && die "No env ID provided, exiting"
-    python ../helpers/transformations.py ${FUEL_CACHE}/deployment_$1 remove_predefined_nets
+    python $HELPER_PATH/transformations.py ${FUEL_CACHE}/deployment_$1 remove_predefined_nets
 }
 
 reset_gateways_admin() {
@@ -122,7 +122,7 @@ prepare_cic_disk_fixture() {
     node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
     fuel node --node $node_id --disk --download --dir $FUEL_CACHE
     [ -f "${FUEL_CACHE}/node_$node_id/disks.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/disks.yaml ./disks.fixture.yaml
+    cp ${FUEL_CACHE}/node_$node_id/disks.yaml ${FUEL_CACHE}/disks.fixture.yaml
 }
 
 prepare_cic_network_fixture() {
@@ -131,7 +131,7 @@ prepare_cic_network_fixture() {
     node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
     fuel node --node $node_id --network --download --dir $FUEL_CACHE
     [ -f "${FUEL_CACHE}/node_$node_id/interfaces.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/interfaces.yaml ./interfaces.fixture.yaml
+    cp ${FUEL_CACHE}/node_$node_id/interfaces.yaml ${FUEL_CACHE}/interfaces.fixture.yaml
 }
 
 list_nodes() {
@@ -296,7 +296,7 @@ create_patch_ports() {
         do
             local filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_${node_#node-}.yaml \
                 | head -1)
-            ./create-controller-ports $filename $br_name \
+            ${BINPATH}/create-controller-ports $filename $br_name \
                 | xargs -I {} ssh root@$node {}
         done
 }
@@ -327,7 +327,7 @@ apply_disk_settings() {
     [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
-    ./copy-node-settings disks $disk_file ./disks.fixture.yaml by_name \
+    ${BINPATH}/copy-node-settings disks $disk_file ${FUEL_CACHE}/disks.fixture.yaml by_name \
         > /tmp/disks_$1.yaml
     mv /tmp/disks_$1.yaml $disk_file
     fuel node --node $1 --disk --upload --dir $FUEL_CACHE
@@ -339,8 +339,8 @@ apply_network_settings() {
     [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
-    ./copy-node-settings interfaces $iface_file \
-        ./interfaces.fixture.yaml > /tmp/interfaces_$1.yaml
+    ${BINPATH}/copy-node-settings interfaces $iface_file \
+        ${FUEL_CACHE}/interfaces.fixture.yaml > /tmp/interfaces_$1.yaml
     mv /tmp/interfaces_$1.yaml $iface_file
     fuel node --node $1 --network --upload --dir $FUEL_CACHE
 }
@@ -355,8 +355,8 @@ get_node_settings() {
 prepare_fixtures_from_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     get_node_settings $1
-    mv ${FUEL_CACHE}/node_$1/disks.yaml ./disks.fixture.yaml
-    mv ${FUEL_CACHE}/node_$1/interfaces.yaml ./interfaces.fixture.yaml
+    mv ${FUEL_CACHE}/node_$1/disks.yaml ${FUEL_CACHE}/disks.fixture.yaml
+    mv ${FUEL_CACHE}/node_$1/interfaces.yaml ${FUEL_CACHE}/interfaces.fixture.yaml
     rmdir ${FUEL_CACHE}/node_$1
 }
 
@@ -452,7 +452,7 @@ prepare_compute_upgrade() {
     [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
     cic=$(list_nodes $1 controller | head -1)
-    scp ./host_evacuation.sh root@$cic:/var/tmp/
+    scp ${BINPATH}/host_evacuation.sh root@$cic:/var/tmp/
     ssh root@$cic "/var/tmp/host_evacuation.sh node-$2"
 }
 
@@ -539,15 +539,15 @@ upgrade_cics() {
     do
         create_patch_ports $2 $br_name
     done
-    list_nodes $1 compute | xargs -I{} ./upgrade-nova-compute.sh {}
+    list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
 }
 
 provision_node() {
     local env_id
     [ -z "$1" ] && die "No node ID provided, exiting"
     env_id=$(get_env_by_node $1)
-    [ -f "./interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "./disks.fixture.yaml" ] && apply_disk_settings $1
+    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
+    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
     fuel node --env $env_id --node $1 --provision
 }
 
