@@ -25,7 +25,7 @@ done
 
 # Libvirt
 # Fucking https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1343245
-printf '  /dev/vms/* rw,\n  /dev/dm-* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
+printf '  /dev/zvol/vms/* rw,\n  /dev/zd* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
 # Build and install Libvirt package with ZFS support
 mkdir ~/libvirt-build
 pushd ~/libvirt-build
