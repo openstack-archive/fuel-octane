@@ -61,6 +61,9 @@ for net in admin management private public storage; do
   virsh net-start $net
 done
 
+# Don't let LVM find zvols
+sudo sed -i 's#.*global_filter =.*#    global_filter = [ "r|^/dev/zd.*|", "r|^/dev/zvol/.*|" ]#' /etc/lvm/lvm.conf
+
 # Master node
 while [ ! -f "$DOWNLOADS_DIR/$FUEL_ISO" ]; do
   sleep 10
