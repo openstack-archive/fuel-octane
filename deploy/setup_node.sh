@@ -50,7 +50,7 @@ virsh pool-start vms
 virsh net-undefine default
 for net in admin management private public storage; do
   if [ "$net" = "admin" ]; then
-    fwd="<ip address='172.20.0.1' prefix='24'></ip>"
+    fwd="<forward mode='nat'/><ip address='10.20.0.1' prefix='24'></ip>"
   elif [ "$net" = "public" ]; then
     fwd="<forward mode='nat'/><ip address='172.16.0.1' prefix='24'></ip>"
   else
@@ -63,6 +63,9 @@ done
 
 # Don't let LVM find zvols
 sudo sed -i 's#.*global_filter =.*#    global_filter = [ "r|^/dev/zd.*|", "r|^/dev/zvol/.*|" ]#' /etc/lvm/lvm.conf
+
+# Install hook to create redirects to master node
+sudo cp "$MYDIR/libvirt-qemu-hook.py" /etc/libvirt/hooks/qemu
 
 # Master node
 while [ ! -f "$DOWNLOADS_DIR/$FUEL_ISO" ]; do
