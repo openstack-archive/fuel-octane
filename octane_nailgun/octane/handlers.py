@@ -84,6 +84,59 @@ class ClusterCloneHandler(base.BaseHandler):
         The values of the b attributes have precedence over the values
         of the a attributes.
 
+        Added:
+            common.
+                puppet_debug = true
+            additional_components.
+                mongo = false
+            external_dns.
+                dns_list = "8.8.8.8"
+            external_mongo.
+                host_ip = ""
+                mongo_db_name = "ceilometer"
+                mongo_password = "ceilometer"
+                mongo_replset = ""
+                mongo_user = "ceilometer"
+            external_ntp.
+                ntp_list = "0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org"
+            murano_settings.
+                murano_repo_url = "http://storage.apps.openstack.org/"
+            provision.
+                method = "image"
+            storage.images_vcenter = false
+            workloads_collector.
+                password = "..."
+                tenant = "services"
+                user = "fuel_stats_user"
+        Renamed:
+            common.
+                start_guests_on_host_boot ->
+                resume_guests_state_on_host_boot
+        Changed:
+            repo_setup.repos (extended by additional items)
+            common.libvirt_type = kvm | data (removed vcenter)
+        Removed:
+            common.
+                compute_scheduler_driver
+            nsx_plugin.
+                connector_type
+                l3_gw_service_uuid
+                nsx_controllers
+                nsx_password
+                nsx_username
+                packages_url
+                transport_zone_uuid
+            storage.volumes_vmdk = false
+            vcenter.
+                cluster
+                host_ip
+                use_vcenter
+                vc_password
+                vc_user
+            zabbix.
+                password
+                username
+
         :param a: a dict with editable attributes
         :param b: a dict with editable attributes
         :returns: a dict with merged editable attributes
@@ -110,8 +163,6 @@ class ClusterCloneHandler(base.BaseHandler):
         """
         settings = copy.deepcopy(b)
         source_networks = dict((n["name"], n) for n in a["networks"])
-        # NOTE(akscram): In 6.1 clusters the private network is present
-        #                only in case the segmentation type of is GRE.
         for net in settings["networks"]:
             if net["name"] not in source_networks:
                 continue
