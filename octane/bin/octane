@@ -43,6 +43,7 @@ export PATCH_DIR="$CWD/patches"
 . ${LIBPATH}/db.sh
 . ${LIBPATH}/maintenance.sh
 . ${LIBPATH}/patch.sh
+. ${LIBPATH}/docker.sh
 
 [ -z "$1" ] && die "$(usage)"
 
@@ -50,7 +51,8 @@ case $1 in
     prepare-fuel)
         [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
         yum -y install postgresql.x86_64 pssh patch percona-xtrabackup.x86_64
-        patch_fuel_components astute puppet pman
+        #patch_fuel_components astute puppet pman
+        patch_all_containers
         ;;
     upgrade-env)
         [ -z "$2" ] && die "$(usage)"

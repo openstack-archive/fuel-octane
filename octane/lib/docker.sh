@@ -68,5 +68,11 @@ function docker_patch() {
     do_docker_patch ${CONTAINER_NAME} ${PATCH_PREFIX} $*
 } 
 
+function patch_all_containers() {
+       docker_patch astute /usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute ${CWD}/docker/astute/resources/deploy_actions.rb.patch
+       docker_patch cobbler /usr/lib/python2.6/site-packages/cobbler ${CWD}/docker/cobbler/resources/pmanager.py.patch
+       docker_patch nailgun /usr/lib/python2.6/site-packages/nailgun/volumes ${CWD}/docker/nailgun/resources/manager.py.patch
+} 
+
 
 
