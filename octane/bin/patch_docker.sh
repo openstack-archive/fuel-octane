@@ -2,7 +2,11 @@ confdir="/etc/dockerctl"
 . ${confdir}/config
 . /usr/share/dockerctl/functions
 
-alias extract_patch_files="sed -nr '/\+{3}/ {s,\+{3} (b/)?([^\t]+).*,\2,g;p}'"
+set -x
+
+function extract_patch_files() {
+	sed -nr '/\+{3}/ {s,\+{3} (b/)?([^\t]+).*,\2,g;p}'
+} 
 
 function extract_files_from_docker() {
 	local container_name=$1
@@ -45,20 +49,19 @@ function docker_patch() {
 
 	extract_files_from_docker ${container} ${patch_files} | tar xvf - -C ${patch_dir}
 
-	cat ${patchs} | patch -p0 -d ${patch_dir} && put_files_to_docker ${container} ${prefix} ${patch_dir} 
+	cat ${patchs} | patch -p0 -d ${patch_dir}/${prefix} && put_files_to_docker ${container} ${prefix} ${patch_dir} 
 
 	test -d $patch_dir && rm -rf ${patch_dir} 
 } 
 
 CONTAINER_NAME=$1
 PATCH_PREFIX=$2
-shift
+shift 2
 PATCHS=$*
 
-test -z "$CONTAINER_NAME" -o -z ${PATCH_PREFIX} -o -z ${PATCHS} || {
+test -z "$CONTAINER_NAME" -o -z "${PATCH_PREFIX}" -o -z "${PATCHS}" && {
 	echo "Usage $0 <container_name> <patch_prefix> <patch1> <patch2>" > /dev/stderr
 	exit 2
 } 
 
-docker_patch $1 $2 $*
-
+docker_patch ${CONTAINER_NAME} ${PATCH_PREFIX} $*
