@@ -23,7 +23,7 @@ function put_files_to_docker() {
 
 
 # example docker_patch cobbler / patches/hostname.patch patches/another.patch
-function docker_patch() {
+function do_docker_patch() {
 	local container=$1
 	local prefix=$2
 	shift 2
@@ -54,14 +54,19 @@ function docker_patch() {
 	test -d $patch_dir && rm -rf ${patch_dir} 
 } 
 
-CONTAINER_NAME=$1
-PATCH_PREFIX=$2
-shift 2
-PATCHS=$*
+function docker_patch() {
+    local CONTAINER_NAME=$1
+    local PATCH_PREFIX=$2
+    shift 2
+    local PATCHS=$*
 
-test -z "$CONTAINER_NAME" -o -z "${PATCH_PREFIX}" -o -z "${PATCHS}" && {
-	echo "Usage $0 <container_name> <patch_prefix> <patch1> <patch2>" > /dev/stderr
-	exit 2
+    test -z "$CONTAINER_NAME" -o -z "${PATCH_PREFIX}" -o -z "${PATCHS}" && {
+	    echo "Usage $0 <container_name> <patch_prefix> <patch1> <patch2>" > /dev/stderr
+	    exit 2
+    } 
+
+    do_docker_patch ${CONTAINER_NAME} ${PATCH_PREFIX} $*
 } 
 
-docker_patch ${CONTAINER_NAME} ${PATCH_PREFIX} $*
+
+
