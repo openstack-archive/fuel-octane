@@ -451,12 +451,14 @@ assign_node_to_env(){
     local host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]
         then
-            prepare_fixtures_from_node "$1"
-            delete_node_preserve_id "$1"
+            if [ "$orig_id" != "$2" ]; then
+                prepare_fixtures_from_node "$1"
+                delete_node_preserve_id "$1"
+            else
+                die "${FUNCNAME}: Node $1 already allocated to env $2, exiting"
+            fi
         else
-            local orig_node=$(list_nodes $orig_id $roles)
-            [ -z "$orig_node" ] && die "${FUNCNAME}: No node with roles $roles in env $orig_id, exiting"
-            prepare_fixtures_from_node $orig_node
+            die "${FUNCNAME}: Cannot upgrade unallocated node $1, exiting"
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
@@ -526,7 +528,7 @@ upgrade_node() {
         prepare_seed_deployment_info_nailgun $orig_env $1
     fi
     mv "${FUEL_CACHE}/deployment_$1" "${FUEL_CACHE}/deployment_$1.default"
-    get_deployment_info $1 download
+    get_deployment_info $1 download || mkdir ${FUEL_CACHE}/deployment_$1/
     mv ${FUEL_CACHE}/deployment_$1.default/* ${FUEL_CACHE}/deployment_$1/ &&
         rmdir ${FUEL_CACHE}/deployment_$1.default
     remove_predefined_networks $1
