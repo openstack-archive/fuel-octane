@@ -25,25 +25,7 @@ cleanup ENV_ID                  - delete data about former environment from
 help                            - display this message and exit"
 }
 
-KEY=0 # Start value for GRE port keys in OVS configuration
-NODE_ID=0 # This constant stores ID of a node after it is reassigned to the seed
-          # environment
-export FUEL_CACHE="/tmp/octane/deployment" # Directory to store deployment information
-export PUPPET_PATH="/etc/puppet/2014.2.2-6.1/modules"
-
-export CWD="$(dirname $(dirname `readlink -f "$0"`))"
-export BINPATH="$CWD/bin"
-export LIBPATH="$CWD/lib"
-export HELPER_PATH="$CWD/helpers"
-export PATCH_DIR="$CWD/patches"
-
-. ${LIBPATH}/utils.sh
-. ${LIBPATH}/nailgundb.sh
-. ${LIBPATH}/functions.sh
-. ${LIBPATH}/db.sh
-. ${LIBPATH}/maintenance.sh
-. ${LIBPATH}/patch.sh
-. ${LIBPATH}/docker.sh
+. `dirname $(readlink -f $0)`/env
 
 [ -z "$1" ] && die "$(usage)"
 
