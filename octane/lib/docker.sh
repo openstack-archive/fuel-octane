@@ -79,7 +79,18 @@ function install_octane_nailgun() {
 		dockerctl copy ${filename} nailgun:/root/
 		dockerctl shell nailgun pip install -U /root/${filename}
 	) 
-} 
+}
+
+function install_octane_fuelclient() {
+    local OCTANE_FUELCLIENT="${CWD}/../octane_fuelclient"
+    {
+        cd ${OCTANE_FUELCLIENT}
+        python setup.py bdist_wheel
+        cd dist
+        filename=`find . -type f -iname '*.whl' -print -quit`
+        pip install -U ${filename}
+    }
+}
 
 function patch_all_containers() {
        docker_patch astute /usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute ${CWD}/docker/astute/resources/deploy_actions.rb.patch
