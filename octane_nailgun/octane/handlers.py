@@ -71,7 +71,7 @@ class ClusterCloneHandler(base.BaseHandler):
         nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
                                nets_serializer.serialize_for_cluster(clone))
         self.single.get_network_manager(instance=clone).update(clone, nets)
-        db().flush()
+        db.commit()
         logger.debug("The cluster %s was created as a clone of the cluster %s",
                      clone.id, cluster.id)
         return self.single.to_json(clone)
