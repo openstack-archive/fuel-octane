@@ -4,8 +4,12 @@ clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
     [ -z "$1" ] && die "Cannot clone environment with empty ID, exiting"
-    [ -d "./cluster_$1" ] && rm -r "./cluster_$1"
-    echo $(./clone-env --upgrade "$1")
+    local target_release=$(fuel release | awk -F\| \
+        '$4~/Ubuntu/&&$5~/2014.2.2-6.1/{print($1)}' \
+        | tr -d ' ')
+    seed_id=$(fuel2 env clone $1 "$(uuidgen)" $target_release \
+        | awk -F\| '$2~/ id /{print($3)}' | tr -d ' ')
+    echo $seed_id
 }
 
 get_vip_from_cics() {
@@ -638,11 +642,9 @@ upgrade_env() {
     # TODO(ogelbukh) Modify this function to use 'fuel2 env clone' to create
     # upgrade seed environment.
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
-    [ -z "$2" ] && die "No node IDs for 6.0 controllers provided, exiting"
     local orig_env=$1 && shift
     local seed_env=$(clone_env $orig_env)
-    local args="$orig_env $seed_env"
-    copy_generated_settings $args
+    echo $seed_env
 }
 
 delete_fuel_resources() {
