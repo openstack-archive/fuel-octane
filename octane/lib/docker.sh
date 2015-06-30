@@ -83,13 +83,7 @@ function install_octane_nailgun() {
 
 function install_octane_fuelclient() {
     local OCTANE_FUELCLIENT="${CWD}/../octane_fuelclient"
-    {
-        cd ${OCTANE_FUELCLIENT}
-        python setup.py bdist_wheel
-        cd dist
-        filename=`find . -type f -iname '*.whl' -print -quit`
-        pip install -U ${filename}
-    }
+    pip install -U ${OCTANE_FUELCLIENT}
 }
 
 function patch_all_containers() {
