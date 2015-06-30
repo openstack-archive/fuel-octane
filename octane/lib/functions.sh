@@ -229,18 +229,18 @@ env_action() {
 check_neutron_agents() {
     [ -z "$1" ] && die "${FUNCNAME}: No env ID provided, exiting"
     local l3_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
-        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+        | tr -d ' ' | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
             | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
     local dhcp_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
-        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+        | tr -d ' ' | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
             | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
     for n in $l3_nodes;
     do
-        [ "$n" == "$1" ] && exit 1
+        [ "${n#node-}" == "$1" ] && exit 1
     done
     for n in $dhcp_nodes;
     do
-        [ "$n" == "$1" ] && exit 1
+        [ "${n#node-}" == "$1" ] && exit 1
     done
 }
 
@@ -340,7 +340,7 @@ delete_patch_ports() {
 apply_disk_settings() {
     local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
+    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings disks $disk_file ${FUEL_CACHE}/disks.fixture.yaml by_name \
@@ -352,7 +352,7 @@ apply_disk_settings() {
 apply_network_settings() {
     local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
+    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings interfaces $iface_file \
