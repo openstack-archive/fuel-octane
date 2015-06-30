@@ -78,6 +78,7 @@ function install_octane_nailgun() {
 		filename=`find . -type f -iname '*.whl' -print -quit`
 		dockerctl copy ${filename} nailgun:/root/
 		dockerctl shell nailgun pip install -U /root/${filename}
+        dockerctl shell nailgun pkill -f wsgi
 	) 
 }
 
