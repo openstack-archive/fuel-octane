@@ -119,24 +119,6 @@ reset_gateways_admin() {
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
 }
 
-prepare_cic_disk_fixture() {
-    local node_id
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
-    fuel node --node $node_id --disk --download --dir $FUEL_CACHE
-    [ -f "${FUEL_CACHE}/node_$node_id/disks.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/disks.yaml ${FUEL_CACHE}/disks.fixture.yaml
-}
-
-prepare_cic_network_fixture() {
-    local node_id
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
-    fuel node --node $node_id --network --download --dir $FUEL_CACHE
-    [ -f "${FUEL_CACHE}/node_$node_id/interfaces.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/interfaces.yaml ${FUEL_CACHE}/interfaces.fixture.yaml
-}
-
 list_nodes() {
     local roles_re
     [ -z "$1" ] && die "No env ID provided, exiting"
