@@ -8,19 +8,16 @@
 usage() {
     echo "Usage: $(basename $0) [-d] COMMAND ENV_ID [ENV_ID]
 COMMAND:
-prepare-fuel                    - install packages and patch source code on Fuel
-                                  master node
-clone ENV_ID                    - clone envinroment settings and return seed env ID
-provision ENV_ID                - start provisioning of nodes in seed env
-prepare ORIG_ID SEED_ID         - prepare provisioned seed env CICs for isolated deployment
-deploy ENV_ID                   - start deployment of nodes in seed env with isolation
-upgrade-env ENV_ID              - install upgrade seed env for env ENV_ID and
-                                  copy state from ENV_ID to upgrade seed env
-upgrade-cics ORIG_ID SEED_ID    - isolate orig env CICs and replace them with seed CICs
+prepare                         - prepare the Fuel Master node to upgrade an
+                                  environment
+upgrade-env ENV_ID              - create upgrade seed env for env ENV_ID and
+                                  copy settings from ENV_ID to upgrade seed env
+upgrade-cics ORIG_ID SEED_ID    - transfer state from controllers in original
+                                  env to upgrade seed env and replace CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
 upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
-cleanup ENV_ID                  - delete data about former environment from
+cleanup ENV_ID                  - delete data about original environment from
                                   upgraded OpenStack cloud
 help                            - display this message and exit"
 }
@@ -30,7 +27,7 @@ help                            - display this message and exit"
 [ -z "$1" ] && die "$(usage)"
 
 case $1 in
-    prepare-fuel)
+    prepare)
         [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
         yum -y install postgresql.x86_64 pssh patch percona-xtrabackup.x86_64
         install_octane_fuelclient
@@ -40,35 +37,6 @@ case $1 in
     upgrade-env)
         [ -z "$2" ] && die "$(usage)"
         upgrade_env $2
-        ;;
-    # TODO(ogelbukh) Delete 'provision' subcommand as obsoleted by 'upgrade-env'
-    # subcommand.
-    provision)
-        [ -z "$2" ] && die "$(usage)"
-        discover_nodes_to_cics $2
-        for node in $(list_nodes $2 'controller' 'discover')
-            do
-                node_id=$(echo $node | cut -d '-' -f2)
-                provision_node $node_id
-            done
-        ;;
-    # TODO(ogelbukh) Delete 'prepare' subcommand as obsoleted by 'upgrade-env'
-    # subcommand.
-    prepare)
-        [ -z "$2" ] && die "$(usage)"
-        [ -z "$3" ] && die "$(usage)"
-        prepare_seed_deployment_info_nailgun $2 $3
-        create_ovs_bridges $3
-        ;;
-    # TODO(ogelbukh) Delete 'deploy' subcommand as obsoleted by 'upgrade-env'
-    # subcommand.
-    deploy)
-        [ -z "$2" ] && die "$(usage)"
-        for br_name in br-ex br-mgmt
-            do
-                create_tunnels $2 $br_name '(controller|compute|ceph-osd)'
-            done
-        env_action $2 deploy
         ;;
     upgrade-cics)
         [ -z "$2" ] && die "$(usage)"
@@ -85,18 +53,13 @@ case $1 in
         [ -z "$3" ] && die "$(usage)"
         upgrade_ceph $2 $3
         ;;
-    prepare-osd-upgrade)
-    # TODO(ogelbukh) Delete this subcommand, it is included in 'upgrade-ceph'
-    # command functions.
-        [ -z "$2" ] && die "$(usage)"
-        prepare_ceph_osd_upgrade $2;
-        ;;
     upgrade-node)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
         upgrade_node $2 $3;
         ;;
     upgrade-nova-compute)
+    # TODO(ogelbukh) delete as obsoleted by upgrade-cics command.
         [ -z "$2" ] && die "$(usage)"
         list_nodes $2 compute \
         | xargs -I{} ./upgrade-nova-compute.sh {}
