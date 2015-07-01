@@ -91,17 +91,26 @@ skip_deployment_tasks() {
     python ${HELPER_PATH}/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
 }
 
-prepare_seed_deployment_info_nailgun() {
-    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+prepare_seed_deployment_info() {
     [ -z "$2" ] && "No seed env ID provided, exiting"
-    update_seed_ips "$@"
-    get_deployment_info $2
-    backup_deployment_info $2
-    disable_ping_checker $2
-    remove_physical_transformations $2
-    remove_predefined_networks $2
-    reset_gateways_admin $2
-    skip_deployment_tasks $2
+    backup_deployment_info $1
+    disable_ping_checker $1
+    remove_physical_transformations $1
+    remove_predefined_networks $1
+    reset_gateways_admin $1
+    skip_deployment_tasks $1
+}
+
+merge_deployment_info() {
+# Merges default and current deployment info for the given environment.
+    [ -z "$1" ] && die "no env ID provided, exiting"
+    local infodir="${FUEL_CACHE}/deployment_$1"
+    [ -d "$infodir" ] || die "directory $infodir not found, exiting"
+    mv "${infodir}" "${infodir}.default"
+    get_deployment_info $1 download
+    [ -d "${infodir}" ] || mkdir ${infodir}
+    mv ${infodir}.default/* ${infodir}/ &&
+        rmdir ${infodir}.default
 }
 
 update_seed_ips() {
@@ -514,13 +523,11 @@ upgrade_node() {
     get_deployment_info $2
     if $(echo $roles | grep -q 'controller');
     then
-        prepare_seed_deployment_info_nailgun $orig_env $1
+        update_seed_ips $orig_env $1
     fi
-    mv "${FUEL_CACHE}/deployment_$1" "${FUEL_CACHE}/deployment_$1.default"
-    get_deployment_info $1 download || mkdir ${FUEL_CACHE}/deployment_$1/
-    mv ${FUEL_CACHE}/deployment_$1.default/* ${FUEL_CACHE}/deployment_$1/ &&
-        rmdir ${FUEL_CACHE}/deployment_$1.default
-    remove_predefined_networks $1
+    get_deployment_info $1
+    prepare_seed_deployment_info $1
+    merge_deployment_info $1
     upload_deployment_info $1
     fuel node --env $1 --node $2 --deploy
     wait_for_node $2 "ready"
