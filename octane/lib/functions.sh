@@ -213,7 +213,7 @@ env_action() {
 }
 
 check_neutron_agents() {
-    [ -z "$1" ] && die "${FUNCNAME}: No env ID provided, exiting"
+    [ -z "$1" ] && die "No env ID provided, exiting"
     local l3_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
         | tr -d ' ' | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
             | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
@@ -382,7 +382,7 @@ get_bootable_mac() {
 }
 
 delete_node_preserve_id() {
-    [ -z "$1" ] && die "${FUNCNAME}: No node ID provided, exiting"
+    [ -z "$1" ] && die "No node ID provided, exiting"
     local node_values=$(echo "SELECT uuid, name
                               FROM nodes WHERE id = $1;" | \
                   $PG_CMD | \
@@ -394,7 +394,7 @@ delete_node_preserve_id() {
     while :;
     do
         [ -z "$(fuel node --node $1 | grep ^$1)" ] &&
-        echo "${FUNCNAME}: Node $1 was deleted from DB; deleting from Cobbler" &&
+        echo "Node $1 was deleted from DB; deleting from Cobbler" &&
         break
         sleep 3
     done
@@ -437,10 +437,10 @@ assign_node_to_env(){
                 prepare_fixtures_from_node "$1"
                 delete_node_preserve_id "$1"
             else
-                die "${FUNCNAME}: Node $1 already allocated to env $2, exiting"
+                die "Node $1 already allocated to env $2, exiting"
             fi
         else
-            die "${FUNCNAME}: Cannot upgrade unallocated node $1, exiting"
+            die "Cannot upgrade unallocated node $1, exiting"
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
@@ -531,8 +531,8 @@ upgrade_node() {
 }
 
 upgrade_cics() {
-    [ -z "$1" ] && die "$FUNCNAME: No 5.1.1 env ID provided, exiting"
-    [ -z "$2" ] && die "$FUNCNAME: No 6.0 env ID provided, exiting"
+    [ -z "$1" ] && die "No 5.1.1 env ID provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     check_deployment_status $2
     set_pssh_hosts $1 && {
         enable_apis

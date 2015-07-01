@@ -1,7 +1,11 @@
 #!/bin/bash
 
+yell() {
+    echo "$*" >&2
+}
+
 die() {
-    echo "$1"
+    yell "${FUNCNAME[1]}: ${1}"
     exit ${2:-1}
 }
 
