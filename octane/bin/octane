@@ -28,11 +28,7 @@ help                            - display this message and exit"
 
 case $1 in
     prepare)
-        [ -d $FUEL_CACHE ] || mkdir -p $FUEL_CACHE
-        yum -y install postgresql.x86_64 pssh patch percona-xtrabackup.x86_64
-        install_octane_fuelclient
-        #patch_fuel_components astute puppet pman
-        patch_all_containers
+        prepare_fuel_master
         ;;
     upgrade-env)
         [ -z "$2" ] && die "$(usage)"

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+prepare_fuel_master() {
+    [ -d "${FUEL_CACHE}" ] || mkdir -p ${FUEL_CACHE}
+    yum -y install postgresql.x86_64 pssh patch
+    install_octane_fuelclient
+    patch_all_containers
+}
+
 clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
