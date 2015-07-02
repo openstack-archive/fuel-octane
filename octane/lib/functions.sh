@@ -4,6 +4,7 @@ prepare_fuel_master() {
     [ -d "${FUEL_CACHE}" ] || mkdir -p ${FUEL_CACHE}
     yum -y install postgresql.x86_64 pssh patch
     install_octane_fuelclient
+    patch_fuel_components puppet
     patch_all_containers
 }
 
