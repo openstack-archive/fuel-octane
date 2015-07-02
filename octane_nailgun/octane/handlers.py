@@ -3,6 +3,7 @@ import copy
 from nailgun.api.v1.handlers import base
 from nailgun import consts
 from nailgun.db import db
+from nailgun.db.sqlalchemy import models
 from nailgun.logger import logger
 from nailgun import objects
 from nailgun.objects.serializers import network_configuration
@@ -70,11 +71,37 @@ class ClusterCloneHandler(base.BaseHandler):
         nets_serializer = self.network_serializers[cluster.net_provider]
         nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
                                nets_serializer.serialize_for_cluster(clone))
-        self.single.get_network_manager(instance=clone).update(clone, nets)
-        db.commit()
+        net_manager = self.single.get_network_manager(instance=clone)
+        net_manager.update(clone, nets)
+        self.copy_vips(cluster, clone)
+        net_manager.assign_vips_for_net_groups(clone)
         logger.debug("The cluster %s was created as a clone of the cluster %s",
                      clone.id, cluster.id)
         return self.single.to_json(clone)
+
+    @staticmethod
+    def copy_vips(orig_cluster, new_cluster):
+        orig_vips = {}
+        for ng in orig_cluster.network_groups:
+            vips = db.query(models.IPAddr).filter(
+                models.IPAddr.network == ng.id,
+                models.IPAddr.node.is_(None),
+                models.IPAddr.vip_type.isnot(None),
+            ).all()
+            orig_vips[ng.name] = list(vips)
+
+        new_vips = []
+        for ng in new_cluster.network_groups:
+            orig_ng_vips = orig_vips.get(ng.name)
+            for vip in orig_ng_vips:
+                ip_addr = models.IPAddr(
+                    network=ng.id,
+                    ip_addr=vip.ip_addr,
+                    vip_type=vip.vip_type,
+                )
+                new_vips.append(ip_addr)
+        db.add_all(new_vips)
+        db.commit()
 
     @staticmethod
     def merge_attributes(a, b):
