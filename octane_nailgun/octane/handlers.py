@@ -167,7 +167,7 @@ class ClusterCloneHandler(base.BaseHandler):
                 continue
             source_net = source_networks[net["name"]]
             for key, value in net.iteritems():
-                if (key in ("cluster_id", "id", "meta", "group_id") and
+                if (key not in ("cluster_id", "id", "meta", "group_id") and
                         key in source_net):
                     net[key] = source_net[key]
         settings_params = settings["networking_parameters"]
