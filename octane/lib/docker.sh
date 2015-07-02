@@ -14,11 +14,30 @@ function extract_files_from_docker() {
 	shell_container ${container_name} tar cvf - $*
 } 
 
+function compare_files() {
+	local container=$1
+	local prefix=$2
+	local file="/"$3
+	local local_md5sum=`md5sum ${prefix}/${file} | cut -d" " -f1`
+	local container_md5sum=`dockerctl shell ${container} md5sum ${file} | cut -d" " -f1`
+	test "${local_md5sum}" = "${container_md5sum}"
+	
+	
+} 
+
 function put_files_to_docker() {
 	local container_name=$1
-	local prefix=$2
+	local prefix=/
 	local source=$3
-	(cd ${source} && tar cvf - * ) | shell_container ${container_name} tar -xv --overwrite -f - -C ${prefix} 
+	local f=""
+	(cd ${source} && tar cvf - *) | shell_container ${container_name} tar -xv --overwrite -f - -C ${prefix} 
+	for f in `(cd ${source} && find . -type f)`; do
+		compare_files ${container_name} ${source} ${f} || {
+			echo "${container_name}/${f} invalid md5sum"
+			exit 2
+		} 
+	done
+	
 } 
 
 # example docker_patch cobbler / patches/hostname.patch patches/another.patch
