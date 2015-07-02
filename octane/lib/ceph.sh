@@ -8,51 +8,51 @@ extract_ceph_conf() {
 }
 
 ceph_get_conf_dir() {
-    [ -z "$1" ] && die "${FUNCNAME}: no CIC node ID provided in args, exiting"
+    [ -z "$1" ] && die "no CIC node ID provided in args, exiting"
     local ceph_args=$(ssh $SSH_ARGS root@$(get_host_ip_by_node_id $1) \
         "pgrep 'ceph-mon' | xargs ps -fp | grep -m1 '^root '")
     test -z "$ceph_args" &&
-        die "${FUNCNAME}: no ceph-mon process on node $1"
+        die "no ceph-mon process on node $1"
     local config_path=$(echo $ceph_args | extract_ceph_conf)
     config_path=${config_path:-/etc/ceph/ceph.conf}
 #    test -z "$config_path" &&
-#        die "${FUNCNAME}: Could not extract config_path from $ceph_args on node $1"
+#        die "Could not extract config_path from $ceph_args on node $1"
     # we assume, ceph keyrings must be placed in ceph.conf directory
     export CEPH_CONF_DIR=$(dirname $config_path)
 }
 
 ceph_extract_conf() {
-    [ -z "$1" ] && die "${FUNCNAME}: No 5.1.1 env ID provided as an arg, exiting"
+    [ -z "$1" ] && die "No 5.1.1 env ID provided as an arg, exiting"
     check_env_exists $1 ||
-        die "${FUNCNAME}: Env $1 not found"
+        die "Env $1 not found"
     export CEPH_CONF_SRC_NODE=$(list_nodes $1 "controller" | head -1)
     test -z "$CEPH_CONF_SRC_NODE" &&
-        die "${FUNCNAME}: No controllers found in Env $1"
+        die "No controllers found in Env $1"
     local controller1_hostname=$(ssh $SSH_ARGS \
         root@$(get_host_ip_by_node_id ${CEPH_CONF_SRC_NODE#node-}) hostname \
         | cut -d. -f1)
     local controller1_db_path=${MON_STATE_PATH}/ceph-${controller1_hostname}
     ssh $SSH_ARGS $(get_host_ip_by_node_id ${CEPH_CONF_SRC_NODE#node-}) \
         test -d $controller1_db_path  ||
-        die "${FUNCNAME}: $controller1_db_path not found at $CEPH_CONF_SRC_NODE"
+        die "$controller1_db_path not found at $CEPH_CONF_SRC_NODE"
     ceph_get_conf_dir ${CEPH_CONF_SRC_NODE#node-}
     test -z "$CEPH_CONF_DIR" &&
-        die "${FUNCNAME}: Cannot find Ceph conf dir on $CEPH_CONF_SRC_NODE, exiting"
+        die "Cannot find Ceph conf dir on $CEPH_CONF_SRC_NODE, exiting"
     ssh $SSH_ARGS root@$(get_host_ip_by_node_id ${CEPH_CONF_SRC_NODE#node-}) \
         "tar cvf - $CEPH_CONF_DIR $controller1_db_path | gzip" \
         | cat - > ${FUEL_CACHE}/env-$1-ceph.conf.tar.gz
 }
 
 ceph_set_new_mons() {
-    [ -z "$1" ] && die "${FUNCNAME}: No 5.1.1 env ID provided as an arg, exiting"
-    [ -z "$2" ] && die "${FUNCNAME}: no 6.0 env ID provided as an arg, exiting"
+    [ -z "$1" ] && die "No 5.1.1 env ID provided as an arg, exiting"
+    [ -z "$2" ] && die "no 6.0 env ID provided as an arg, exiting"
     for env in "$@"; do
         check_env_exists $env ||
-            die "${FUNCNAME}: Env $env not found"
+            die "Env $env not found"
     done
     local controller1=$(list_nodes $1 "controller" | head -1)
     test -z "$controller1" &&
-        die "${FUNCNAME}: No controllers found in Env $1"
+        die "No controllers found in Env $1"
     local controllers=$(list_nodes $2 "controller")
     test -z "$controllers" &&
         die "No controllers found in Env $1"
@@ -77,7 +77,7 @@ ceph_set_new_mons() {
 }
 
 ceph_push_update_conf() {
-    [ -z "$1" ] && die "${FUNCNAME}: no 6.0 env ID provided as an arg, exiting"
+    [ -z "$1" ] && die "no 6.0 env ID provided as an arg, exiting"
     local dst_base_dir=""
     local ctrl_host_db_path
     local controller1_db_path=${MON_STATE_PATH}/ceph-${CEPH_CONF_SRC_NODE}

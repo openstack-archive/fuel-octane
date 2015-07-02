@@ -1,11 +1,22 @@
 #!/bin/bash
 
+prepare_fuel_master() {
+    [ -d "${FUEL_CACHE}" ] || mkdir -p ${FUEL_CACHE}
+    yum -y install postgresql.x86_64 pssh patch
+    install_octane_fuelclient
+    patch_all_containers
+}
+
 clone_env() {
 # Clone settings of the environment specified by ID in the first argument using
 # helper Python script `clone-env'
     [ -z "$1" ] && die "Cannot clone environment with empty ID, exiting"
-    [ -d "./cluster_$1" ] && rm -r "./cluster_$1"
-    echo $(./clone-env --upgrade "$1")
+    local target_release=$(fuel release | awk -F\| \
+        '$4~/Ubuntu/&&$5~/2014.2.2-6.1/{print($1)}' \
+        | tr -d ' ')
+    seed_id=$(fuel2 env clone $1 "$(uuidgen)" $target_release \
+        | awk -F\| '$2~/ id /{print($3)}' | tr -d ' ')
+    echo $seed_id
 }
 
 get_vip_from_cics() {
@@ -80,17 +91,26 @@ skip_deployment_tasks() {
     python ${HELPER_PATH}/tasks.py ${FUEL_CACHE}/cluster_$1 skip_tasks
 }
 
-prepare_seed_deployment_info_nailgun() {
-    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
+prepare_seed_deployment_info() {
     [ -z "$2" ] && "No seed env ID provided, exiting"
-    update_seed_ips "$@"
-    get_deployment_info $2
-    backup_deployment_info $2
-    disable_ping_checker $2
-    remove_physical_transformations $2
-    remove_predefined_networks $2
-    reset_gateways_admin $2
-    skip_deployment_tasks $2
+    backup_deployment_info $1
+    disable_ping_checker $1
+    remove_physical_transformations $1
+    remove_predefined_networks $1
+    reset_gateways_admin $1
+    skip_deployment_tasks $1
+}
+
+merge_deployment_info() {
+# Merges default and current deployment info for the given environment.
+    [ -z "$1" ] && die "no env ID provided, exiting"
+    local infodir="${FUEL_CACHE}/deployment_$1"
+    [ -d "$infodir" ] || die "directory $infodir not found, exiting"
+    mv "${infodir}" "${infodir}.default"
+    get_deployment_info $1 download
+    [ -d "${infodir}" ] || mkdir ${infodir}
+    mv ${infodir}.default/* ${infodir}/ &&
+        rmdir ${infodir}.default
 }
 
 update_seed_ips() {
@@ -113,24 +133,6 @@ reset_gateways_admin() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ${HELPER_PATH}/transformations.py \
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
-}
-
-prepare_cic_disk_fixture() {
-    local node_id
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
-    fuel node --node $node_id --disk --download --dir $FUEL_CACHE
-    [ -f "${FUEL_CACHE}/node_$node_id/disks.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/disks.yaml ${FUEL_CACHE}/disks.fixture.yaml
-}
-
-prepare_cic_network_fixture() {
-    local node_id
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    node_id=$(fuel node --env $1 | awk '/'${2:-controller}'/{print($1)}' | head -1)
-    fuel node --node $node_id --network --download --dir $FUEL_CACHE
-    [ -f "${FUEL_CACHE}/node_$node_id/interfaces.yaml" ] &&
-    cp ${FUEL_CACHE}/node_$node_id/interfaces.yaml ${FUEL_CACHE}/interfaces.fixture.yaml
 }
 
 list_nodes() {
@@ -227,20 +229,20 @@ env_action() {
 }
 
 check_neutron_agents() {
-    [ -z "$1" ] && die "${FUNCNAME}: No env ID provided, exiting"
+    [ -z "$1" ] && die "No env ID provided, exiting"
     local l3_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
-        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+        | tr -d ' ' | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
             | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
     local dhcp_nodes=$(fuel2 node list -c roles -c ip | awk -F\| '$2~/controller/{print($3)}' \
-        | tr -d \ \ | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
+        | tr -d ' ' | xargs -I{} ssh root@{} "ps -ef | grep -v \$\$ \
             | grep -q neutron-l3-agent && echo \$(hostname)" 2>/dev/null)
     for n in $l3_nodes;
     do
-        [ "$n" == "$1" ] && exit 1
+        [ "${n#node-}" == "$1" ] && exit 1
     done
     for n in $dhcp_nodes;
     do
-        [ "$n" == "$1" ] && exit 1
+        [ "${n#node-}" == "$1" ] && exit 1
     done
 }
 
@@ -340,7 +342,7 @@ delete_patch_ports() {
 apply_disk_settings() {
     local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -f "disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
+    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
     disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings disks $disk_file ${FUEL_CACHE}/disks.fixture.yaml by_name \
@@ -352,7 +354,7 @@ apply_disk_settings() {
 apply_network_settings() {
     local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -f "interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
+    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
     iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings interfaces $iface_file \
@@ -396,7 +398,7 @@ get_bootable_mac() {
 }
 
 delete_node_preserve_id() {
-    [ -z "$1" ] && die "${FUNCNAME}: No node ID provided, exiting"
+    [ -z "$1" ] && die "No node ID provided, exiting"
     local node_values=$(echo "SELECT uuid, name
                               FROM nodes WHERE id = $1;" | \
                   $PG_CMD | \
@@ -408,7 +410,7 @@ delete_node_preserve_id() {
     while :;
     do
         [ -z "$(fuel node --node $1 | grep ^$1)" ] &&
-        echo "${FUNCNAME}: Node $1 was deleted from DB; deleting from Cobbler" &&
+        echo "Node $1 was deleted from DB; deleting from Cobbler" &&
         break
         sleep 3
     done
@@ -447,12 +449,14 @@ assign_node_to_env(){
     local host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]
         then
-            prepare_fixtures_from_node "$1"
-            delete_node_preserve_id "$1"
+            if [ "$orig_id" != "$2" ]; then
+                prepare_fixtures_from_node "$1"
+                delete_node_preserve_id "$1"
+            else
+                die "Node $1 already allocated to env $2, exiting"
+            fi
         else
-            local orig_node=$(list_nodes $orig_id $roles)
-            [ -z "$orig_node" ] && die "${FUNCNAME}: No node with roles $roles in env $orig_id, exiting"
-            prepare_fixtures_from_node $orig_node
+            die "Cannot upgrade unallocated node $1, exiting"
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
     apply_network_settings $1
@@ -519,13 +523,11 @@ upgrade_node() {
     get_deployment_info $2
     if $(echo $roles | grep -q 'controller');
     then
-        prepare_seed_deployment_info_nailgun $orig_env $1
+        update_seed_ips $orig_env $1
     fi
-    mv "${FUEL_CACHE}/deployment_$1" "${FUEL_CACHE}/deployment_$1.default"
-    get_deployment_info $1 download
-    mv ${FUEL_CACHE}/deployment_$1.default/* ${FUEL_CACHE}/deployment_$1/ &&
-        rmdir ${FUEL_CACHE}/deployment_$1.default
-    remove_predefined_networks $1
+    get_deployment_info $1
+    prepare_seed_deployment_info $1
+    merge_deployment_info $1
     upload_deployment_info $1
     fuel node --env $1 --node $2 --deploy
     wait_for_node $2 "ready"
@@ -543,8 +545,8 @@ upgrade_node() {
 }
 
 upgrade_cics() {
-    [ -z "$1" ] && die "$FUNCNAME: No 5.1.1 env ID provided, exiting"
-    [ -z "$2" ] && die "$FUNCNAME: No 6.0 env ID provided, exiting"
+    [ -z "$1" ] && die "No 5.1.1 env ID provided, exiting"
+    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
     check_deployment_status $2
     set_pssh_hosts $1 && {
         enable_apis
@@ -638,11 +640,9 @@ upgrade_env() {
     # TODO(ogelbukh) Modify this function to use 'fuel2 env clone' to create
     # upgrade seed environment.
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
-    [ -z "$2" ] && die "No node IDs for 6.0 controllers provided, exiting"
     local orig_env=$1 && shift
     local seed_env=$(clone_env $orig_env)
-    local args="$orig_env $seed_env"
-    copy_generated_settings $args
+    echo $seed_env
 }
 
 delete_fuel_resources() {
