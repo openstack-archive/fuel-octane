@@ -57,6 +57,10 @@ wait_for_node() {
             status=$(fuel node --node $1 \
                 | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
             [ "$status" == "$2" ] && break
+            # Die in case of unexpected fall into 'error' state. Expected error
+            # will be caught in previous statement.
+            [ "$status" == "error" ] &&
+                die "Node $1 failed transition to $2 state, exiting"
             counter=$(expr $counter + 1)
             sleep 300
         done
