@@ -71,8 +71,7 @@ class ClusterCloneHandler(base.BaseHandler):
         nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
                                nets_serializer.serialize_for_cluster(clone))
         self.single.get_network_manager(instance=clone).update(clone, nets)
-        clone.is_customized = True
-        db().flush()
+        db.commit()
         logger.debug("The cluster %s was created as a clone of the cluster %s",
                      clone.id, cluster.id)
         return self.single.to_json(clone)
@@ -168,7 +167,7 @@ class ClusterCloneHandler(base.BaseHandler):
                 continue
             source_net = source_networks[net["name"]]
             for key, value in net.iteritems():
-                if (key in ("cluster_id", "id", "meta", "group_id") and
+                if (key not in ("cluster_id", "id", "meta", "group_id") and
                         key in source_net):
                     net[key] = source_net[key]
         settings_params = settings["networking_parameters"]
