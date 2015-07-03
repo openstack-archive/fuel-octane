@@ -650,9 +650,9 @@ delete_fuel_resources() {
     local node=$(list_nodes $1 controller | head -1)
     local host=$(get_host_ip_by_node_id ${node#node-})
     scp $HELPER_PATH/delete_fuel_resources.py \
-        root@$host
+        root@$host:/tmp
     ssh root@$host \
-        "python delete_fuel_resources.py \$(cat openrc | grep OS_USER \\
+        "python /tmp/delete_fuel_resources.py \$(cat openrc | grep OS_USER \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_PASS \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
