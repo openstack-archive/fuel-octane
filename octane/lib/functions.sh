@@ -46,6 +46,11 @@ get_deployment_info() {
     [ -d "${FUEL_CACHE}/deployment_$1" ] && rm -r ${FUEL_CACHE}/deployment_$1
     cmd=${2:-default}
     fuel deployment --env $1 --$cmd --dir ${FUEL_CACHE}
+}
+
+get_deployment_tasks() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] || mkdir -p "$FUEL_CACHE"
     fuel env --env $1 --deployment-task --download --dir ${FUEL_CACHE}
 }
 
@@ -55,6 +60,11 @@ upload_deployment_info() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
     fuel deployment --env $1 --upload --dir $FUEL_CACHE &&
+}
+
+upload_deployment_tasks() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] &&
     fuel env --env $1 --deployment-task --upload --dir $FUEL_CACHE
 }
 
@@ -93,7 +103,7 @@ skip_deployment_tasks() {
 }
 
 prepare_seed_deployment_info() {
-    [ -z "$2" ] && "No seed env ID provided, exiting"
+    [ -z "$1" ] && "No seed env ID provided, exiting"
     backup_deployment_info $1
     disable_ping_checker $1
     remove_physical_transformations $1
@@ -527,9 +537,11 @@ upgrade_node() {
         update_seed_ips $orig_env $1
     fi
     get_deployment_info $1
+    get_deployment_tasks $1
     prepare_seed_deployment_info $1
     merge_deployment_info $1
     upload_deployment_info $1
+    upload_deployment_tasks $1
     fuel node --env $1 --node $2 --deploy
     wait_for_node $2 "ready"
     for role in $roles
