@@ -556,7 +556,6 @@ upgrade_cics() {
         start_corosync_services
         start_upstart_services
     } && unset PSSH_RUN
-    prepare_ceph_admin_upgrade $2
     for br_name in br-ex br-mgmt br-prv;
     do
         delete_patch_ports $1 $br_name
@@ -565,6 +564,7 @@ upgrade_cics() {
     do
         create_patch_ports $2 $br_name
     done
+    neutron_update_admin_tenant_id $2
     list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
 }
 
@@ -580,7 +580,7 @@ provision_node() {
 upgrade_db() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    local method=${3:mysqldump}
+    local method=${3:-mysqldump}
     delete_fuel_resources $2
     sleep 7
     set_pssh_hosts $1 && {
@@ -592,7 +592,6 @@ upgrade_db() {
     } && unset PSSH_RUN
     ${method}_from_env $1
     ${method}_restore_to_env $2
-    update_admin_tenant_id $2
 }
 
 upgrade_ceph() {
@@ -605,10 +604,10 @@ upgrade_ceph() {
     prepare_ceph_osd_upgrade $2
 }
 
-update_admin_tenant_id() {
+neutron_update_admin_tenant_id() {
     local cic_node
     local tenant_id
-    [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
+    [ -z "$1" ] && die "No env ID provided, exiting"
     cic_node=$(list_nodes $1 controller | head -1)
     tenant_id=$(ssh root@$cic_node ". openrc; keystone tenant-get services" \
         | awk -F\| '$2 ~ /id/{print $3}' | tr -d \ )
@@ -638,8 +637,8 @@ cleanup_neutron_services() {
 }
 
 upgrade_env() {
-    # TODO(ogelbukh) Modify this function to use 'fuel2 env clone' to create
-    # upgrade seed environment.
+# Use clone call in Fuel API to create shadow environment of the new version to
+# facilitate deployment of upgraded controllers
     [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
     local orig_env=$1 && shift
     local seed_env=$(clone_env $orig_env)
@@ -649,12 +648,13 @@ upgrade_env() {
 delete_fuel_resources() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     local node=$(list_nodes $1 controller | head -1)
+    local host=$(get_host_ip_by_node_id ${node#node-})
     scp $HELPER_PATH/delete_fuel_resources.py \
-        root@$(get_host_ip_by_node_id ${node#node-})
-    ssh root@$(get_host_ip_by_node_id ${node#node-}) \
+        root@$host
+    ssh root@$host \
         "python delete_fuel_resources.py \$(cat openrc | grep OS_USER \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_PASS \\
-        | tr\"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
+        | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
             keystone endpoint-list | egrep ':5000' | awk '{print \$6}')"
 }
