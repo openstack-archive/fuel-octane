@@ -59,7 +59,7 @@ upload_deployment_info() {
 # environment ENV.
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
-    fuel deployment --env $1 --upload --dir $FUEL_CACHE &&
+    fuel deployment --env $1 --upload --dir $FUEL_CACHE
 }
 
 upload_deployment_tasks() {
