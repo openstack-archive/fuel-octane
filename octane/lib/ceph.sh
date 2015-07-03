@@ -121,7 +121,9 @@ ceph_push_update_conf() {
         ceph-mon -i ${ctrl_host} --inject-monmap /tmp/monmap 
       " 
     done
-    pssh -i -H "${MON_INITIAL_MEMBERS# }" "/etc/init.d/ceph restart mon"
+    for ctrl_host in "${MON_INITIAL_MEMBERS# }"; do
+        ssh root@$ctrl_host "restart ceph-mon id=$ctrl_host"
+    done
 }
 
 import_bootstrap_osd() {
