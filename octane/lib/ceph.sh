@@ -182,7 +182,7 @@ check_ceph_cluster() {
 
 patch_osd_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    cd ${PATCH_DIR}/patches/pman/
+    cd ${PATCH_DIR}/pman/
     ./update_node.sh node-$1
     cd $OLDPWD
 }

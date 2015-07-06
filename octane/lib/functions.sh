@@ -473,7 +473,7 @@ assign_node_to_env(){
     apply_network_settings $1
     apply_disk_settings $1
     echo "$roles" | grep -q ceph-osd &&
-        ${BINDIR}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
+        ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
             > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
     upload_node_settings $1
