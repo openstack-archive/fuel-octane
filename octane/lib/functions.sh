@@ -532,7 +532,7 @@ upgrade_node() {
     fuel node --env $1 --node $2 --provision
     wait_for_node $2 "provisioned"
     get_deployment_info $2
-    if $(echo $roles | grep -q 'controller');
+    if [[ $roles =~ controller ]];
     then
         update_seed_ips $orig_env $1
     fi
