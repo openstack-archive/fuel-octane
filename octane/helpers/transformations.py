@@ -118,7 +118,7 @@ def lnx_add_port(actions, bridge):
                 action.get("bridge") == bridge):
             port = action.get("name")
     if port:
-        return ["brctl add-port {0} {1}".format(bridge, port)]
+        return ["brctl addif {0} {1}".format(bridge, port)]
 
 
 def ovs_add_patch_ports(actions, bridge):

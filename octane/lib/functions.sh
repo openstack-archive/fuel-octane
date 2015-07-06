@@ -323,7 +323,7 @@ create_patch_ports() {
     local nodes=$(list_nodes $1 'controller')
     for node in $nodes
         do
-            local filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_${node_#node-}.yaml \
+            local filename=$(ls ${FUEL_CACHE}/deployment_$1.orig/*_${node#node-}.yaml \
                 | head -1)
             ${BINPATH}/create-controller-ports $filename $br_name \
                 | xargs -I {} ssh root@$node {}
