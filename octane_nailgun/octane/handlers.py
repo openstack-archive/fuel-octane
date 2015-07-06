@@ -38,7 +38,7 @@ class ClusterCloneHandler(base.BaseHandler):
                * 404 (cluster or release did not found in db)
         """
         data = self.checked_data()
-        cluster = self.get_object_or_404(self.single, cluster_id)
+        orig_cluster = self.get_object_or_404(self.single, cluster_id)
         release = self.get_object_or_404(objects.Release, data["release_id"])
         # TODO(ikharin): Here should be more elegant code that verifies
         #                release versions of the original cluster and
@@ -51,33 +51,35 @@ class ClusterCloneHandler(base.BaseHandler):
         #                6.1 release.
         data = {
             "name": data["name"],
-            "mode": cluster.mode,
+            "mode": orig_cluster.mode,
             "status": consts.CLUSTER_STATUSES.new,
-            "net_provider": cluster.net_provider,
+            "net_provider": orig_cluster.net_provider,
             "grouping": consts.CLUSTER_GROUPING.roles,
             "release_id": release.id,
         }
-        if cluster.net_provider == consts.CLUSTER_NET_PROVIDERS.neutron:
+        if orig_cluster.net_provider == consts.CLUSTER_NET_PROVIDERS.neutron:
             data["net_segment_type"] = \
-                cluster.network_config.segmentation_type
-            data["net_l23_provider"] = cluster.network_config.net_l23_provider
-        clone = self.single.create(data)
-        clone.attributes.generated = utils.dict_merge(
-            clone.attributes.generated,
-            cluster.attributes.generated)
-        clone.attributes.editable = self.merge_attributes(
-            cluster.attributes.editable,
-            clone.attributes.editable)
-        nets_serializer = self.network_serializers[cluster.net_provider]
-        nets = self.merge_nets(nets_serializer.serialize_for_cluster(cluster),
-                               nets_serializer.serialize_for_cluster(clone))
-        net_manager = self.single.get_network_manager(instance=clone)
-        net_manager.update(clone, nets)
-        self.copy_vips(cluster, clone)
-        net_manager.assign_vips_for_net_groups(clone)
+                orig_cluster.network_config.segmentation_type
+            data["net_l23_provider"] = \
+                orig_cluster.network_config.net_l23_provider
+        new_cluster = self.single.create(data)
+        new_cluster.attributes.generated = utils.dict_merge(
+            new_cluster.attributes.generated,
+            orig_cluster.attributes.generated)
+        new_cluster.attributes.editable = self.merge_attributes(
+            orig_cluster.attributes.editable,
+            new_cluster.attributes.editable)
+        nets_serializer = self.network_serializers[orig_cluster.net_provider]
+        nets = self.merge_nets(
+            nets_serializer.serialize_for_cluster(orig_cluster),
+            nets_serializer.serialize_for_cluster(new_cluster))
+        net_manager = self.single.get_network_manager(instance=new_cluster)
+        net_manager.update(new_cluster, nets)
+        self.copy_vips(orig_cluster, new_cluster)
+        net_manager.assign_vips_for_net_groups(new_cluster)
         logger.debug("The cluster %s was created as a clone of the cluster %s",
-                     clone.id, cluster.id)
-        return self.single.to_json(clone)
+                     new_cluster.id, orig_cluster.id)
+        return self.single.to_json(new_cluster)
 
     @staticmethod
     def copy_vips(orig_cluster, new_cluster):
