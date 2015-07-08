@@ -104,9 +104,7 @@ skip_deployment_tasks() {
 
 prepare_seed_deployment_info() {
     [ -z "$1" ] && "No seed env ID provided, exiting"
-    backup_deployment_info $1
     disable_ping_checker $1
-    remove_physical_transformations $1
     remove_predefined_networks $1
     reset_gateways_admin $1
     skip_deployment_tasks $1
@@ -131,7 +129,6 @@ update_seed_ips() {
     for br_name in br-ex br-mgmt
         do
             update_ips_nailgun_db $1 $2 $br_name
-            update_vip_nailgun_db $1 $2 $br_name
         done
 }
 
@@ -531,12 +528,14 @@ upgrade_node() {
     assign_node_to_env $2 $1
     fuel node --env $1 --node $2 --provision
     wait_for_node $2 "provisioned"
-    get_deployment_info $2
+    get_deployment_info $1
     if [[ $roles =~ controller ]];
     then
         update_seed_ips $orig_env $1
+        get_deployment_info $1
+        backup_deployment_info $1
+        remove_physical_transformations $1
     fi
-    get_deployment_info $1
     get_deployment_tasks $1
     prepare_seed_deployment_info $1
     merge_deployment_info $1
