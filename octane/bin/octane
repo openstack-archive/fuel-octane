@@ -52,7 +52,7 @@ case $1 in
     upgrade-node)
         [ -z "$2" ] && die "$(usage)"
         [ -z "$3" ] && die "$(usage)"
-        upgrade_node $2 $3;
+        upgrade_node $2 $3 $4;
         ;;
     upgrade-nova-compute)
     # TODO(ogelbukh) delete as obsoleted by upgrade-cics command.

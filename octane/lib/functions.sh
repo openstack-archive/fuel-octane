@@ -535,6 +535,9 @@ upgrade_node() {
         update_seed_ips $orig_env $1
         get_deployment_info $1
         backup_deployment_info $1
+    fi
+    if [ $3 == "isolated" ];
+    then
         remove_physical_transformations $1
     fi
     get_deployment_tasks $1
