@@ -29,7 +29,7 @@ Run Octane script to install necessary packages on Fuel master and patch
 manifests and source code of components.
 
 ```
-[root@fuel bin]# ./octane prepare-fuel
+[root@fuel bin]# ./octane prepare
 ```
 
 ## Install 6.1 Seed environment
