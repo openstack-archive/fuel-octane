@@ -16,7 +16,10 @@ upgrade-cics ORIG_ID SEED_ID    - transfer state from controllers in original
                                   env to upgrade seed env and replace CICs
 upgrade-db ORIG_ID SEED_ID      - migrate and upgrade state databases data
 upgrade-ceph ORIG_ID SEED_ID    - update Ceph cluster configuration
-upgrade-node ENV_ID NODE_ID     - move a node NODE_ID to env ENV_ID and upgrade the node
+upgrade-node ENV_ID
+    NODE_ID [isolated]          - move a node NODE_ID to env ENV_ID and upgrade the node
+                                  'isolated' flag means that node won't be connected
+                                  to Management and Public networks
 cleanup ENV_ID                  - delete data about original environment from
                                   upgraded OpenStack cloud
 help                            - display this message and exit"

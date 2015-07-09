@@ -65,7 +65,7 @@ Remember the ID of the node and run the following command replacing <NODE_ID>
 with that number:
 
 ```
-[root@fuel bin]# ./octane upgrade-node <SEED_ID> <NODE_ID>
+[root@fuel bin]# ./octane upgrade-node <SEED_ID> <NODE_ID> isolated
 ```
 
 This command will move the node to Seed environment and install it as a primary
