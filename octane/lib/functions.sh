@@ -349,10 +349,9 @@ delete_patch_ports() {
 }
 
 apply_disk_settings() {
-    local disk_file
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] || die "No disks fixture provided, exiting"
-    disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
+    local disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings disks $disk_file ${FUEL_CACHE}/disks.fixture.yaml by_name \
         > /tmp/disks_$1.yaml
@@ -361,10 +360,9 @@ apply_disk_settings() {
 }
 
 apply_network_settings() {
-    local iface_file
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] || die "No interfaces fixture provided, exiting"
-    iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
+    local iface_file="${FUEL_CACHE}/node_$1/interfaces.yaml"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     ${BINPATH}/copy-node-settings interfaces $iface_file \
         ${FUEL_CACHE}/interfaces.fixture.yaml > /tmp/interfaces_$1.yaml
@@ -374,7 +372,7 @@ apply_network_settings() {
 
 get_node_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -d "$FUEL_NODE" ] || mkdir -p "$FUEL_CACHE"
+    [ -d "$FUEL_CACHE" ] || mkdir -p "$FUEL_CACHE"
     fuel node --node $1 --network --download --dir $FUEL_CACHE
     fuel node --node $1 --disk --download --dir $FUEL_CACHE
 }
@@ -468,13 +466,21 @@ assign_node_to_env(){
             die "Cannot upgrade unallocated node $1, exiting"
         fi
     fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
-    apply_network_settings $1
-    apply_disk_settings $1
+}
+
+provision_node() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    local env_id=$(get_env_by_node $1)
+    local roles=$(fuel node --node $1 \
+        | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
+    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
+    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
     echo "$roles" | grep -q ceph-osd &&
         ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
             > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
     upload_node_settings $1
+    fuel node --env $env_id --node $1 --provision
 }
 
 prepare_compute_upgrade() {
@@ -527,7 +533,7 @@ upgrade_node() {
              esac
          done
     assign_node_to_env $2 $1
-    fuel node --env $1 --node $2 --provision
+    provision_node $2
     wait_for_node $2 "provisioned"
     get_deployment_info $1
     if [[ $roles =~ controller ]];
@@ -581,15 +587,6 @@ upgrade_cics() {
     done
     neutron_update_admin_tenant_id $2
     list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
-}
-
-provision_node() {
-    local env_id
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    env_id=$(get_env_by_node $1)
-    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
-    fuel node --env $env_id --node $1 --provision
 }
 
 upgrade_db() {
