@@ -206,3 +206,70 @@ class ClusterCloneHandler(base.BaseHandler):
                 continue
             settings_params[key] = source_params[key]
         return settings
+
+
+class UpgradeNodeAssignmentHandler(base.BaseHandler):
+    validator = validators.UpgradeNodeAssignmentValidator
+
+    @staticmethod
+    def get_netgroups_map(orig_cluster, new_cluster):
+        netgroups = dict((ng.name, ng.id)
+                         for ng in orig_cluster.network_groups)
+        mapping = dict((netgroups[ng.name], ng.id)
+                       for ng in new_cluster.network_groups)
+#                   if ng.name in netgroups)
+        # NOTE(akscram): In each cluster can be its own fuelweb_admin
+        #                group.
+        net_manager = objects.Cluster.get_network_manager(instance=new_cluster)
+        admin_ng = net_manager.get_admin_network_group()
+        mapping[admin_ng.id] = admin_ng.id
+        return mapping
+
+    @base.content
+    def POST(self, cluster_id):
+        cluster = self.get_object_or_404(objects.Cluster, cluster_id)
+        data = self.checked_data()
+        node_id = data["node_id"]
+        node = self.get_object_or_404(objects.Node, node_id)
+
+        netgroups_mapping = self.get_netgroups_map(node.cluster, cluster)
+        orig_roles = node.roles
+
+        objects.Node.update_roles(node, [])  # flush
+        objects.Node.update_pending_roles(node, [])  # flush
+
+        node.replaced_deployment_info = []
+        node.deployment_info = []
+        node.kernel_params = None
+        node.cluster_id = cluster.id
+        node.group_id = None
+
+        objects.Node.assign_group(node)  # flush
+        objects.Node.update_pending_roles(node, orig_roles)  # flush
+
+        for ip in node.ip_addrs:
+            ip.network = netgroups_mapping[ip.network]
+
+        nic_assignments = db.query(models.NetworkNICAssignment).filter(
+            models.NodeNICInterface.node_id == node.id,
+        ).all()
+        for nic_assignment in nic_assignments:
+            nic_assignment.network_id = \
+                netgroups_mapping[nic_assignment.network_id]
+
+        bond_assignments = db.query(models.NetworkBondAssignment).filter(
+            models.NodeBondInterface.node_id == node.id,
+
+        ).all()
+        for bond_assignment in bond_assignments:
+            bond_assignment.network_id = \
+                netgroups_mapping[bond_assignment.network_id]
+
+        objects.Node.add_pending_change(node,
+                                        consts.CLUSTER_CHANGES.interfaces)
+
+        node.status = consts.NODE_STATUSES.ready
+        node.pending_addition = True
+        node.pending_deletion = False
+
+        db.commit()
