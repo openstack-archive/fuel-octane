@@ -74,3 +74,13 @@ check_env_nodes() {
             ping -c1 $node || die "Node $node inaccessible, exiting"
         done
 }
+
+list_nodes() {
+    local roles_re
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    roles_re=${2:-controller}
+    echo "$(fuel node --env $1 \
+        | awk -F\| '($7 ~ /'$roles_re'/ || $8 ~ /'$roles_re'/) && $2 ~ /'$3'/ {
+                gsub(" ","",$1); print "node-" $1
+            }')"
+}

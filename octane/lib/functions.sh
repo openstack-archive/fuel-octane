@@ -21,23 +21,6 @@ clone_env() {
     echo $seed_id
 }
 
-get_vip_from_cics() {
-# Return VIP of the given type (management or external) assgined to the original
-# environment.
-    local br_name
-    [ -z "$1" ] && die "No environment ID and bridge name provided, exiting"
-    [ -z "$2" ] && die "No bridge name provided, exiting"
-    br_name=$(echo $2 \
-        | awk '/br-ex/ {print "hapr-p"} \
-        /br-mgmt/ {print "hapr-m"}')
-    [ -n "$1" ] && echo $(fuel nodes --env-id $1 \
-            | grep controller \
-            | cut -d\| -f5  \
-            | xargs -I{} ssh root@{} ip netns exec haproxy ip addr\
-            | awk '/'$br_name':/ {getline; getline; print $2}' \
-            | sed -re 's%([^/]+)/[0-9]{2}%\1%')
-}
-
 get_deployment_info() {
     local cmd
 # Download deployment config from Fuel master for environment ENV to subdir in
@@ -132,16 +115,6 @@ reset_gateways_admin() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ${HELPER_PATH}/transformations.py \
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
-}
-
-list_nodes() {
-    local roles_re
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    roles_re=${2:-controller}
-    echo "$(fuel node --env $1 \
-        | awk -F\| '($7 ~ /'$roles_re'/ || $8 ~ /'$roles_re'/) && $2 ~ /'$3'/ {
-                gsub(" ","",$1); print "node-" $1
-            }')"
 }
 
 create_ovs_bridges() {
