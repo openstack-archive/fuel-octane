@@ -123,16 +123,6 @@ merge_deployment_info() {
         rmdir ${infodir}.default
 }
 
-update_seed_ips() {
-# TODO(ogelbukh) Implement this as a call to /cluster/*/clone_ips endpoint in Fuel API
-    [ -z "$1" ] && "No orig and seed env ID provided, exiting"
-    [ -z "$2" ] && "No seed env ID provided, exiting"
-    for br_name in br-ex br-mgmt
-        do
-            update_ips_nailgun_db $1 $2 $br_name
-        done
-}
-
 remove_predefined_networks() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python $HELPER_PATH/transformations.py ${FUEL_CACHE}/deployment_$1 remove_predefined_nets
@@ -440,7 +430,7 @@ delete_node_preserve_id() {
         done
 }
 
-assign_node_to_env(){
+assign_node_to_env() {
     local node_mac
     local id
     local node_values
@@ -536,12 +526,6 @@ upgrade_node() {
     provision_node $2
     wait_for_node $2 "provisioned"
     get_deployment_info $1
-    if [[ $roles =~ controller ]];
-    then
-        update_seed_ips $orig_env $1
-        get_deployment_info $1
-        backup_deployment_info $1
-    fi
     if [ $3 == "isolated" ];
     then
         remove_physical_transformations $1
