@@ -404,10 +404,6 @@ delete_node_preserve_id() {
 }
 
 assign_node_to_env() {
-    local node_mac
-    local id
-    local node_values
-    local node_online
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     local roles=$(fuel node --node $1 \
@@ -417,18 +413,15 @@ assign_node_to_env() {
     # environment by mistake.
     local orig_id=$(get_env_by_node $1)
     local host=$(get_host_ip_by_node_id $1)
-    if [ "$orig_id" != "None" ]
-        then
-            if [ "$orig_id" != "$2" ]; then
-                prepare_fixtures_from_node "$1"
-                delete_node_preserve_id "$1"
-            else
-                die "Node $1 already allocated to env $2, exiting"
-            fi
+    if [ "$orig_id" != "None" ]; then
+        if [ "$orig_id" != "$2" ]; then
+            prepare_fixtures_from_node "$1"
+            delete_node_preserve_id "$1"
         else
-            die "Cannot upgrade unallocated node $1, exiting"
+            die "Node $1 already allocated to env $2, exiting"
         fi
-    fuel node --node $1 --env $2 set --role ${roles:-compute,ceph-osd}
+    fi
+    fuel node --node $1 --env $2 set --role ${roles:-controller}
 }
 
 provision_node() {
