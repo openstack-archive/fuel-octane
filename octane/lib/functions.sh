@@ -494,6 +494,7 @@ upgrade_node() {
     get_deployment_info $1
     if [ $3 == "isolated" ];
     then
+        backup_deployment_info $1
         remove_physical_transformations $1
     fi
     get_deployment_tasks $1
