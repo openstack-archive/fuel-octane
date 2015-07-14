@@ -113,21 +113,6 @@ themselves, and connect 6.1 CICs to those networks:
 [root@fuel bin]# ./octane upgrade-cics ORIG_ID SEED_ID
 ```
 
-### Upgrade `nova-compute` to 6.1
-
-Run following script to upgrade `nova-compute` and dependency packages on all
-hypervisor hosts to version 6.1 without upgrading data plane (i.e. hypervisor,
-operating system and kernel). This script installs 6.1 source for APT package
-manager, updates versions of `nova-compute` package and its dependencies
-(including Neutron agent), updates configuration file for Neutron agent to work
-with new version of packages and restarts updated services.
-
-Note that this script will affect all compute nodes in the environment.
-
-```
-[root@fuel bin]# ./octane upgrade-nova-compute ORIG_ID
-```
-
 ## Upgrade nodes
 
 ### Upgrade controllers
