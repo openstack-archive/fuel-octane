@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = octane
+omit = octane/openstack/*
+
+[report]
+ignore-errors = True
