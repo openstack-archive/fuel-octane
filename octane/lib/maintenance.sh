@@ -21,7 +21,7 @@ enable_apis() {
 
 stop_corosync_services() {
     $PSSH_RUN "crm status | awk '/clone/ {print \$4}' \
-        | tr -d [] | grep -vE '(mysql|haproxy)' \
+        | tr -d [] | grep -vE '(mysql|haproxy|p_dns|p_ntp)' \
         | xargs -tI{} sh -c 'crm resource stop {}'"
 }
 
