@@ -431,11 +431,12 @@ provision_node() {
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
     [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
-    echo "$roles" | grep -q ceph-osd &&
+    [[ "$roles" =~ ceph-osd ]] && {
         ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
             > /tmp/disks-ceph-partition.yaml
-    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
-    upload_node_settings $1
+        mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
+        upload_node_settings $1
+    }
     fuel node --env $env_id --node $1 --provision
 }
 
