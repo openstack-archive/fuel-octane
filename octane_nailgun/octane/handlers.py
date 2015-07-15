@@ -281,7 +281,7 @@ class UpgradeNodeAssignmentHandler(base.BaseHandler):
         objects.Node.add_pending_change(node,
                                         consts.CLUSTER_CHANGES.interfaces)
 
-        node.status = consts.NODE_STATUSES.ready
+        node.status = consts.NODE_STATUSES.discover
         node.pending_addition = True
         node.pending_deletion = False
 
