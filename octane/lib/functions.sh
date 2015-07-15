@@ -18,6 +18,12 @@ clone_env() {
         | tr -d ' ')
     seed_id=$(fuel2 env clone $1 "$(uuidgen)" $target_release \
         | awk -F\| '$2~/ id /{print($3)}' | tr -d ' ')
+    sleep 3
+    [ -n "$seed_id" ] && {
+        get_cluster_settings $seed_id
+        set_cobbler_provision $seed_id
+        upload_cluster_settings $seed_id
+    } > /dev/null
     echo $seed_id
 }
 
@@ -115,6 +121,26 @@ reset_gateways_admin() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ${HELPER_PATH}/transformations.py \
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
+}
+
+get_cluster_settings() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] || mkdir -p ${FUEL_CACHE}
+    fuel settings --env $1 --download --dir ${FUEL_CACHE}
+}
+
+upload_cluster_settings() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    fuel settings --env $1 --upload --dir ${FUEL_CACHE}
+}
+
+set_cobbler_provision() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -f "${FUEL_CACHE}/settings_$1.yaml" ] && {
+        python ${BINPATH}/set-cobbler-provision ${FUEL_CACHE}/settings_$1.yaml \
+        > ${FUEL_CACHE}/settings_$1.cobbler
+        mv ${FUEL_CACHE}/settings_$1.cobbler ${FUEL_CACHE}/settings_$1.yaml
+    }
 }
 
 create_ovs_bridges() {
