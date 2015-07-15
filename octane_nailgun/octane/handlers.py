@@ -4,6 +4,7 @@ from nailgun.api.v1.handlers import base
 from nailgun import consts
 from nailgun.db import db
 from nailgun.db.sqlalchemy import models
+from nailgun.errors import errors
 from nailgun.logger import logger
 from nailgun import objects
 from nailgun.objects.serializers import network_configuration
@@ -211,19 +212,29 @@ class ClusterCloneHandler(base.BaseHandler):
 class UpgradeNodeAssignmentHandler(base.BaseHandler):
     validator = validators.UpgradeNodeAssignmentValidator
 
-    @staticmethod
-    def get_netgroups_map(orig_cluster, new_cluster):
+    @classmethod
+    def get_netgroups_map(cls, orig_cluster, new_cluster):
         netgroups = dict((ng.name, ng.id)
                          for ng in orig_cluster.network_groups)
         mapping = dict((netgroups[ng.name], ng.id)
                        for ng in new_cluster.network_groups)
-#                   if ng.name in netgroups)
-        # NOTE(akscram): In each cluster can be its own fuelweb_admin
-        #                group.
-        net_manager = objects.Cluster.get_network_manager(instance=new_cluster)
-        admin_ng = net_manager.get_admin_network_group()
-        mapping[admin_ng.id] = admin_ng.id
+        orig_admin_ng = cls.get_admin_network_group(orig_cluster)
+        admin_ng = cls.get_admin_network_group(new_cluster)
+        mapping[orig_admin_ng.id] = admin_ng.id
         return mapping
+
+    @staticmethod
+    def get_admin_network_group(cluster):
+        query = db().query(models.NetworkGroup).filter_by(
+            name="fuelweb_admin",
+        )
+        default_group = objects.Cluster.get_default_group(cluster)
+        admin_ng = query.filter_by(group_id=default_group.id).first()
+        if admin_ng is None:
+            admin_ng = query.filter_by(group_id=None).first()
+            if admin_ng is None:
+                raise errors.AdminNetworkNotFound()
+        return admin_ng
 
     @base.content
     def POST(self, cluster_id):
@@ -233,6 +244,7 @@ class UpgradeNodeAssignmentHandler(base.BaseHandler):
         node = self.get_object_or_404(objects.Node, node_id)
 
         netgroups_mapping = self.get_netgroups_map(node.cluster, cluster)
+
         orig_roles = node.roles
 
         objects.Node.update_roles(node, [])  # flush
