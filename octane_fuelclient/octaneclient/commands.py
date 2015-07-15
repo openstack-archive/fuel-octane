@@ -33,17 +33,17 @@ class EnvClone(env_commands.EnvMixIn, base.BaseShowCommand):
         return (self.columns, new_env)
 
 
-class EnvAssignNode(env_commands.EnvMixIn, base.BaseCommand):
-    """Add a node to an upgrade environment."""
+class EnvRelocateNode(env_commands.EnvMixIn, base.BaseCommand):
+    """Update node assignment."""
 
     def get_parser(self, prog_name):
-        parser = super(EnvAssignNode, self).get_parser(prog_name)
-        parser.add_argument('id',
-                            type=str,
-                            help='ID of the environment.')
+        parser = super(EnvRelocateNode, self).get_parser(prog_name)
         parser.add_argument('node_id',
                             type=int,
                             help='ID of the node to upgrade.')
+        parser.add_argument('env_id',
+                            type=str,
+                            help='ID of the environment.')
         return parser
 
     def take_action(self, parsed_args):
@@ -51,14 +51,14 @@ class EnvAssignNode(env_commands.EnvMixIn, base.BaseCommand):
         #                fuelclient.objects.Environment the connection
         #                will be called directly.
         self.client._entity_wrapper.connection.post_request(
-            "clusters/{0}/upgrade/assign".format(parsed_args.id),
+            "clusters/{0}/upgrade/assign".format(parsed_args.env_id),
             {
                 'node_id': parsed_args.node_id,
             }
         )
-        msg = ('Node {node_id} successfully reassigned to the environment'
+        msg = ('Node {node_id} successfully relocated to the environment'
                ' {env_id}.\n'.format(
                    node_id=parsed_args.node_id,
-                   env_id=parsed_args.id,
+                   env_id=parsed_args.env_id,
                ))
         self.app.stdout.write(msg)
