@@ -262,17 +262,18 @@ class UpgradeNodeAssignmentHandler(base.BaseHandler):
         for ip in node.ip_addrs:
             ip.network = netgroups_mapping[ip.network]
 
-        nic_assignments = db.query(models.NetworkNICAssignment).filter(
-            models.NodeNICInterface.node_id == node.id,
-        ).all()
+        nic_assignments = db.query(models.NetworkNICAssignment).\
+            join(models.NodeNICInterface).\
+            filter(models.NodeNICInterface.node_id == node.id).\
+            all()
         for nic_assignment in nic_assignments:
             nic_assignment.network_id = \
                 netgroups_mapping[nic_assignment.network_id]
 
-        bond_assignments = db.query(models.NetworkBondAssignment).filter(
-            models.NodeBondInterface.node_id == node.id,
-
-        ).all()
+        bond_assignments = db.query(models.NetworkBondAssignment).\
+            join(models.NodeBondInterface).\
+            filter(models.NodeBondInterface.node_id == node.id).\
+            all()
         for bond_assignment in bond_assignments:
             bond_assignment.network_id = \
                 netgroups_mapping[bond_assignment.network_id]
