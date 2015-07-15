@@ -21,7 +21,7 @@ class CloneEnvTests(testtools.TestCase, testtools.testcase.WithAttributes,
         ksclient = keystoneclient(auth_url=keystone_url, username="admin",
                                   password="admin", tenant_name="admin")
         cls.headers = {"X-Auth-Token": ksclient.auth_token,
-                        "Content-Type": "application/json"}
+                       "Content-Type": "application/json"}
         cls.clusters = []
 
     def tearDown(self):
@@ -71,9 +71,9 @@ class CloneEnvTests(testtools.TestCase, testtools.testcase.WithAttributes,
             return release_details["id"]
         else:
             return next(release["id"]
-            for release in releases
-            if release["id"] > cluster["release_id"] and
-                            release["operating_system"] == release_details[
+                        for release in releases
+                        if release["id"] > cluster["release_id"] and
+                        release["operating_system"] == release_details[
                         "operating_system"] and release["is_deployable"])
 
     def test_env_clone_to_deployable_release_id(self):
@@ -103,15 +103,15 @@ class CloneEnvTests(testtools.TestCase, testtools.testcase.WithAttributes,
                 continue
             for key1, value1 in cloned_cluster["editable"][key].items():
                 if "value" in value1:
-                    if "value" in cluster["editable"].get(key, {}).get(key1,
-                            {}):
+                    if "value" in cluster["editable"].get(key, {}).get(
+                            key1, {}):
                         self.assertEqual(
                             cluster["editable"][key][key1]["value"],
                             value1["value"])
 
                 elif "values" in value1:
-                    if "values" in cluster["editable"].get(key, {}).get(key1,
-                            {}):
+                    if "values" in cluster["editable"].get(key, {}).get(
+                            key1, {}):
                         self.assertEqual(
                             cluster["editable"][key][key1]["values"],
                             value1["values"])
