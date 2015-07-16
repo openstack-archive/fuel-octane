@@ -31,3 +31,34 @@ class EnvClone(env_commands.EnvMixIn, base.BaseShowCommand):
         )
         new_env = data_utils.get_display_data_single(self.columns, new_env)
         return (self.columns, new_env)
+
+
+class EnvRelocateNode(env_commands.EnvMixIn, base.BaseCommand):
+    """Update node assignment."""
+
+    def get_parser(self, prog_name):
+        parser = super(EnvRelocateNode, self).get_parser(prog_name)
+        parser.add_argument('node_id',
+                            type=int,
+                            help='ID of the node to upgrade.')
+        parser.add_argument('env_id',
+                            type=str,
+                            help='ID of the environment.')
+        return parser
+
+    def take_action(self, parsed_args):
+        # TODO(akscram): While the clone procedure is not a part of
+        #                fuelclient.objects.Environment the connection
+        #                will be called directly.
+        self.client._entity_wrapper.connection.post_request(
+            "clusters/{0}/upgrade/assign".format(parsed_args.env_id),
+            {
+                'node_id': parsed_args.node_id,
+            }
+        )
+        msg = ('Node {node_id} successfully relocated to the environment'
+               ' {env_id}.\n'.format(
+                   node_id=parsed_args.node_id,
+                   env_id=parsed_args.env_id,
+               ))
+        self.app.stdout.write(msg)

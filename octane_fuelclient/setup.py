@@ -9,6 +9,7 @@ setup(name="octane_fuelclient",
       entry_points={
           'fuelclient': [
               'env_clone = octaneclient.commands:EnvClone',
+              'env_move_node = octaneclient.commands:EnvRelocateNode',
               ]
           }
       )
