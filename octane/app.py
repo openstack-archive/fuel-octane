@@ -16,6 +16,7 @@ from cliff import app
 from cliff import commandmanager as cm
 
 import octane
+from octane import log
 
 
 class OctaneApp(app.App):
@@ -25,6 +26,14 @@ class OctaneApp(app.App):
             version=octane.__version__,
             command_manager=cm.CommandManager('octane'),
         )
+
+    def configure_logging(self):
+        super(OctaneApp, self).configure_logging()
+        if self.options.verbose_level > 1:
+            log.set_console_formatter(
+                fmt='%(asctime)s %(levelname)-8s %(name)-15s %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+            )
 
 
 def main(argv=None):
