@@ -29,7 +29,7 @@ PATCHES = [
     ("nailgun", "/", "../octane_nailgun/tools/urls.py.patch"),
 ]
 # TODO: use pkg_resources for patches
-CWD = os.path.join(os.path.dirname(__file__), "..", "..")  # FIXME
+CWD = os.path.join(os.path.dirname(__file__), "..")  # FIXME
 
 
 def patch_puppet():
@@ -53,7 +53,7 @@ def install_octane_nailgun():
 
 
 def prepare():
-    subprocess.call(["yum", "-y"] + PACKAGES)
+    subprocess.call(["yum", "-y", "install"] + PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
     octane_fuelclient = os.path.join(CWD, '..', 'octane_fuelclient')
     subprocess.call(["pip", "install", "-U", octane_fuelclient])

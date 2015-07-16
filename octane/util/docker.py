@@ -67,13 +67,15 @@ def put_files_to_docker(container, prefix, source_dir):
         ["tar", "-xv", "--overwrite", "-f", "-", "-C", prefix],
         stdin=subprocess.PIPE,
     )
-    tar = tarfile.TarFile(fileobj=proc.stdin, mode='w')
+    tar = tarfile.open(fileobj=proc.stdin, mode='w|')
     with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
         for local_filename, docker_filename in find_files(source_dir):
             tar.add(local_filename, docker_filename)
+    proc.stdin.close()
     proc.wait()
     assert proc.returncode == 0  # Don't inline with proc.wait()!
     for local_filename, docker_filename in find_files(source_dir):
+        docker_filename = os.path.join(prefix, docker_filename)
         if not compare_files(container, local_filename, docker_filename):
             raise Exception(
                 "Contents of {0} differ from contents of {1} in container {2}"
@@ -89,7 +91,7 @@ def get_files_from_docker(container, files, destination_dir):
         ["tar", "-cvf", "-"] + files,
         stdout=subprocess.PIPE,
     )
-    tar = tarfile.TarFile(fileobj=proc.stdout, mode='r')
+    tar = tarfile.open(fileobj=proc.stdout, mode='r|')
     with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
         tar.extractall(destination_dir)
     proc.wait()
@@ -105,6 +107,9 @@ def get_files_from_patch(patch):
                 fname = line[4:].strip()
                 if fname.startswith('b/'):
                     fname = fname[2:]
+                tab_pos = fname.find('\t')
+                if tab_pos > 0:
+                    fname = fname[:tab_pos]
                 result.append(fname)
     return result
 
@@ -122,8 +127,9 @@ def apply_patches(container, prefix, *patches):
                     files.append(fname[len(prefix) + 1:])
                 else:
                     files.append(fname)
-        prefix = os.path.dirname(files[0])  # FIXME: WTF?!
+        files = [os.path.join(prefix, f) for f in files]
         get_files_from_docker(container, files, tempdir)
+        prefix = os.path.dirname(files[0])  # FIXME: WTF?!
         # TODO: watch after stdout/stderr here
         proc = subprocess.popen(
             ["patch", "-N", "-p0", "-d", tempdir + "/" + prefix],
@@ -134,14 +140,17 @@ def apply_patches(container, prefix, *patches):
                 for line in p:
                     if line.startswith('+++'):  # FIXME: PLEASE!
                         try:
-                            slash_pos = line.index('/', start=4)
-                            space_pos = line.index(' ', start=slash_pos)
+                            slash_pos = line.rindex('/', 4)
+                            space_pos = line.index(' ', slash_pos)
                         except ValueError:
                             pass
                         else:
                             line = ('+++ ' + line[slash_pos + 1:space_pos] +
                                     '\n')
                     proc.stdin.write(line)
+        proc.stdin.close()
+        proc.wait()
+        assert proc.returncode == 0
         put_files_to_docker(container, "/", tempdir)
     finally:
-        os.removedirs(tempdir)
+        shutil.rmtree(tempdir)
