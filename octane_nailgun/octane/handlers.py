@@ -8,6 +8,9 @@ from nailgun.errors import errors
 from nailgun.logger import logger
 from nailgun import objects
 from nailgun.objects.serializers import network_configuration
+from nailgun import rpc
+from nailgun.settings import settings
+from nailgun.task import task as tasks
 from nailgun import utils
 
 from octane import validators
@@ -188,11 +191,11 @@ class ClusterCloneHandler(base.BaseHandler):
 
         :param a: a dict with network settings
         :param b: a dict with network settings
-        :returns settings: a dict with merged network settings
+        :returns: a dict with merged network settings
         """
-        settings = copy.deepcopy(b)
+        new_settings = copy.deepcopy(b)
         source_networks = dict((n["name"], n) for n in a["networks"])
-        for net in settings["networks"]:
+        for net in new_settings["networks"]:
             if net["name"] not in source_networks:
                 continue
             source_net = source_networks[net["name"]]
@@ -200,13 +203,13 @@ class ClusterCloneHandler(base.BaseHandler):
                 if (key not in ("cluster_id", "id", "meta", "group_id") and
                         key in source_net):
                     net[key] = source_net[key]
-        settings_params = settings["networking_parameters"]
+        networking_params = new_settings["networking_parameters"]
         source_params = a["networking_parameters"]
-        for key, value in settings_params.iteritems():
+        for key, value in networking_params.iteritems():
             if key not in source_params:
                 continue
-            settings_params[key] = source_params[key]
-        return settings
+            networking_params[key] = source_params[key]
+        return new_settings
 
 
 class UpgradeNodeAssignmentHandler(base.BaseHandler):
@@ -285,4 +288,29 @@ class UpgradeNodeAssignmentHandler(base.BaseHandler):
         node.pending_addition = True
         node.pending_deletion = False
 
+        task = models.Task(name=consts.TASK_NAMES.node_deletion,
+                           cluster=cluster)
+
         db.commit()
+
+        self.delete_node_by_astute(task, node)
+
+    @staticmethod
+    def delete_node_by_astute(task, node):
+        node_to_delete = tasks.DeletionTask.format_node_to_delete(node)
+        msg_delete = tasks.make_astute_message(
+            task,
+            'remove_nodes',
+            'remove_nodes_resp',
+            {
+                'nodes': [node_to_delete],
+                'check_ceph': False,
+                'engine': {
+                    'url': settings.COBBLER_URL,
+                    'username': settings.COBBLER_USER,
+                    'password': settings.COBBLER_PASSWORD,
+                    'master_ip': settings.MASTER_IP,
+                }
+            }
+        )
+        rpc.cast('naily', msg_delete)
