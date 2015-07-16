@@ -6,6 +6,7 @@ prepare_fuel_master() {
     pip install wheel
     install_octane_fuelclient
     patch_fuel_components puppet
+    install_octane_nailgun
     patch_all_containers
 }
 
