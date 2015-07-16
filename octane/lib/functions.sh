@@ -411,7 +411,6 @@ delete_node_preserve_id() {
         break
         sleep 3
     done
-    dockerctl shell cobbler cobbler system remove --name node-$1
     echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
                              timestamp, online, pending_addition,
                              pending_deletion)
