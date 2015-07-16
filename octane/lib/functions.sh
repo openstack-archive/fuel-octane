@@ -454,7 +454,7 @@ provision_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     local env_id=$(get_env_by_node $1)
     local roles=$(fuel node --node $1 \
-        | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
+        | awk -F\| '/^'$1'/ {gsub(" ", "", $8);print $8}')
     [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
     [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
     [[ "$roles" =~ ceph-osd ]] && {
