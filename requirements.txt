@@ -1,2 +1,5 @@
-pbr>=1.3
-cliff
+# NOTE: These requirements *must* match those of libs installed on Fuel master
+# To verify them, use command like "rpm -q --whatrequires python-cliff" and
+# examine requirements of software listed there.
+pbr>=0.6,!=0.7,<1.0
+cliff>=1.7.0,<=1.9.0
