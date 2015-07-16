@@ -18,9 +18,9 @@ ssh $host \
     "git reset --hard $branch;" \
     "git clean -x -d -f;" \
     "python setup.py bdist_wheel;" \
-    "dockerctl copy ${location}/dist/${wheel} nailgun:/root/${wheel};" \
-    "docker exec ${container} pip install -U ${wheel};" \
     "id=\"\$(docker inspect -f='{{if .ID}}{{.ID}}{{else}}{{.Id}}{{end}}' ${container})\";" \
     "rootfs=\"/var/lib/docker/devicemapper/mnt/\${id}/rootfs\";" \
+    "cp \"${location}/dist/${wheel}\" \"\${rootfs}/root/${wheel}\";" \
+    "docker exec ${container} pip install -U ${wheel};" \
     "patch -bV numbered -Np1 -d \"\${rootfs}\" < ${location}/tools/urls.py.patch ||:;" \
     "dockerctl shell ${container} pkill -f wsgi;"
