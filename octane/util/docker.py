@@ -12,21 +12,25 @@
 
 import contextlib
 import os.path
-import subprocess
+import shutil
 import tarfile
 import tempfile
+
+from octane.util import subprocess
 
 
 def in_container(container, args, **popen_kwargs):
     """Create Popen object to run command defined by list args in container"""
-    return subprocess.Popen(["dockerctl", "shell", container] + args,
+    return subprocess.popen(["dockerctl", "shell", container] + args,
+                            name=args[0],
                             **popen_kwargs)
 
 
 def run_in_container(container, args, **popen_kwargs):
     """Run command defined by list args in container and fail if it fails"""
-    subprocess.check_call(["dockerctl", "shell", container] + args,
-                          **popen_kwargs)
+    subprocess.call(["dockerctl", "shell", container] + args,
+                    name=args[0],
+                    **popen_kwargs)
 
 
 def compare_files(container, local_filename, docker_filename):
@@ -121,7 +125,7 @@ def apply_patches(container, prefix, *patches):
         prefix = os.path.dirname(files[0])  # FIXME: WTF?!
         get_files_from_docker(container, files, tempdir)
         # TODO: watch after stdout/stderr here
-        proc = subprocess.Popen(
+        proc = subprocess.popen(
             ["patch", "-N", "-p0", "-d", tempdir + "/" + prefix],
             stdin=subprocess.PIPE,
         )

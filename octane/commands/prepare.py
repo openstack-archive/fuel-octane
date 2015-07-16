@@ -12,11 +12,11 @@
 
 import glob
 import os.path
-import subprocess
 
 from cliff import command as cmd
 
 from octane.util import docker
+from octane.util import subprocess
 
 PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
 PATCHES = [
@@ -39,26 +39,24 @@ def patch_puppet():
         if not os.path.isdir(d):
             continue
         with open(os.path.join(puppet_patch_dir, d, "patch")) as patch:
-            subprocess.check_call(["patch", "-Np3"], stdin=patch,
-                                  cwd=puppet_dir)
+            subprocess.call(["patch", "-Np3"], stdin=patch, cwd=puppet_dir)
 
 
 def install_octane_nailgun():
     octane_nailgun = os.path.join(CWD, '..', 'octane_nailgun')
-    subprocess.check_call(["python", "setup.py", "bdist_wheel"],
-                          cwd=octane_nailgun)
+    subprocess.call(["python", "setup.py", "bdist_wheel"], cwd=octane_nailgun)
     wheel = glob.glob(os.path.join(octane_nailgun, 'dist', '*.whl'))[0]
-    subprocess.check_call(["dockerctl", "copy", wheel, "nailgun:/root/"])
+    subprocess.call(["dockerctl", "copy", wheel, "nailgun:/root/"])
     docker.run_in_container("nailgun", ["pip", "install", "-U",
                                         "/root/" + os.path.basename(wheel)])
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
 
 
 def prepare():
-    subprocess.check_call(["yum", "-y"] + PACKAGES)
-    subprocess.check_call(["pip", "install", "wheel"])
+    subprocess.call(["yum", "-y"] + PACKAGES)
+    subprocess.call(["pip", "install", "wheel"])
     octane_fuelclient = os.path.join(CWD, '..', 'octane_fuelclient')
-    subprocess.check_call(["pip", "install", "-U", octane_fuelclient])
+    subprocess.call(["pip", "install", "-U", octane_fuelclient])
     patch_puppet()
     # From patch_all_containers
     for container, prefix, patch in PATCHES:
