@@ -30,6 +30,7 @@ PATCHES = [
 ]
 # TODO: use pkg_resources for patches
 CWD = os.path.join(os.path.dirname(__file__), "..")  # FIXME
+FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
 
 
 def patch_puppet():
@@ -60,6 +61,8 @@ def apply_patches(revert=False):
 
 
 def prepare():
+    if not os.path.isdir(FUEL_CACHE):
+        os.makedirs(FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
     octane_fuelclient = os.path.join(CWD, '..', 'octane_fuelclient')
