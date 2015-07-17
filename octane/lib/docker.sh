@@ -106,6 +106,11 @@ function install_octane_fuelclient() {
     pip install -U ${OCTANE_FUELCLIENT}
 }
 
+function uninstall_octane_fuelclient() {
+    local OCTANE_FUELCLIENT="${CWD}/../octane_fuelclient"
+    pip uninstall ${OCTANE_FUELCLIENT}
+}
+
 function patch_all_containers() {
        docker_patch astute /usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute ${CWD}/docker/astute/resources/deploy_actions.rb.patch
        shell_container astute supervisorctl restart astute
@@ -113,9 +118,3 @@ function patch_all_containers() {
        docker_patch nailgun /usr/lib/python2.6/site-packages/nailgun/volumes ${CWD}/docker/nailgun/resources/manager.py.patch
        docker_patch nailgun / ${CWD}/../octane_nailgun/tools/urls.py.patch
 } 
-
-function revert_all_patches() { 
-        PATCH_EXTRA_ARGS="-R" patch_all_containers
-} 
-
-
