@@ -34,7 +34,6 @@ def _close_stdin(chain_fn=None):
 class _LogPipe(threading.Thread):
     def __init__(self, level):
         super(_LogPipe, self).__init__()
-        self.daemon = True
         self.log_name = None
         self.log_level = level
         self.read_fd, self.write_fd = os.pipe()
