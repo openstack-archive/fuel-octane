@@ -53,6 +53,13 @@ upload_deployment_info() {
     fuel deployment --env $1 --upload --dir $FUEL_CACHE
 }
 
+backup_deployment_tasks() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] &&
+    [ -d "${FUEL_CACHE}/cluster_$1" ] &&
+    cp -pR "${FUEL_CACHE}/cluster_$1" "${FUEL_CACHE}/cluster_$1.orig"
+}
+
 upload_deployment_tasks() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
