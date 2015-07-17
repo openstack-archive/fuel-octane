@@ -1,5 +1,17 @@
 #!/bin/bash
 
+pycmd() {
+    if ! python -c 'import octane'; then
+        pip install -e "$CWD"
+    fi
+    local opts=""
+    if shopt -qo xtrace; then
+        opts="--debug -v"
+    fi
+    octane $opts "$@"
+    exit $?
+}
+
 prepare_fuel_master() {
     [ -d "${FUEL_CACHE}" ] || mkdir -p ${FUEL_CACHE}
     yum -y install postgresql.x86_64 pssh patch python-pip 
