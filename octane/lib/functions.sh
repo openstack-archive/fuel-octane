@@ -497,6 +497,7 @@ upgrade_node() {
                     ;;
             esac
         done
+    restore_default_gateway $2
 }
 
 upgrade_cics() {
