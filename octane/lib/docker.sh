@@ -69,7 +69,7 @@ function do_docker_patch() {
 
 	extract_files_from_docker ${container} ${patch_files} | tar xvf - -C ${patch_dir}
 
-	sed -r '/\+{3}/ {s,(.*/)([^ ]+) .*,+++ \2,g}' ${patchs} | patch -N -p0 -d ${patch_dir}/${prefix} && put_files_to_docker ${container} ${prefix} ${patch_dir} 
+	sed -r '/\+{3}/ {s,(.*/)([^ ]+) .*,+++ \2,g}' ${patchs} | patch ${PATCH_EXTRA_ARGS} -N -p0 -d ${patch_dir}/${prefix} && put_files_to_docker ${container} ${prefix} ${patch_dir} 
 
 	test -d $patch_dir && rm -rf ${patch_dir} 
 } 
@@ -112,8 +112,10 @@ function patch_all_containers() {
        docker_patch cobbler /usr/lib/python2.6/site-packages/cobbler ${CWD}/docker/cobbler/resources/pmanager.py.patch
        docker_patch nailgun /usr/lib/python2.6/site-packages/nailgun/volumes ${CWD}/docker/nailgun/resources/manager.py.patch
        docker_patch nailgun / ${CWD}/../octane_nailgun/tools/urls.py.patch
-       install_octane_nailgun
 } 
 
+function revert_all_patches() { 
+        PATCH_EXTRA_ARGS="-R" patch_all_containers
+} 
 
 

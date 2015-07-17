@@ -115,7 +115,7 @@ index 814ccab..f8cd740 100644
      unless    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|${name}\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
    }
  
-+  if ! empty($prepare_device) {
++  if size($prepare_device) == 2 {
 +      Exec["ceph-deploy osd prepare ${deploy_device_name}"] ->
 +      Exec["ceph-deploy osd activate ${deploy_device_name}"]
 +  }

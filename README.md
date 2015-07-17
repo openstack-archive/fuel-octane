@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-In this manual we assume that user manages their environment with Fuel 5.1 and
+In this manual we assume that user manages their environment with Fuel 5.1.1 and
 has successfully upgraded it to Fuel 6.1 with the standard procedure.
 
 Environments with the following configuration can be upgraded with Octane:
@@ -124,6 +124,7 @@ you are going to upgrade this time:
 
 ```
 [root@fuel bin]# ./octane upgrade-node <SEED_ID> <NODE_ID>
+```
 
 ### Upgrade compute nodes
 

@@ -7,6 +7,7 @@ prepare_fuel_master() {
     install_octane_fuelclient
     patch_fuel_components puppet
     patch_all_containers
+    install_octane_nailgun
 }
 
 clone_env() {
@@ -18,6 +19,12 @@ clone_env() {
         | tr -d ' ')
     seed_id=$(fuel2 env clone $1 "$(uuidgen)" $target_release \
         | awk -F\| '$2~/ id /{print($3)}' | tr -d ' ')
+    sleep 3
+    [ -n "$seed_id" ] && {
+        get_cluster_settings $seed_id
+        set_cobbler_provision $seed_id
+        upload_cluster_settings $seed_id
+    } > /dev/null
     echo $seed_id
 }
 
@@ -115,6 +122,26 @@ reset_gateways_admin() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ${HELPER_PATH}/transformations.py \
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
+}
+
+get_cluster_settings() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] || mkdir -p ${FUEL_CACHE}
+    fuel settings --env $1 --download --dir ${FUEL_CACHE}
+}
+
+upload_cluster_settings() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    fuel settings --env $1 --upload --dir ${FUEL_CACHE}
+}
+
+set_cobbler_provision() {
+    [ -z "$1" ] && die "No env ID provided, exiting"
+    [ -f "${FUEL_CACHE}/settings_$1.yaml" ] && {
+        python ${BINPATH}/set-cobbler-provision ${FUEL_CACHE}/settings_$1.yaml \
+        > ${FUEL_CACHE}/settings_$1.cobbler
+        mv ${FUEL_CACHE}/settings_$1.cobbler ${FUEL_CACHE}/settings_$1.yaml
+    }
 }
 
 create_ovs_bridges() {
@@ -384,7 +411,6 @@ delete_node_preserve_id() {
         break
         sleep 3
     done
-    dockerctl shell cobbler cobbler system remove --name node-$1
     echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
                              timestamp, online, pending_addition,
                              pending_deletion)
@@ -428,14 +454,15 @@ provision_node() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     local env_id=$(get_env_by_node $1)
     local roles=$(fuel node --node $1 \
-        | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
+        | awk -F\| '/^'$1'/ {gsub(" ", "", $8);print $8}')
     [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
     [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
-    echo "$roles" | grep -q ceph-osd &&
+    [[ "$roles" =~ ceph-osd ]] && {
         ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
             > /tmp/disks-ceph-partition.yaml
-    mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
-    upload_node_settings $1
+        mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
+        upload_node_settings $1
+    }
     fuel node --env $env_id --node $1 --provision
 }
 
