@@ -12,6 +12,7 @@
 
 from __future__ import absolute_import
 
+import contextlib
 import functools
 import io
 import logging
@@ -54,6 +55,7 @@ class _LogPipe(threading.Thread):
             LOG.exception("Exception in _LogPipe thread %s", self.name)
 
 
+@contextlib.contextmanager
 def popen(cmd, **kwargs):
     name = kwargs.pop('name', cmd[0])
     kwargs.setdefault('close_fds', True)
@@ -77,11 +79,28 @@ def popen(cmd, **kwargs):
         pipe_stdout.start(name + " stdout")
     if pipe_stderr:
         pipe_stderr.start(name + " stderr")
-    return proc
+    try:
+        yield proc
+    except Exception:
+        rv = proc.poll()
+        if rv is None:
+            LOG.info("Terminating process %s", name)
+            proc.terminate()
+        else:
+            LOG.error("Process %s finished with return value %s", name, rv)
+        raise
+    if 'stdin' in kwargs:
+        proc.stdin.close()
+    try:
+        rv = proc.wait()
+    except Exception:
+        LOG.exception("Failed to wait for processs %s to finish", name)
+        raise
+    LOG.info("Process %s finished with return value %s", name, rv)
+    if rv:
+        raise subprocess.CalledProcessError(rv, name)
 
 
 def call(cmd, **kwargs):
-    rv = popen(cmd, **kwargs).wait()
-    if rv:
-        name = kwargs.get('name', cmd[0])
-        raise subprocess.CalledProcessError(rv, name)
+    with popen(cmd, **kwargs):
+        pass

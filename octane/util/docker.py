@@ -37,10 +37,11 @@ def compare_files(container, local_filename, docker_filename):
     """Check if file local_filename equals file docker_filename in container"""
     with open(local_filename, 'rb') as f:
         local_contents = f.read()
-    proc = in_container(container, ["cat", docker_filename],
-                        stdout=subprocess.PIPE)
-    docker_contents, _ = proc.communicate()
-    assert proc.returncode == 0
+    with in_container(
+            container, ["cat", docker_filename],
+            stdout=subprocess.PIPE
+            ) as proc:
+        docker_contents, _ = proc.communicate()
     # TODO: compare by chunks
     return docker_contents == local_contents
 
@@ -61,19 +62,15 @@ def find_files(source_dir):
 def put_files_to_docker(container, prefix, source_dir):
     """Put all files in source_dir to prefix dir in container"""
     source_dir = os.path.abspath(source_dir)
-    # TODO: watch after stdout/stderr here
-    proc = in_container(
-        container,
-        ["tar", "-xv", "--overwrite", "-f", "-", "-C", prefix],
-        stdin=subprocess.PIPE,
-    )
-    tar = tarfile.open(fileobj=proc.stdin, mode='w|')
-    with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
-        for local_filename, docker_filename in find_files(source_dir):
-            tar.add(local_filename, docker_filename)
-    proc.stdin.close()
-    proc.wait()
-    assert proc.returncode == 0  # Don't inline with proc.wait()!
+    with in_container(
+            container,
+            ["tar", "-xv", "--overwrite", "-f", "-", "-C", prefix],
+            stdin=subprocess.PIPE,
+            ) as proc:
+        tar = tarfile.open(fileobj=proc.stdin, mode='w|')
+        with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
+            for local_filename, docker_filename in find_files(source_dir):
+                tar.add(local_filename, docker_filename)
     for local_filename, docker_filename in find_files(source_dir):
         docker_filename = os.path.join(prefix, docker_filename)
         if not compare_files(container, local_filename, docker_filename):
@@ -85,17 +82,14 @@ def put_files_to_docker(container, prefix, source_dir):
 
 def get_files_from_docker(container, files, destination_dir):
     """Get files in 'files' list from container to destination_dir"""
-    # TODO: watch after stderr here
-    proc = in_container(
-        container,
-        ["tar", "-cvf", "-"] + files,
-        stdout=subprocess.PIPE,
-    )
-    tar = tarfile.open(fileobj=proc.stdout, mode='r|')
-    with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
-        tar.extractall(destination_dir)
-    proc.wait()
-    assert proc.returncode == 0
+    with in_container(
+            container,
+            ["tar", "-cvf", "-"] + files,
+            stdout=subprocess.PIPE,
+            ) as proc:
+        tar = tarfile.open(fileobj=proc.stdout, mode='r|')
+        with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
+            tar.extractall(destination_dir)
 
 
 def get_files_from_patch(patch):
@@ -130,27 +124,25 @@ def apply_patches(container, prefix, *patches):
         files = [os.path.join(prefix, f) for f in files]
         get_files_from_docker(container, files, tempdir)
         prefix = os.path.dirname(files[0])  # FIXME: WTF?!
-        # TODO: watch after stdout/stderr here
-        proc = subprocess.popen(
-            ["patch", "-N", "-p0", "-d", tempdir + "/" + prefix],
-            stdin=subprocess.PIPE,
-        )
-        for patch in patches:
-            with open(patch) as p:
-                for line in p:
-                    if line.startswith('+++'):  # FIXME: PLEASE!
-                        try:
-                            slash_pos = line.rindex('/', 4)
-                            space_pos = line.index(' ', slash_pos)
-                        except ValueError:
-                            pass
-                        else:
-                            line = ('+++ ' + line[slash_pos + 1:space_pos] +
-                                    '\n')
-                    proc.stdin.write(line)
-        proc.stdin.close()
-        proc.wait()
-        assert proc.returncode == 0
+        direction = "-R" if revert else "-N"
+        with subprocess.popen(
+                ["patch", "-N", "-p0", "-d", tempdir + "/" + prefix],
+                stdin=subprocess.PIPE,
+                ) as proc:
+            for patch in patches:
+                with open(patch) as p:
+                    for line in p:
+                        if line.startswith('+++'):  # FIXME: PLEASE!
+                            try:
+                                slash_pos = line.rindex('/', 4)
+                                space_pos = line.index(' ', slash_pos)
+                            except ValueError:
+                                pass
+                            else:
+                                line = ('+++ ' +
+                                        line[slash_pos + 1:space_pos] +
+                                        '\n')
+                        proc.stdin.write(line)
         put_files_to_docker(container, "/", tempdir)
     finally:
         shutil.rmtree(tempdir)
