@@ -52,6 +52,13 @@ def install_octane_nailgun():
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
 
 
+def apply_patches(revert=False):
+    for container, prefix, patch in PATCHES:
+        docker.apply_patches(container, prefix, os.path.join(CWD, patch),
+                             revert=revert)
+    docker.run_in_container("astute", ["supervisorctl", "restart", "astute"])
+
+
 def prepare():
     subprocess.call(["yum", "-y", "install"] + PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
@@ -59,12 +66,15 @@ def prepare():
     subprocess.call(["pip", "install", "-U", octane_fuelclient])
     patch_puppet()
     # From patch_all_containers
-    for container, prefix, patch in PATCHES:
-        docker.apply_patches(container, prefix, os.path.join(CWD, patch))
-    docker.run_in_container("astute", ["supervisorctl", "restart", "astute"])
+    apply_patches()
     install_octane_nailgun()
 
 
 class PrepareCommand(cmd.Command):
     def take_action(self, parsed_args):
         prepare()
+
+
+class RevertCommand(cmd.Command):
+    def take_action(self, parsed_args):
+        apply_patches(revert=True)

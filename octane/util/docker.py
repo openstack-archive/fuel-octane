@@ -108,8 +108,9 @@ def get_files_from_patch(patch):
     return result
 
 
-def apply_patches(container, prefix, *patches):
+def apply_patches(container, prefix, *patches, **kwargs):
     """Apply set of patches to a container's filesystem"""
+    revert = kwargs.pop('revert', False)
     # TODO: review all logic here to apply all preprocessing steps to patches
     # beforehand
     tempdir = tempfile.mkdtemp(prefix='octane_docker_patches.')
@@ -126,7 +127,7 @@ def apply_patches(container, prefix, *patches):
         prefix = os.path.dirname(files[0])  # FIXME: WTF?!
         direction = "-R" if revert else "-N"
         with subprocess.popen(
-                ["patch", "-N", "-p0", "-d", tempdir + "/" + prefix],
+                ["patch", direction, "-p0", "-d", tempdir + "/" + prefix],
                 stdin=subprocess.PIPE,
                 ) as proc:
             for patch in patches:
