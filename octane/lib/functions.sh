@@ -604,3 +604,7 @@ delete_fuel_resources() {
         | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
             keystone endpoint-list | egrep ':5000' | awk '{print \$6}')"
 }
+
+cleanup_fuel() {
+   revert_prepare_fuel
+}

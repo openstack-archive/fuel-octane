@@ -22,6 +22,7 @@ upgrade-node ENV_ID
                                   to Management and Public networks
 cleanup ENV_ID                  - delete data about original environment from
                                   upgraded OpenStack cloud
+cleanup-fuel                    - revert changes on the Fuel Master
 help                            - display this message and exit"
 }
 
@@ -67,6 +68,9 @@ case $1 in
         [ -z "$2" ] && die "$(usage)"
         cleanup_nova_services $2
         cleanup_neutron_services $2
+        ;;
+    cleanup-fuel)
+        cleanup_fuel
         ;;
     help)
         usage
