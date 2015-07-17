@@ -289,7 +289,6 @@ class UpgradeNodeAssignmentHandler(base.BaseHandler):
 
         task = models.Task(name=consts.TASK_NAMES.node_deletion,
                            cluster=cluster)
-        db.add(task)
 
         db.commit()
 
