@@ -19,3 +19,4 @@ export PATCH_DIR="$CWD/patches"
 . ${LIBPATH}/patch.sh
 . ${LIBPATH}/docker.sh
 . ${LIBPATH}/ceph.sh
+. ${LIBPATH}/revert.sh
