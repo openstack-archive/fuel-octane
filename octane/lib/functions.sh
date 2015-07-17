@@ -488,6 +488,9 @@ upgrade_node() {
                 ceph-osd)
                     unset_osd_noout $1
                     ;;
+                controller)
+                    restart_mon_init $2
+                    ;;
             esac
         done
 }

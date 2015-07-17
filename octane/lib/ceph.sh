@@ -192,3 +192,10 @@ prepare_osd_node_upgrade() {
     check_ceph_cluster "$@"
     patch_osd_node "$@"
 }
+
+restart_mon_init() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    ssh root@$(get_host_ip_by_node_id $1) "stop ceph-mon id=node-$1;
+        /etc/init.d/ceph start mon" ||
+    die "Cannot restart Ceph MON on node $1, exiting"
+}
