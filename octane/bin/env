@@ -17,5 +17,4 @@ export PATCH_DIR="$CWD/patches"
 . ${LIBPATH}/db.sh
 . ${LIBPATH}/maintenance.sh
 . ${LIBPATH}/patch.sh
-. ${LIBPATH}/docker.sh
 . ${LIBPATH}/ceph.sh
