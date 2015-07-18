@@ -403,7 +403,8 @@ assign_node_to_env() {
             die "Cannot move node $1 to env $2, exiting"
         wait_for_node $1 discover
     else
-        fuel node --node $1 --env $2 set --role ${roles:-controller}
+        die "Cannot upgrade unallocated node $1"
+        #fuel node --node $1 --env $2 set --role ${roles:-controller}
     fi
 }
 
