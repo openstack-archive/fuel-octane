@@ -398,7 +398,6 @@ assign_node_to_env() {
     local roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
     local orig_id=$(get_env_by_node $1)
-    local host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]; then
         fuel2 env move node $1 $2 ||
             die "Cannot move node $1 to env $2, exiting"
@@ -406,22 +405,6 @@ assign_node_to_env() {
     else
         fuel node --node $1 --env $2 set --role ${roles:-controller}
     fi
-}
-
-provision_node() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    local env_id=$(get_env_by_node $1)
-    local roles=$(fuel node --node $1 \
-        | awk -F\| '/^'$1'/ {gsub(" ", "", $8);print $8}')
-    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
-    [[ "$roles" =~ ceph-osd ]] && {
-        ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
-            > /tmp/disks-ceph-partition.yaml
-        mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
-        upload_node_settings $1
-    }
-    fuel node --env $env_id --node $1 --provision
 }
 
 prepare_compute_upgrade() {
@@ -474,7 +457,10 @@ upgrade_node() {
              esac
          done
     assign_node_to_env $2 $1
-    provision_node $2
+    [[ "$roles" =~ ceph-osd ]] && {
+        keep_ceph_partition $2
+    }
+    fuel node --env $1 --node $2 --provision
     wait_for_node $2 "provisioned"
     get_deployment_info $1
     if [ $3 == "isolated" ];
