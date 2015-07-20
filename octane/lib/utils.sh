@@ -51,7 +51,7 @@ wait_for_node() {
     local counter=0
     while :
         do
-            [ $counter -gt 30 ] && die "Wait for node-$1 $2 timed out, exiting"
+            [ $counter -gt 120 ] && die "Wait for node-$1 $2 timed out, exiting"
             local status=$(fuel node --node $1 \
                 | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
             local online=$(get_node_online $1)
@@ -61,7 +61,7 @@ wait_for_node() {
             [ "$status" == "error" ] &&
                 die "Node $1 failed transition to $2 state, exiting"
             counter=$(expr $counter + 1)
-            sleep 300
+            sleep 60
         done
 }
 

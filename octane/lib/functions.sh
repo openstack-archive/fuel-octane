@@ -213,18 +213,12 @@ create_tunnels() {
 env_action() {
 # Start deployment or provisioning of all nodes in the environment, depending on
 # second argument. First argument is an ID of env.
-    local node_ids
-    local mode
     [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
-    node_ids=$(fuel node --env $1 \
-        | awk 'BEGIN {f = ""}
-        /(controller|compute|ceph)/ {
-            if (f == "") {f = $1}
-            else {printf f","; f = $1}
-        }
-        END {printf f}')
-    fuel node --env $1 --$2 --node $node_ids
-    [ $? -ne 0 ] && die "Cannot start $2 for env $1, exiting" 2
+    local env=$1 && shift
+    local action=$1 && shift
+    local node_ids="$@"
+    fuel node --env $env --$action --node $node_ids
+    [ $? -ne 0 ] && die "Cannot start $action for env $env, exiting" 2
 }
 
 check_neutron_agents() {
@@ -428,14 +422,9 @@ prepare_controller_upgrade() {
     [ -z "$2" ] && die "No node ID provided, exiting"
 }
 
-upgrade_node() {
-# This function takes IDs of upgrade seed env and a node, deletes the node
-# from original env and adds it to the seed env.
-    local role
-    local id
+upgrade_node_preprovision() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    local orig_env=$(get_env_by_node $2)
     local roles=$(fuel node --node $2 \
         | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
@@ -461,8 +450,17 @@ upgrade_node() {
     [[ "$roles" =~ ceph-osd ]] && {
         keep_ceph_partition $2
     }
-    fuel node --env $1 --node $2 --provision
+}
+
+upgrade_node_postprovision() {
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
     wait_for_node $2 "provisioned"
+}
+
+upgrade_node_predeploy() {
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
     get_deployment_info $1
     if [ $3 == "isolated" ];
     then
@@ -474,7 +472,14 @@ upgrade_node() {
     merge_deployment_info $1
     upload_deployment_info $1
     upload_deployment_tasks $1
-    fuel node --env $1 --node $2 --deploy
+}
+
+upgrade_node_postdeploy() {
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    local roles=$(fuel node --node $2 \
+        | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $7);print $7}' \
+        | sed -re 's%,% %')
     wait_for_node $2 "ready"
     for role in $roles
         do
@@ -486,10 +491,32 @@ upgrade_node() {
                     unset_osd_noout $1
                     ;;
                 controller)
-                    restart_mon_init $2
                     ;;
             esac
         done
+}
+
+upgrade_node() {
+# This function takes IDs of upgrade seed env and a node, deletes the node
+# from original env and adds it to the seed env.
+    [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
+    [ -z "$2" ] && die "No node ID provided, exiting"
+    local env=$1 && shift
+    if [[ "$1" =~ isolated ]]; then
+        local isolated=$1 && shift
+    fi
+    for n in $@; do
+        upgrade_node_preprovision $env $n
+    done
+    env_action $env provision "$@"
+    for n in $@; do
+        upgrade_node_postprovision $env $n
+        upgrade_node_predeploy $env $n $isolated
+    done
+    env_action $env deploy "$@"
+    for n in $@; do
+        upgrade_node_postdeploy $env $n
+    done
 }
 
 upgrade_cics() {
@@ -540,6 +567,7 @@ upgrade_ceph() {
     ceph_push_update_conf $2
     import_bootstrap_osd $2
     prepare_ceph_osd_upgrade $2
+    restart_mon_init $2
 }
 
 neutron_update_admin_tenant_id() {
