@@ -362,6 +362,16 @@ apply_network_settings() {
     fuel node --node $1 --network --upload --dir $FUEL_CACHE
 }
 
+keep_ceph_partition() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    local disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
+    get_node_settings $1
+    ${BINPATH}/keep-ceph-partition $disk_file \
+        > /tmp/disks-ceph-partition.yaml
+    mv /tmp/disks-ceph-partition.yaml $disk_file
+    upload_node_settings $1
+}
+
 get_node_settings() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -d "$FUEL_CACHE" ] || mkdir -p "$FUEL_CACHE"
@@ -384,88 +394,20 @@ upload_node_settings() {
     fuel node --node $1 --disk --upload --dir $FUEL_CACHE
 }
 
-get_bootable_mac() {
-    local port1
-    local port2
-    local port3
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    port1=$(ssh "root@node-$1" "ovs-vsctl list-ifaces br-fw-admin")
-    port2=$(ssh "root@node-$1" "ovs-vsctl list interface $port1" |
-            awk -F\" '/^options/ { print $2; }')
-    port3=$(ssh "root@node-$1" "ovs-vsctl list-ifaces \$(ovs-vsctl port-to-br $port2)" | grep -v $port2)
-    ssh "root@node-$1" "ip link show $port3" | awk '/link\/ether/{print $2}'
-}
-
-delete_node_preserve_id() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    local node_values=$(echo "SELECT uuid, name
-                              FROM nodes WHERE id = $1;" | \
-                  $PG_CMD | \
-                  sed -e "s/^/'/g" -e "s/$/'/g" -e "s/|/', '/g"
-                  )
-    local node_mac=$(get_bootable_mac "$1")
-    local node_ip=$(get_host_ip_by_node_id "$1")
-    fuel node --node $1 --env $orig_id --delete-from-db --force
-    while :;
-    do
-        [ -z "$(fuel node --node $1 | grep ^$1)" ] &&
-        echo "Node $1 was deleted from DB; deleting from Cobbler" &&
-        break
-        sleep 3
-    done
-    echo "INSERT INTO nodes (id, uuid, name, mac, status, meta,
-                             timestamp, online, pending_addition,
-                             pending_deletion)
-          VALUES ($1, $node_values, '$node_mac', 'discover',
-                  '{\"disks\": [], \"interfaces\": []}', now(), false,
-                  false, false);" | $PG_CMD
-    ssh root@$node_ip shutdown -r now
-    while :
-        do
-            node_online=$(get_node_online $1)
-            [ "$node_online" == "True" ] && {
-                echo "Node $1 came back online."
-                break
-            }
-            sleep 30
-        done
-}
-
 assign_node_to_env() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No seed env ID provided, exiting"
     local roles=$(fuel node --node $1 \
         | awk -F\| '/^'$1'/ {gsub(" ", "", $7);print $7}')
-    # TODO(ogelbukh) Check that $orig_id is either 'None' or the ID of upgrade
-    # target environment. Don't let upgrade arbitrary node from other
-    # environment by mistake.
     local orig_id=$(get_env_by_node $1)
-    local host=$(get_host_ip_by_node_id $1)
     if [ "$orig_id" != "None" ]; then
-        if [ "$orig_id" != "$2" ]; then
-            prepare_fixtures_from_node "$1"
-            delete_node_preserve_id "$1"
-        else
-            die "Node $1 already allocated to env $2, exiting"
-        fi
+        fuel2 env move node $1 $2 ||
+            die "Cannot move node $1 to env $2, exiting"
+        wait_for_node $1 discover
+    else
+        die "Cannot upgrade unallocated node $1"
+        #fuel node --node $1 --env $2 set --role ${roles:-controller}
     fi
-    fuel node --node $1 --env $2 set --role ${roles:-controller}
-}
-
-provision_node() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    local env_id=$(get_env_by_node $1)
-    local roles=$(fuel node --node $1 \
-        | awk -F\| '/^'$1'/ {gsub(" ", "", $8);print $8}')
-    [ -f "${FUEL_CACHE}/interfaces.fixture.yaml" ] && apply_network_settings $1
-    [ -f "${FUEL_CACHE}/disks.fixture.yaml" ] && apply_disk_settings $1
-    [[ "$roles" =~ ceph-osd ]] && {
-        ${BINPATH}/keep-ceph-partition ${FUEL_CACHE}/node_$1/disks.yaml \
-            > /tmp/disks-ceph-partition.yaml
-        mv /tmp/disks-ceph-partition.yaml ${FUEL_CACHE}/node_$1/disks.yaml
-        upload_node_settings $1
-    }
-    fuel node --env $env_id --node $1 --provision
 }
 
 prepare_compute_upgrade() {
@@ -518,7 +460,10 @@ upgrade_node() {
              esac
          done
     assign_node_to_env $2 $1
-    provision_node $2
+    [[ "$roles" =~ ceph-osd ]] && {
+        keep_ceph_partition $2
+    }
+    fuel node --env $1 --node $2 --provision
     wait_for_node $2 "provisioned"
     get_deployment_info $1
     if [ $3 == "isolated" ];
@@ -541,6 +486,9 @@ upgrade_node() {
                     ;;
                 ceph-osd)
                     unset_osd_noout $1
+                    ;;
+                controller)
+                    restart_mon_init $2
                     ;;
             esac
         done

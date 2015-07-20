@@ -46,17 +46,16 @@ get_node_online() {
 }
 
 wait_for_node() {
-    local counter
-    local status
     [ -z "$1" ] && die "No node ID provided, exiting"
     [ -z "$2" ] && die "No expected status provided, exiting"
-    counter=0
+    local counter=0
     while :
         do
             [ $counter -gt 30 ] && die "Wait for node-$1 $2 timed out, exiting"
-            status=$(fuel node --node $1 \
+            local status=$(fuel node --node $1 \
                 | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
-            [ "$status" == "$2" ] && break
+            local online=$(get_node_online $1)
+            [ "$status" == "$2" ] && [ "$online" == "True" ] && break
             # Die in case of unexpected fall into 'error' state. Expected error
             # will be caught in previous statement.
             [ "$status" == "error" ] &&
