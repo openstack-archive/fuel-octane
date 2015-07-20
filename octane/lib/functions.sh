@@ -213,18 +213,12 @@ create_tunnels() {
 env_action() {
 # Start deployment or provisioning of all nodes in the environment, depending on
 # second argument. First argument is an ID of env.
-    local node_ids
-    local mode
     [ -z "$1" ] && die "No 6.0 env ID provided, exiting"
-    node_ids=$(fuel node --env $1 \
-        | awk 'BEGIN {f = ""}
-        /(controller|compute|ceph)/ {
-            if (f == "") {f = $1}
-            else {printf f","; f = $1}
-        }
-        END {printf f}')
-    fuel node --env $1 --$2 --node $node_ids
-    [ $? -ne 0 ] && die "Cannot start $2 for env $1, exiting" 2
+    local env=$1 && shift
+    local action=$1 && shift
+    local node_ids="$@"
+    fuel node --env $env --$action --node $node_ids
+    [ $? -ne 0 ] && die "Cannot start $action for env $env, exiting" 2
 }
 
 check_neutron_agents() {
