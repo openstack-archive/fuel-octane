@@ -35,7 +35,7 @@ case $1 in
         ;;
     upgrade-env)
         [ -z "$2" ] && die "$(usage)"
-        upgrade_env $2
+        pycmd "$@"
         ;;
     upgrade-cics)
         [ -z "$2" ] && die "$(usage)"

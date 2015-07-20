@@ -12,24 +12,6 @@ pycmd() {
     exit $?
 }
 
-clone_env() {
-# Clone settings of the environment specified by ID in the first argument using
-# helper Python script `clone-env'
-    [ -z "$1" ] && die "Cannot clone environment with empty ID, exiting"
-    local target_release=$(fuel release | awk -F\| \
-        '$4~/Ubuntu/&&$5~/2014.2.2-6.1/{print($1)}' \
-        | tr -d ' ')
-    seed_id=$(fuel2 env clone $1 "$(uuidgen)" $target_release \
-        | awk -F\| '$2~/ id /{print($3)}' | tr -d ' ')
-    sleep 3
-    [ -n "$seed_id" ] && {
-        get_cluster_settings $seed_id
-        set_cobbler_provision $seed_id
-        upload_cluster_settings $seed_id
-    } > /dev/null
-    echo $seed_id
-}
-
 get_deployment_info() {
     local cmd
 # Download deployment config from Fuel master for environment ENV to subdir in
@@ -124,26 +106,6 @@ reset_gateways_admin() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     python ${HELPER_PATH}/transformations.py \
         ${FUEL_CACHE}/deployment_$1 reset_gw_admin
-}
-
-get_cluster_settings() {
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    [ -d "$FUEL_CACHE" ] || mkdir -p ${FUEL_CACHE}
-    fuel settings --env $1 --download --dir ${FUEL_CACHE}
-}
-
-upload_cluster_settings() {
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    fuel settings --env $1 --upload --dir ${FUEL_CACHE}
-}
-
-set_cobbler_provision() {
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    [ -f "${FUEL_CACHE}/settings_$1.yaml" ] && {
-        python ${BINPATH}/set-cobbler-provision ${FUEL_CACHE}/settings_$1.yaml \
-        > ${FUEL_CACHE}/settings_$1.cobbler
-        mv ${FUEL_CACHE}/settings_$1.cobbler ${FUEL_CACHE}/settings_$1.yaml
-    }
 }
 
 create_ovs_bridges() {
@@ -574,15 +536,6 @@ cleanup_neutron_services() {
     | grep -Ev "('$(list_nodes $1 "(controller|compute|ceph-osd)" \
     | sed ':a;N;$!ba;s/\n/|/g')')"' | awk -F \| '{print($2)}' | tr -d ' ' \
     | xargs -I{} ssh root@${cic} ". /root/openrc; neutron agent-delete {}"
-}
-
-upgrade_env() {
-# Use clone call in Fuel API to create shadow environment of the new version to
-# facilitate deployment of upgraded controllers
-    [ -z "$1" ] && die "No 5.1 env ID provided, exiting"
-    local orig_env=$1 && shift
-    local seed_env=$(clone_env $orig_env)
-    echo $seed_env
 }
 
 delete_fuel_resources() {
