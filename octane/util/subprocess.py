@@ -101,5 +101,5 @@ def popen(cmd, **kwargs):
 
 
 def call(cmd, **kwargs):
-    with popen(cmd, **kwargs):
-        pass
+    with popen(cmd, **kwargs) as proc:
+        return proc.communicate()
