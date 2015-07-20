@@ -501,12 +501,19 @@ upgrade_node() {
 # from original env and adds it to the seed env.
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    upgrade_node_preprovision $1 $2
-    fuel node --env $1 --node $2 --provision
-    upgrade_node_postprovision $1 $2
-    upgrade_node_predeploy $1 $2
-    fuel node --env $1 --node $2 --deploy
-    upgrade_node_postdeploy $1 $2
+    local env=$1 && shift
+    for n in $@; do
+        upgrade_node_preprovision $env $n
+    done
+    env_action $1 provision
+    for n in $@; do
+        upgrade_node_postprovision $1 $2
+        upgrade_node_predeploy $1 $2
+    done
+    env_action $1 deploy
+    for n in $@; do
+        upgrade_node_postdeploy $1 $2
+    done
 }
 
 upgrade_cics() {
