@@ -2,5 +2,5 @@
 # To verify them, use command like "rpm -q --whatrequires python-cliff" and
 # examine requirements of software listed there.
 pbr>=0.6,!=0.7,<1.0
+python-fuelclient>=6.1  # it needs specific version of argparse
 cliff>=1.7.0,<=1.9.0
-python-fuelclient>=6.1
