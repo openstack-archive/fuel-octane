@@ -502,17 +502,20 @@ upgrade_node() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
     local env=$1 && shift
+    if [[ "$1" =~ isolated ]]; then
+        local isolated=$1 && shift
+    fi
     for n in $@; do
         upgrade_node_preprovision $env $n
     done
-    env_action $1 provision
+    env_action $env provision "$@"
     for n in $@; do
-        upgrade_node_postprovision $1 $2
-        upgrade_node_predeploy $1 $2
+        upgrade_node_postprovision $env $n
+        upgrade_node_predeploy $env $n $isolated
     done
-    env_action $1 deploy
+    env_action $env deploy "$@"
     for n in $@; do
-        upgrade_node_postdeploy $1 $2
+        upgrade_node_postdeploy $env $n
     done
 }
 
