@@ -34,6 +34,7 @@ class OctaneApp(app.App):
                 fmt='%(asctime)s %(levelname)-8s %(name)-15s %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S',
             )
+            log.silence_iso8601()
 
 
 def main(argv=None):

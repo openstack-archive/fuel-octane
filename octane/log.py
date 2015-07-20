@@ -37,3 +37,8 @@ def set_console_formatter(**formatter_kwargs):
         return  # Didn't find any StreamHandlers there
     formatter = ColorFormatter(**formatter_kwargs)
     console_handler.setFormatter(formatter)
+
+
+def silence_iso8601():
+    iso8601_logger = logging.getLogger('iso8601')
+    iso8601_logger.setLevel(logging.INFO)
