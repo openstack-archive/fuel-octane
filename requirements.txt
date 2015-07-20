@@ -3,3 +3,4 @@
 # examine requirements of software listed there.
 pbr>=0.6,!=0.7,<1.0
 cliff>=1.7.0,<=1.9.0
+python-fuelclient>=6.1
