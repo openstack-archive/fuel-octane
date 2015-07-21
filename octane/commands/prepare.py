@@ -15,36 +15,23 @@ import os.path
 
 from cliff import command as cmd
 
+from octane import magic_consts
 from octane.util import docker
 from octane.util import subprocess
 
-PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
-PATCHES = [
-    ("astute", "/usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute",
-     "docker/astute/resources/deploy_actions.rb.patch"),
-    ("cobbler", "/usr/lib/python2.6/site-packages/cobbler",
-     "docker/cobbler/resources/pmanager.py.patch"),
-    ("nailgun", "/usr/lib/python2.6/site-packages/nailgun/volumes",
-     "docker/nailgun/resources/manager.py.patch"),
-    ("nailgun", "/", "../octane_nailgun/tools/urls.py.patch"),
-]
-# TODO: use pkg_resources for patches
-CWD = os.path.join(os.path.dirname(__file__), "..")  # FIXME
-FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
-
 
 def patch_puppet():
-    puppet_dir = "/etc/puppet/2014.2.2-6.1/modules"
-    puppet_patch_dir = os.path.join(CWD, "patches", "puppet")
+    puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         if not os.path.isdir(d):
             continue
         with open(os.path.join(puppet_patch_dir, d, "patch")) as patch:
-            subprocess.call(["patch", "-Np3"], stdin=patch, cwd=puppet_dir)
+            subprocess.call(["patch", "-Np3"], stdin=patch,
+                            cwd=magic_consts.PUPPET_DIR)
 
 
 def install_octane_nailgun():
-    octane_nailgun = os.path.join(CWD, '..', 'octane_nailgun')
+    octane_nailgun = os.path.join(magic_consts.CWD, '..', 'octane_nailgun')
     subprocess.call(["python", "setup.py", "bdist_wheel"], cwd=octane_nailgun)
     wheel = glob.glob(os.path.join(octane_nailgun, 'dist', '*.whl'))[0]
     subprocess.call(["dockerctl", "copy", wheel, "nailgun:/root/"])
@@ -54,18 +41,20 @@ def install_octane_nailgun():
 
 
 def apply_patches(revert=False):
-    for container, prefix, patch in PATCHES:
-        docker.apply_patches(container, prefix, os.path.join(CWD, patch),
+    for container, prefix, patch in magic_consts.PATCHES:
+        docker.apply_patches(container, prefix,
+                             os.path.join(magic_consts.CWD, patch),
                              revert=revert)
     docker.run_in_container("astute", ["supervisorctl", "restart", "astute"])
 
 
 def prepare():
-    if not os.path.isdir(FUEL_CACHE):
-        os.makedirs(FUEL_CACHE)
-    subprocess.call(["yum", "-y", "install"] + PACKAGES)
+    if not os.path.isdir(magic_consts.FUEL_CACHE):
+        os.makedirs(magic_consts.FUEL_CACHE)
+    subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
-    octane_fuelclient = os.path.join(CWD, '..', 'octane_fuelclient')
+    octane_fuelclient = os.path.join(magic_consts.CWD, '..',
+                                     'octane_fuelclient')
     subprocess.call(["pip", "install", "-U", octane_fuelclient])
     patch_puppet()
     # From patch_all_containers
