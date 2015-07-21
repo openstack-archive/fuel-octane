@@ -456,9 +456,6 @@ upgrade_node_preprovision() {
              esac
          done
     assign_node_to_env $2 $1
-    [[ "$roles" =~ ceph-osd ]] && {
-        keep_ceph_partition $2
-    }
 }
 
 upgrade_node_postprovision() {
