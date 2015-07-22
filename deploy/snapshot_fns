@@ -1,5 +1,27 @@
 # vim syntax=sh
-STATE_PATH="/vms/state"
+if type zfs > /dev/null 2>&1; then
+  SNAP_METHOD="zfs"
+  STATE_PATH="/vms/state"
+else
+  SNAP_METHOD="lvm"
+  STATE_PATH="/var/lib/libvirt/qemu/save"
+fi
+
+lvm_snapshot() {
+  local volume=$1 snapname=$2
+  sudo lvcreate -sn $volume-$snapname -l 100%ORIGIN vms/$volume
+}
+
+lvm_revert() {
+  local volume=$1 snapname=$2
+  sudo lvconvert --merge vms/$volume-$snapname -i 5
+  sudo lvcreate -sn $volume-$snapname -l 100%ORIGIN vms/$volume  # keep snapshot around
+}
+
+lvm_discard() {
+  local volume=$1 snapname=$2
+  sudo lvremove -f vms/$volume-$snapname
+}
 
 zfs_snapshot() {
   local volume=$1 snapname=$2
@@ -45,7 +67,7 @@ snapshot_vms() {
   sudo chown libvirt-qemu:kvm "$STATE_PATH"
   virsh_all suspend "$@"
   for domain; do
-    zfs_snapshot $domain $snapname
+    ${SNAP_METHOD}_snapshot $domain $snapname
     snap_arg=""
     case $domain in
     fuel )
@@ -53,7 +75,7 @@ snapshot_vms() {
       ;;
     compute-* )
       snap_arg="--diskspec hdb,snapshot=no"
-      zfs_snapshot $domain-ceph $snapname
+      ${SNAP_METHOD}_snapshot $domain-ceph $snapname
       ;;
     esac
     virsh snapshot-create-as $domain $domain-$snapname --atomic --memspec "$STATE_PATH/$domain-$snapname" --diskspec hda,snapshot=no $snap_arg
@@ -66,10 +88,10 @@ revert_vms() {
   shift
   virsh_all destroy "$@"
   for domain; do
-    zfs_revert $domain $snapname
+    ${SNAP_METHOD}_revert $domain $snapname
     case $domain in
     compute-* )
-      zfs_revert $domain-ceph $snapname
+      ${SNAP_METHOD}_revert $domain-ceph $snapname
       ;;
     esac
     virsh restore "$STATE_PATH/$domain-$snapname" --paused
@@ -81,12 +103,13 @@ discard_snapshots() {
   local snapname=$1 domain
   shift
   for domain; do
-    rm -f "$STATE_PATH/$domain-$snapname"
-    zfs_discard $domain $snapname
+    ${SNAP_METHOD}_discard $domain $snapname
     case $domain in
     compute-* )
-      zfs_discard $domain-ceph $snapname
+      ${SNAP_METHOD}_discard $domain-ceph $snapname
       ;;
     esac
+	virsh snapshot-delete $domain $domain-$snapname --metadata
+    sudo rm -f "$STATE_PATH/$domain-$snapname"
   done
 }
