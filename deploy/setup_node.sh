@@ -9,6 +9,10 @@ FUEL_ISO='MirantisOpenStack-5.1.1.iso'
 MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
 # Use provided preseed.cfg to install everything
 
+# Install and start PolicyKit separately to avoid issues during install later
+sudo apt-get install -y policykit-1
+sudo service polkitd start
+
 # Transmission
 sudo apt-get install -y transmission-cli transmission-daemon
 DOWNLOADS_DIR="$HOME/Downloads"
@@ -30,8 +34,8 @@ printf '  /dev/zvol/vms/* rw,\n  /dev/zd* rw,\n' | sudo tee -a /etc/apparmor.d/a
 mkdir ~/libvirt-build
 pushd ~/libvirt-build
 apt-get source libvirt-bin
-sudo apt-get build-dep libvirt-bin
-sudo apt-get install devscripts
+sudo apt-get build-dep -y libvirt-bin
+sudo apt-get install -y devscripts
 cd libvirt-1.2.12
 patch -p0 < "$MYDIR/libvirt.patch"
 debuild -uc -us -b
