@@ -70,6 +70,7 @@ sudo sed -i 's#.*global_filter =.*#    global_filter = [ "r|^/dev/zd.*|", "r|^/d
 
 # Install hook to create redirects to master node
 sudo cp "$MYDIR/libvirt-qemu-hook.py" /etc/libvirt/hooks/qemu
+sudo service libvirt-bin restart
 
 # Master node
 while [ ! -f "$DOWNLOADS_DIR/$FUEL_ISO" ]; do
