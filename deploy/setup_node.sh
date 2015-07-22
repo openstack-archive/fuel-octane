@@ -40,7 +40,7 @@ cd libvirt-1.2.12
 patch -p0 < "$MYDIR/libvirt.patch"
 debuild -uc -us -b
 cd ..
-sudo dpkg -i --force-confnew libvirt0_1.2.12-0ubuntu13_amd64.deb libvirt-bin_1.2.12-0ubuntu13_amd64.deb
+sudo dpkg -i --force-confnew libvirt0_*_amd64.deb libvirt-bin_*_amd64.deb
 popd
 
 # Setup ZFS pool
