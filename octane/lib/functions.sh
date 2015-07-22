@@ -2,7 +2,7 @@
 
 pycmd() {
     if ! python -c 'import octane'; then
-        pip install -e "$CWD"
+        pip install -e "$CWD/.."
     fi
     local opts=""
     if shopt -qo xtrace; then
