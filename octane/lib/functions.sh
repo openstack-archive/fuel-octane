@@ -357,11 +357,11 @@ apply_network_settings() {
 keep_ceph_partition() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     local disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
-    get_node_settings $1
+    fuel node --node $1 --disk --download --dir ${FUEL_CACHE}
     ${BINPATH}/keep-ceph-partition $disk_file \
         > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml $disk_file
-    upload_node_settings $1
+    fuel node --node $1 --disk --upload --dir ${FUEL_CACHE}
 }
 
 get_node_settings() {
