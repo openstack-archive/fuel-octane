@@ -428,6 +428,15 @@ upgrade_node_preprovision() {
     local roles=$(fuel node --node $2 \
         | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $7);print $7}' \
         | sed -re 's%,% %')
+# Pre-upgrade checks
+    for role in $roles; do
+        case $role in
+            ceph-osd)
+                check_ceph_cluster $2
+                ;;
+        esac
+    done
+# Prepare to provisioning
     for role in $roles
         do
             case $role in 
@@ -447,9 +456,6 @@ upgrade_node_preprovision() {
              esac
          done
     assign_node_to_env $2 $1
-    [[ "$roles" =~ ceph-osd ]] && {
-        keep_ceph_partition $2
-    }
 }
 
 upgrade_node_postprovision() {

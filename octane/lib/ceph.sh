@@ -189,8 +189,8 @@ patch_osd_node() {
 
 prepare_osd_node_upgrade() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    check_ceph_cluster "$@"
     patch_osd_node "$@"
+    keep_ceph_partition "$@"
 }
 
 restart_mon_init() {
