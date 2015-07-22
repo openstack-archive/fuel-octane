@@ -1,4 +1,12 @@
 # vim syntax=sh
+if type zfs > /dev/null 2>&1; then
+  SNAP_METHOD="zfs"
+  STATE_PATH="/vms/state"
+else
+  SNAP_METHOD="lvm"
+  STATE_PATH="/var/lib/libvirt/qemu/save"
+fi
+
 lvm_snapshot() {
   local volume=$1 snapname=$2
   sudo lvcreate -sn $volume-$snapname -l 100%ORIGIN vms/$volume
@@ -10,14 +18,56 @@ lvm_revert() {
   sudo lvcreate -sn $volume-$snapname -l 100%ORIGIN vms/$volume  # keep snapshot around
 }
 
+lvm_discard() {
+  local volume=$1 snapname=$2
+  sudo lvremove -f vms/$volume-$snapname
+}
+
+zfs_snapshot() {
+  local volume=$1 snapname=$2
+  sudo zfs snapshot vms/$volume@$snapname
+  sudo zfs clone vms/$volume@$snapname vms/$volume-$snapname
+  sudo zfs promote vms/$volume-$snapname
+}
+
+zfs_revert() {
+  local volume=$1 snapname=$2
+  sudo zfs destroy vms/$volume
+  sudo zfs clone vms/$volume-$snapname@$snapname vms/$volume
+}
+
+zfs_discard() {
+  local volume=$1 snapname=$2
+  clones="$(sudo zfs get -H clones vms/$volume-$snapname@$snapname | cut -f3)"
+  case $clones in
+  "" )
+    sudo zfs destroy vms/$volume-$snapname@$snapname
+    sudo zfs destroy vms/$volume-$snapname
+    ;;
+  vms/$volume )
+    sudo zfs promote vms/$volume
+    sudo zfs destroy vms/$volume-$snapname
+    sudo zfs destroy vms/$volume@$snapname
+    ;;
+  * )
+    echo "Can't remove snapshot vms/$volume-$snapname@$snapname since it has clones: $clones"
+  esac
+}
+
+virsh_all() {
+  local action=$1
+  shift
+  echo "$@" | xargs -P0 -n1 virsh $action | sed -n '/./p'
+}
+
 snapshot_vms() {
   local snapname=$1 domain snap_arg
   shift
+  sudo mkdir -p "$STATE_PATH"
+  sudo chown libvirt-qemu:kvm "$STATE_PATH"
+  virsh_all suspend "$@"
   for domain; do
-    virsh suspend $domain
-  done
-  for domain; do
-    lvm_snapshot $domain $snapname
+    ${SNAP_METHOD}_snapshot $domain $snapname
     snap_arg=""
     case $domain in
     fuel )
@@ -25,47 +75,41 @@ snapshot_vms() {
       ;;
     compute-* )
       snap_arg="--diskspec hdb,snapshot=no"
-      lvm_snapshot $domain-ceph $snapname
+      ${SNAP_METHOD}_snapshot $domain-ceph $snapname
       ;;
     esac
-    virsh snapshot-create-as $domain $domain-$snapname --atomic --memspec /var/lib/libvirt/qemu/save/$domain-$snapname --diskspec hda,snapshot=no $snap_arg
+    virsh snapshot-create-as $domain $domain-$snapname --atomic --memspec "$STATE_PATH/$domain-$snapname" --diskspec hda,snapshot=no $snap_arg
   done
-  for domain; do
-    virsh resume $domain
-  done
+  virsh_all resume "$@"
 }
 
 revert_vms() {
   local snapname=$1 domain
   shift
+  virsh_all destroy "$@"
   for domain; do
-    virsh destroy $domain
-  done
-  for domain; do
-    lvm_revert $domain $snapname
+    ${SNAP_METHOD}_revert $domain $snapname
     case $domain in
     compute-* )
-      lvm_revert $domain-ceph $snapname
+      ${SNAP_METHOD}_revert $domain-ceph $snapname
       ;;
     esac
-	virsh restore /var/lib/libvirt/qemu/save/$domain-$snapname --paused
+    virsh restore "$STATE_PATH/$domain-$snapname" --paused
   done
-  for domain; do
-    virsh resume $domain
-  done
+  virsh_all resume "$@"
 }
 
 discard_snapshots() {
   local snapname=$1 domain
   shift
   for domain; do
-    sudo lvremove -f vms/$domain-$snapname
+    ${SNAP_METHOD}_discard $domain $snapname
     case $domain in
     compute-* )
-      sudo lvremove -f vms/$domain-ceph-$snapname
+      ${SNAP_METHOD}_discard $domain-ceph $snapname
       ;;
     esac
 	virsh snapshot-delete $domain $domain-$snapname --metadata
-	sudo rm -f /var/lib/libvirt/qemu/save/$domain-$snapname
+    sudo rm -f "$STATE_PATH/$domain-$snapname"
   done
 }
