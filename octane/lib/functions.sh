@@ -467,17 +467,22 @@ upgrade_node_postprovision() {
 upgrade_node_predeploy() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    get_deployment_info $1
-    if [ $3 == "isolated" ];
-    then
-        backup_deployment_info $1
-        remove_physical_transformations $1
+    local roles=$(fuel node --node $2 \
+        | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $8);print $8}' \
+        | sed -re 's%,% %')
+    if [[ "$roles" =~ controller ]]; then
+        get_deployment_info $1
+        if [ $3 == "isolated" ];
+        then
+            backup_deployment_info $1
+            remove_physical_transformations $1
+        fi
+        get_deployment_tasks $1
+        prepare_seed_deployment_info $1
+        merge_deployment_info $1
+        upload_deployment_info $1
+        upload_deployment_tasks $1
     fi
-    get_deployment_tasks $1
-    prepare_seed_deployment_info $1
-    merge_deployment_info $1
-    upload_deployment_info $1
-    upload_deployment_tasks $1
 }
 
 upgrade_node_postdeploy() {
