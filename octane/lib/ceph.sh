@@ -132,9 +132,8 @@ import_bootstrap_osd() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     node=$(list_nodes $1 controller | head -1)
     ssh root@$(get_host_ip_by_node_id ${node#node-}) \
-        ceph auth import -i /root/ceph.bootstrap-osd.keyring
-    ssh root@$(get_host_ip_by_node_id ${node#node-}) \
-        ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
+        "ceph auth import -i /root/ceph.bootstrap-osd.keyring;
+        ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'"
 }
 
 prepare_ceph_osd_upgrade() {
