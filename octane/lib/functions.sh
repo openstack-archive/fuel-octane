@@ -472,7 +472,7 @@ upgrade_node_predeploy() {
         | sed -re 's%,% %')
     if [[ "$roles" =~ controller ]]; then
         get_deployment_info $1
-        if [ $3 == "isolated" ];
+        if [ "$3" == "isolated" ];
         then
             backup_deployment_info $1
             remove_physical_transformations $1
