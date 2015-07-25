@@ -97,6 +97,7 @@ ceph_push_update_conf() {
         set -ex
         mv $controller1_db_path $ctrl_host_db_path
         rm $ctrl_host_db_path/sysvinit || echo "File sysvinit not found"
+        touch $ctrl_host_db_path/upstart
         sed -i'' 's/^mon_initial_members =.*/mon_initial_members =$MON_INITIAL_MEMBERS/g;
               s/^mon_host =.*/mon_host =$MON_HOSTS/g;
               s/^host =.*/host = ${ctrl_host}/g' ${CEPH_CONF_DIR}/ceph.conf 

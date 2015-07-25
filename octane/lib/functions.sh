@@ -578,7 +578,6 @@ upgrade_ceph() {
     ceph_push_update_conf $2
     import_bootstrap_osd $2
     prepare_ceph_osd_upgrade $2
-    restart_mon_init $2
 }
 
 neutron_update_admin_tenant_id() {
