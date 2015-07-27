@@ -49,7 +49,7 @@ class _BaseLogPipe(threading.Thread):
                         line = line[:-1]
                     LOG.log(self.log_level, "%s: %s", self.log_name, line)
         except Exception:
-            LOG.exception("Exception in _LogPipe thread %s", self.name)
+            LOG.exception("Exception in _LogPipe thread %s", self.log_name)
 
 
 class _LogPipe(_BaseLogPipe):
