@@ -23,7 +23,6 @@ sudo service transmission-daemon stop
 EDIT_SCRIPT='import sys,json; i=iter(sys.argv); next(i); fname=next(i); s=json.load(open(fname)); s.update(zip(i,i)); json.dump(s,open(fname,"w"),indent=4,sort_keys=True)' 
 sudo python3 -c "$EDIT_SCRIPT" /etc/transmission-daemon/settings.json download-dir "$DOWNLOADS_DIR"
 sudo service transmission-daemon start
-alias tr='transmission-remote -n transmission:transmission'
 for magnet in $DOWNLOAD_TORRENTS; do
     transmission-remote -n transmission:transmission -a "$magnet"
 done
