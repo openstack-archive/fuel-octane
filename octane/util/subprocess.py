@@ -83,6 +83,9 @@ class BasePopen(object):
     def terminate(self):
         raise NotImplementedError("terminate")
 
+    def close_stdin(self):
+        raise NotImplementedError("close_stdin")
+
     def communicate(self):
         raise NotImplementedError("communicate")
 
@@ -135,6 +138,9 @@ class LocalPopen(BasePopen):
     def terminate(self):
         return self._popen_obj.terminate()
 
+    def close_stdin(self):
+        self._popen_obj.stdin.close()
+
     def communicate(self):
         return self._popen_obj.communicate()
 
@@ -142,7 +148,8 @@ class LocalPopen(BasePopen):
 @contextlib.contextmanager
 def popen(cmd, **kwargs):
     name = kwargs.pop('name', cmd[0])
-    proc = LocalPopen(name, cmd, kwargs)
+    popen_class = kwargs.pop('popen_class', LocalPopen)
+    proc = popen_class(name, cmd, kwargs)
     LOG.info('Started process %s: %s', proc.name,
              " ".join(map(pipes.quote, cmd)))
     try:
@@ -156,7 +163,7 @@ def popen(cmd, **kwargs):
             LOG.error("Process %s finished with return value %s", name, rv)
         raise
     if 'stdin' in kwargs:
-        proc.stdin.close()
+        proc.close_stdin()
     try:
         rv = proc.wait()
     except Exception:
