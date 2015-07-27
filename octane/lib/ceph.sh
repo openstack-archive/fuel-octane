@@ -96,6 +96,8 @@ ceph_push_update_conf() {
         ssh $SSH_ARGS root@$(get_host_ip_by_node_id ${ctrl_host#node-}) "
         set -ex
         mv $controller1_db_path $ctrl_host_db_path
+        rm $ctrl_host_db_path/sysvinit || echo "File sysvinit not found"
+        touch $ctrl_host_db_path/upstart
         sed -i'' 's/^mon_initial_members =.*/mon_initial_members =$MON_INITIAL_MEMBERS/g;
               s/^mon_host =.*/mon_host =$MON_HOSTS/g;
               s/^host =.*/host = ${ctrl_host}/g' ${CEPH_CONF_DIR}/ceph.conf 
@@ -131,9 +133,8 @@ import_bootstrap_osd() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     node=$(list_nodes $1 controller | head -1)
     ssh root@$(get_host_ip_by_node_id ${node#node-}) \
-        ceph auth import -i /root/ceph.bootstrap-osd.keyring
-    ssh root@$(get_host_ip_by_node_id ${node#node-}) \
-        ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'
+        "ceph auth import -i /root/ceph.bootstrap-osd.keyring;
+        ceph auth caps client.bootstrap-osd mon 'allow profile bootstrap-osd'"
 }
 
 prepare_ceph_osd_upgrade() {

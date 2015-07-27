@@ -357,11 +357,11 @@ apply_network_settings() {
 keep_ceph_partition() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     local disk_file="${FUEL_CACHE}/node_$1/disks.yaml"
-    get_node_settings $1
+    fuel node --node $1 --disk --download --dir ${FUEL_CACHE}
     ${BINPATH}/keep-ceph-partition $disk_file \
         > /tmp/disks-ceph-partition.yaml
     mv /tmp/disks-ceph-partition.yaml $disk_file
-    upload_node_settings $1
+    fuel node --node $1 --disk --upload --dir ${FUEL_CACHE}
 }
 
 get_node_settings() {
@@ -467,17 +467,22 @@ upgrade_node_postprovision() {
 upgrade_node_predeploy() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    get_deployment_info $1
-    if [ $3 == "isolated" ];
-    then
-        backup_deployment_info $1
-        remove_physical_transformations $1
+    local roles=$(fuel node --node $2 \
+        | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $8);print $8}' \
+        | sed -re 's%,% %')
+    if [[ "$roles" =~ controller ]]; then
+        get_deployment_info $1
+        if [ "$3" == "isolated" ];
+        then
+            backup_deployment_info $1
+            remove_physical_transformations $1
+        fi
+        get_deployment_tasks $1
+        prepare_seed_deployment_info $1
+        merge_deployment_info $1
+        upload_deployment_info $1
+        upload_deployment_tasks $1
     fi
-    get_deployment_tasks $1
-    prepare_seed_deployment_info $1
-    merge_deployment_info $1
-    upload_deployment_info $1
-    upload_deployment_tasks $1
 }
 
 upgrade_node_postdeploy() {
@@ -573,7 +578,6 @@ upgrade_ceph() {
     ceph_push_update_conf $2
     import_bootstrap_osd $2
     prepare_ceph_osd_upgrade $2
-    restart_mon_init $2
 }
 
 neutron_update_admin_tenant_id() {
