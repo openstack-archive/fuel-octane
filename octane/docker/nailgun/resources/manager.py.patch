@@ -1,5 +1,5 @@
 diff --git a/manager.py b/manager.py
-index 91200f1..991fa81 100644
+index 91200f1..b60aea3 100644
 --- manager.py
 +++ manager.py
 @@ -224,8 +224,10 @@ class DisksFormatConvertor(object):
@@ -30,7 +30,31 @@ index 91200f1..991fa81 100644
      def reset(self):
          self.volumes = []
          self.free_space = self.size
-@@ -650,6 +660,25 @@ class VolumeManager(object):
+@@ -594,16 +604,21 @@ class VolumeManager(object):
+             boot_is_raid = True if disks_count > 1 else False
+ 
+             existing_disk = filter(
+-                lambda disk: d['disk'] == disk['id'],
++                lambda disk: set(d['extra']) == set(disk['extra']),
+                 only_disks(self.volumes))
+ 
++            try:
++                disk_id = existing_disk[0]['id']
++            except KeyError as exc:
++                self.__logger('Cannot find existing disk for disk %r' % d)
++                raise exc
+             disk_volumes = existing_disk[0].get(
+                 'volumes', []) if existing_disk else []
+ 
+             disk = Disk(
+                 disk_volumes,
+                 self.call_generator,
+-                d["disk"],
++                disk_id,
+                 d["name"],
+                 byte_to_megabyte(d["size"]),
+                 boot_is_raid=boot_is_raid,
+@@ -650,6 +665,25 @@ class VolumeManager(object):
          self.__logger('Updated volume size %s' % self.volumes)
          return self.volumes
  
