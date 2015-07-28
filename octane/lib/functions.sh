@@ -465,15 +465,19 @@ upgrade_node_postprovision() {
 }
 
 upgrade_node_predeploy() {
+    local isolated="" roles
+    if [ "$1" = "--isolated" ]; then
+        isolated=$1
+        shift
+    fi
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    local roles=$(fuel node --node $2 \
+    roles=$(fuel node --node $2 \
         | awk -F\| '$1~/^'$2'/ {gsub(" ", "", $8);print $8}' \
         | sed -re 's%,% %')
     if [[ "$roles" =~ controller ]]; then
         get_deployment_info $1
-        if [ "$3" == "isolated" ];
-        then
+        if [ "$isolated" ]; then
             backup_deployment_info $1
             remove_physical_transformations $1
         fi
@@ -510,19 +514,21 @@ upgrade_node_postdeploy() {
 upgrade_node() {
 # This function takes IDs of upgrade seed env and a node, deletes the node
 # from original env and adds it to the seed env.
+    local isolated="" env n
+    if [ "$1" = "--isolated" ]; then
+        isolated=$1
+        shift
+    fi
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
-    local env=$1 && shift
-    if [[ "$1" =~ isolated ]]; then
-        local isolated=$1 && shift
-    fi
+    env=$1 && shift
     for n in $@; do
         upgrade_node_preprovision $env $n
     done
     env_action $env provision "$@"
     for n in $@; do
         upgrade_node_postprovision $env $n
-        upgrade_node_predeploy $env $n $isolated
+        upgrade_node_predeploy $isolated $env $n
     done
     env_action $env deploy "$@"
     for n in $@; do
