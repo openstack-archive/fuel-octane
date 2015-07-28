@@ -21,3 +21,11 @@ nova service-list | grep -q 'nova-compute.*enabled' || {
 }
 
 nova list --host $1 | grep ' ACTIVE ' | cut -d\| -f3 | sed -r 's/(^[ ]+?|[ ]+?$)//g' | xargs -tI% nova live-migration %
+
+while :; do
+    VMS=$(nova list --host $1 | wc -l)
+    if [ $VMS -eq 4 ]; then
+        break
+    fi
+    sleep 30
+done
