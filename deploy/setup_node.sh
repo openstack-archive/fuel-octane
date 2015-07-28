@@ -1,17 +1,52 @@
 #!/bin/bash -ex
-# In debian-installer's shell run:
-# anna-install network-console
-# it'll bring up password settings and SSH setup after network setup
-# BTW, 172.18.184.58:3142 is a good choice for mirror in cz ;)
+# Config-ish
+MAGNET_511_ISO='magnet:?xt=urn:btih:63907abc2acf276d595cd12f9723088fd66cbe24&dn=MirantisOpenStack-5.1.1.iso&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Fseed-qa.msk.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Ffuel-storage.srt.mirantis.net%2Ffuelweb%2FMirantisOpenStack-5.1.1.iso'
+MAGNET_60_LRZ='magnet:?xt=urn:btih:d8bda80a9079e1fc0c598bc71ed64376103f2c4f&dn=MirantisOpenStack-6.0-upgrade.tar.lrz&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Fseed-qa.msk.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Ffuel-storage.srt.mirantis.net%2Ffuelweb%2FMirantisOpenStack-6.0-upgrade.tar.lrz'
+MAGNET_61_LRZ='magnet:?xt=urn:btih:ee1222ff4b8633229f49daa6e6e62d02ef77b606&dn=MirantisOpenStack-6.1-upgrade.tar.lrz&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Fvault.infra.mirantis.net%2FMirantisOpenStack-6.1-upgrade.tar.lrz'
+MAGNET_61_ISO='magnet:?xt=urn:btih:9d59953417e0c2608f8fa0ffe43ceac00967708f&dn=MirantisOpenStack-6.1.iso&tr=http%3A%2F%2Ftracker01-bud.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-mnv.infra.mirantis.net%3A8080%2Fannounce&tr=http%3A%2F%2Ftracker01-msk.infra.mirantis.net%3A8080%2Fannounce&ws=http%3A%2F%2Fvault.infra.mirantis.net%2FMirantisOpenStack-6.1.iso'
+DOWNLOAD_TORRENTS="$MAGNET_511_ISO $MAGNET_60_LRZ $MAGNET_61_LRZ"
+FUEL_ISO='MirantisOpenStack-5.1.1.iso'
 
-# After system is booted
-sudo apt-get install libvirt-bin qemu-kvm lvm2
-# Logout/login to get into libvirtd group
+MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
+# Use provided preseed.cfg to install everything
+
+# Install and start PolicyKit separately to avoid issues during install later
+sudo apt-get install -y policykit-1
+sudo service polkitd start
+
+# Transmission
+sudo apt-get install -y transmission-cli transmission-daemon
+DOWNLOADS_DIR="$HOME/Downloads"
+mkdir -p "$DOWNLOADS_DIR"
+setfacl -m 'user:debian-transmission:rwx' "$DOWNLOADS_DIR"
+sudo service transmission-daemon stop
+EDIT_SCRIPT='import sys,json; i=iter(sys.argv); next(i); fname=next(i); s=json.load(open(fname)); s.update(zip(i,i)); json.dump(s,open(fname,"w"),indent=4,sort_keys=True)' 
+sudo python3 -c "$EDIT_SCRIPT" /etc/transmission-daemon/settings.json download-dir "$DOWNLOADS_DIR"
+sudo service transmission-daemon start
+for magnet in $DOWNLOAD_TORRENTS; do
+    transmission-remote -n transmission:transmission -a "$magnet"
+done
+
+# Libvirt
 # Fucking https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1343245
-printf '  /dev/vms/* rw,\n  /dev/dm-* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
-# Setup LVM
-virsh pool-define-as vms logical --source-dev /dev/sdc
-virsh pool-build vms
+printf '  /dev/zvol/vms/* rw,\n  /dev/zd* rw,\n' | sudo tee -a /etc/apparmor.d/abstractions/libvirt-qemu > /dev/null
+# Build and install Libvirt package with ZFS support
+mkdir ~/libvirt-build
+pushd ~/libvirt-build
+apt-get source libvirt-bin
+sudo apt-get build-dep -y libvirt-bin
+sudo apt-get install -y devscripts
+cd libvirt-1.2.12
+patch -p0 < "$MYDIR/libvirt.patch"
+debuild -uc -us -b
+cd ..
+sudo dpkg -i --force-confnew libvirt0_*_amd64.deb libvirt-bin_*_amd64.deb
+popd
+
+# Setup ZFS pool
+virsh pool-define-as vms zfs --source-name vms
+# no pool-build since we need -f flag for zpool create
+sudo zpool create -f vms /dev/sdc
 virsh pool-autostart vms
 virsh pool-start vms
 
@@ -19,7 +54,7 @@ virsh pool-start vms
 virsh net-undefine default
 for net in admin management private public storage; do
   if [ "$net" = "admin" ]; then
-    fwd="<ip address='172.20.0.1' prefix='24'></ip>"
+    fwd="<forward mode='nat'/><ip address='10.20.0.1' prefix='24'></ip>"
   elif [ "$net" = "public" ]; then
     fwd="<forward mode='nat'/><ip address='172.16.0.1' prefix='24'></ip>"
   else
@@ -30,10 +65,19 @@ for net in admin management private public storage; do
   virsh net-start $net
 done
 
+# Don't let LVM find zvols
+sudo sed -i 's#.*global_filter =.*#    global_filter = [ "r|^/dev/zd.*|", "r|^/dev/zvol/.*|" ]#' /etc/lvm/lvm.conf
+
+# Install hook to create redirects to master node
+sudo cp "$MYDIR/libvirt-qemu-hook.py" /etc/libvirt/hooks/qemu
+sudo service libvirt-bin restart
+
 # Master node
-# Download ISO from some node
+while [ ! -f "$DOWNLOADS_DIR/$FUEL_ISO" ]; do
+  sleep 10
+done
 virsh vol-create-as vms fuel 100G
-virsh define "$MYDIR/fuel.xml"
+virsh define <(sed "s|%ISO%|$DOWNLOADS_DIR/$FUEL_ISO|" "$MYDIR/fuel.xml")
 virsh start fuel
 virsh event fuel lifecycle  # wait for shutdown on reboot
 virsh event fuel lifecycle --timeout 5  # wait for final shutdown on reboot
