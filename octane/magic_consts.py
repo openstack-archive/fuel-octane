@@ -14,8 +14,6 @@ import os.path
 
 PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
 PATCHES = [
-    ("astute", "/usr/lib64/ruby/gems/2.1.0/gems/astute-6.1.0/lib/astute",
-     "docker/astute/resources/deploy_actions.rb.patch"),
     ("cobbler", "/usr/lib/python2.6/site-packages/cobbler",
      "docker/cobbler/resources/pmanager.py.patch"),
     ("nailgun", "/usr/lib/python2.6/site-packages/nailgun/volumes",

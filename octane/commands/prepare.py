@@ -46,7 +46,6 @@ def apply_patches(revert=False):
         docker.apply_patches(container, prefix,
                              os.path.join(magic_consts.CWD, patch),
                              revert=revert)
-    docker.run_in_container("astute", ["supervisorctl", "restart", "astute"])
 
 
 def prepare():
