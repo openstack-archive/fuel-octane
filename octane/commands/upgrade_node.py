@@ -28,12 +28,25 @@ LOG = logging.getLogger(__name__)
 
 class ControllerUpgrade(object):
     @staticmethod
-    def cleanup(orig_env, node, seed_env):
-        ssh.call(
-            ["stop", "ceph-mon", "id=node-%s" % (node.data['id'],)],
-            node=node,
-        )
-        ssh.call(["/etc/init.d/ceph", "start", "mon"], node=node)
+    def predeploy(node, seed_env, isolated):
+        deployment_info = seed_env.get_default_facts(
+            'deployment', nodes=[node.data['id']])
+        if isolated:
+            # From backup_deployment_info
+            seed_env.write_facts_to_dir('deployment', deployment_info,
+                                        directory=magic_consts.FUEL_CACHE)
+        for info in deployment_info:
+            if isolated:
+                transformations.remove_physical_ports(info)
+            # From run_ping_checker
+            info['run_ping_checker'] = False
+            transformations.remove_predefined_nets(info)
+            transformations.reset_gw_admin(info)
+        seed_env.upload_facts('deployment', deployment_info)
+
+        tasks = seed_env.get_deployment_tasks()
+        tasks_helpers.skip_tasks(tasks)
+        seed_env.update_deployment_tasks(tasks)
 
 
 # TODO: use stevedore for this
@@ -52,14 +65,14 @@ def get_role_upgrade_handlers(roles):
     return role_handlers
 
 
-def call_role_upgrade_handlers(handlers, method, *args, **kwargs):
-    for handler in handlers:
+def call_role_upgrade_handlers(handlers, method, node, seed_env, **kwargs):
+    for handler in handlers[node]:
         try:
             meth = getattr(handler, method)
         except AttributeError:
             LOG.debug("No '%s' method in handler %s", method, handler.__name__)
         else:
-            meth(*args, **kwargs)
+            meth(node, seed_env, **kwargs)
 
 
 def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
@@ -80,71 +93,67 @@ def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
         time.sleep(check_freq)
 
 
-def upgrade_node(seed_id, node_id, isolated=False):
+def upgrade_node(seed_id, node_ids, isolated=False):
     # From check_deployment_status
     seed_env = environment_obj.Environment(seed_id)
     if seed_env.data['status'] != 'new':
         raise Exception("Environment must be in 'new' status")
-    node = node_obj.Node(node_id)
-    orig_id = node.data['cluster']
-    if not orig_id:
-        raise Exception("Cannot upgrade unallocated node with ID %s", node_id)
-    orig_env = environment_obj.Environment(orig_id)
+    nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
-    role_handlers = get_role_upgrade_handlers(node.data['roles'])
-    call_role_upgrade_handlers(role_handlers, 'prepare',
-                               orig_env, node, seed_env)
+    # Sanity check
+    one_orig_id = None
+    for node in nodes:
+        orig_id = node.data['cluster']
+        if orig_id == seed_id:
+            raise Exception(
+                "Cannot upgrade node with ID %s: it's already in cluster with "
+                "ID %s", node_id, seed_id,
+            )
+        if orig_id:
+            if one_orig_id and orig_id != one_orig_id:
+                raise Exception(
+                    "Not upgrading nodes from different clusters: %s and %s",
+                    orig_id, one_orig_id,
+                )
+            one_orig_id = orig_id
+
+    role_handlers = {}
+    for node in nodes:
+        role_handlers[node] = get_role_upgrade_handlers(node.data['roles'])
+
+    for node in nodes:
+        call_role_upgrade_handlers(role_handlers, 'preupgrade', node, seed_env)
+    for node in nodes:
+        call_role_upgrade_handlers(role_handlers, 'prepare', node, seed_env)
 
     subprocess.call(
         ["fuel2", "env", "move", "node", str(node_id), str(seed_id)])
-    wait_for_node(node, "discover")
+    for node in nodes:  # TODO: create wait_for_nodes method here
+        wait_for_node(node, "discover")
 
-    call_role_upgrade_handlers(role_handlers, 'preprovision',
-                               orig_env, node, seed_env)
-    seed_env.install_selected_nodes('provision', [node])
-    wait_for_node(node, "provisioned")
+    seed_env.install_selected_nodes('provision', nodes)
+    for node in nodes:  # TODO: create wait_for_nodes method here
+        wait_for_node(node, "provisioned")
 
-    deployment_info = seed_env.get_default_facts('deployment', nodes=[node_id])
-    if isolated:
-        # From backup_deployment_info
-        seed_env.write_facts_to_dir('deployment', deployment_info,
-                                    directory=magic_consts.FUEL_CACHE)
-    for info in deployment_info:
-        if isolated:
-            transformations.remove_physical_ports(info)
-        # From run_ping_checker
-        info['run_ping_checker'] = False
-        transformations.remove_predefined_nets(info)
-        transformations.reset_gw_admin(info)
-    seed_env.upload_facts('deployment', deployment_info)
+    for node in nodes:
+        call_role_upgrade_handlers(role_handlers, 'predeploy', node, seed_env,
+                                   isolated=isolated)
 
-    tasks = seed_env.get_deployment_tasks()
-    tasks_helpers.skip_tasks(tasks)
-    seed_env.update_deployment_tasks(tasks)
+    seed_env.install_selected_nodes('deploy', nodes)
+    for node in nodes:  # TODO: create wait_for_nodes method here
+        wait_for_node(node, "ready")
 
-    seed_env.install_selected_nodes('deploy', [node])
-    wait_for_node(node, "ready")
-
-    call_role_upgrade_handlers(role_handlers, 'cleanup',
-                               orig_env, node, seed_env)
-
-
-def isolated_type(s):
-    if s != 'isolated':
-        raise ValueError(s)
-    else:
-        return True
+    call_role_upgrade_handlers(role_handlers, 'cleanup', node, seed_env)
 
 
 class UpgradeNodeCommand(cmd.Command):
     def get_parser(self, prog_name):
         parser = super(UpgradeNodeCommand, self).get_parser(prog_name)
+        parser.add_argument('--isolated', action='store_true')
         parser.add_argument('seed_id', type=int, metavar='SEED_ID')
-        parser.add_argument('node_id', type=int, metavar='NODE_ID')
-        parser.add_argument('isolated', type=isolated_type, default=False,
-                            nargs='?')
+        parser.add_argument('node_ids', type=int, metavar='NODE_ID', nargs='+')
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_node(parsed_args.seed_id, parsed_args.node_id,
+        upgrade_node(parsed_args.seed_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated)
