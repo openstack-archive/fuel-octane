@@ -23,9 +23,10 @@ from octane.util import subprocess
 def patch_puppet():
     puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
+        d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
-        with open(os.path.join(puppet_patch_dir, d, "patch")) as patch:
+        with open(os.path.join(d, "patch")) as patch:
             subprocess.call(["patch", "-Np3"], stdin=patch,
                             cwd=magic_consts.PUPPET_DIR)
 

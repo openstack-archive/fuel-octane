@@ -162,7 +162,7 @@ def popen(cmd, **kwargs):
         else:
             LOG.error("Process %s finished with return value %s", name, rv)
         raise
-    if 'stdin' in kwargs:
+    if kwargs.get('stdin') == PIPE:
         proc.close_stdin()
     try:
         rv = proc.wait()
