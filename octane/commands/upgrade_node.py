@@ -16,7 +16,6 @@ import time
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
-from octane.util import ssh
 from octane.util import subprocess
 
 from cliff import command as cmd
