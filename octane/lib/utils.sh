@@ -32,7 +32,7 @@ get_env_by_node() {
 
 get_host_ip_by_node_id() {
     [ -z "$1" ] && die "No node ID provided, exiting"
-    echo $(fuel node | awk -F"|" '/^'$1'/{print($5)}' | tr -d ' ')
+    echo $(fuel node | awk -F"|" '/^'$1' /{print($5)}' | tr -d ' ')
 }
 
 get_last_node() {
