@@ -30,11 +30,10 @@ help                            - display this message and exit"
 
 case $1 in
     prepare)
-        prepare_fuel_master
+        pycmd "$@"
         ;;
     upgrade-env)
-        [ -z "$2" ] && die "$(usage)"
-        upgrade_env $2
+        pycmd "$@"
         ;;
     upgrade-cics)
         [ -z "$2" ] && die "$(usage)"
