@@ -10,8 +10,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import io
 
-def test_help(octane_app):
-    octane_app.run(["--help"])
-    assert not octane_app.stderr.getvalue()
-    assert 'Could not' not in octane_app.stdout.getvalue()
+import pytest
+
+from octane import app
+
+
+class SafeOctaneApp(app.OctaneApp):
+    def run(self, argv):
+        try:
+            super(SafeOctaneApp, self).run(argv)
+        except SystemExit as e:
+            assert e.code == 0
+
+
+@pytest.fixture
+def octane_app():
+    return SafeOctaneApp(stdin=io.BytesIO(), stdout=io.BytesIO(),
+                         stderr=io.BytesIO())
