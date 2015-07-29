@@ -63,9 +63,13 @@ def upgrade_env(env_id):
 
 
 class UpgradeEnvCommand(cmd.Command):
+    """Create upgrade seed env for env ENV_ID and copy settings to it"""
+
     def get_parser(self, prog_name):
         parser = super(UpgradeEnvCommand, self).get_parser(prog_name)
-        parser.add_argument('env_id', type=int, metavar='ENV_ID')
+        parser.add_argument(
+            'env_id', type=int, metavar='ENV_ID',
+            help="ID of environment to be upgraded")
         return parser
 
     def take_action(self, parsed_args):

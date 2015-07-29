@@ -147,11 +147,19 @@ def upgrade_node(env_id, node_ids, isolated=False):
 
 
 class UpgradeNodeCommand(cmd.Command):
+    """Move nodes to environment and upgrade the node"""
+
     def get_parser(self, prog_name):
         parser = super(UpgradeNodeCommand, self).get_parser(prog_name)
-        parser.add_argument('--isolated', action='store_true')
-        parser.add_argument('env_id', type=int, metavar='ENV_ID')
-        parser.add_argument('node_ids', type=int, metavar='NODE_ID', nargs='+')
+        parser.add_argument(
+            '--isolated', action='store_true',
+            help="Isolate node's network from original cluster")
+        parser.add_argument(
+            'env_id', type=int, metavar='ENV_ID',
+            help="ID of target environment")
+        parser.add_argument(
+            'node_ids', type=int, metavar='NODE_ID', nargs='+',
+            help="IDs of nodes to be moved")
         return parser
 
     def take_action(self, parsed_args):

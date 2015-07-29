@@ -63,10 +63,14 @@ def prepare():
 
 
 class PrepareCommand(cmd.Command):
+    """Prepare the Fuel master node to upgrade an environment"""
+
     def take_action(self, parsed_args):
         prepare()
 
 
 class RevertCommand(cmd.Command):
+    """Revert all patches applied by 'prepare' command"""
+
     def take_action(self, parsed_args):
         apply_patches(revert=True)
