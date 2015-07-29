@@ -581,15 +581,19 @@ upgrade_ceph() {
 }
 
 neutron_update_admin_tenant_id() {
-    local cic_node
-    local tenant_id
+    local tenant_id=''
     [ -z "$1" ] && die "No env ID provided, exiting"
     cic_node=$(list_nodes $1 controller | head -1)
-    tenant_id=$(ssh root@$cic_node ". openrc; keystone tenant-get services" \
-        | awk -F\| '$2 ~ /id/{print $3}' | tr -d \ )
+    while [ -z "$tenant_id" ]; do
+        tenant_id=$(ssh root@$cic_node ". openrc;
+keystone tenant-get services \
+| awk -F\| '$2 ~ /id/{print $3}' | tr -d \ ")
+        sleep 3
+    done
     list_nodes $1 controller | xargs -I{} ssh root@{} \
-        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' -i /etc/neutron/neutron.conf;
-        restart neutron-server"
+        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' \
+-i /etc/neutron/neutron.conf;
+restart neutron-server"
 }
 
 cleanup_nova_services() {
