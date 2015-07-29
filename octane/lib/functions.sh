@@ -587,12 +587,6 @@ delete_fuel_resources() {
     [ -z "$1" ] && die "No env ID provided, exiting"
     local node=$(list_nodes $1 controller | head -1)
     local host=$(get_host_ip_by_node_id ${node#node-})
-    scp $HELPER_PATH/delete_fuel_resources.py \
-        root@$host:/tmp
-    ssh root@$host \
-        "python /tmp/delete_fuel_resources.py \$(cat openrc | grep OS_USER \\
-        | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_PASS \\
-        | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
-        | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
-            keystone endpoint-list | egrep ':5000' | awk '{print \$6}')"
+    scp $HELPER_PATH/delete_fuel_resources.py root@$host:/tmp
+    ssh root@$host ". openrc; python /tmp/delete_fuel_resources.py"
 }

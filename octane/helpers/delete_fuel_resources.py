@@ -53,17 +53,10 @@ def clenup_resources(username, password, tenant_name, auth_url):
         neutron.delete_network(network["id"])
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description="Cleanup script")
-    parser.add_argument('username', metavar='<user>', type=str,
-                        help='admin username')
-    parser.add_argument('password', metavar='<password>', type=str,
-                        help='admin password')
-    parser.add_argument('tenant_name', metavar='<tenant_name>', type=str,
-                        help='admin tenant')
-    parser.add_argument('keystone_url', metavar='<keystone_url>', type=str,
-                        help='Keystone url')
-    args = parser.parse_args()
-
-    clenup_resources(args.username, args.password, args.tenant_name,
-                     args.keystone_url)
+    import os
+    clenup_resources(
+        os.environ["OS_USERNAME"],
+        os.environ["OS_PASSWORD"],
+        os.environ["OS_TENANT_NAME"],
+        os.environ["OS_AUTH_URL"],
+    )
