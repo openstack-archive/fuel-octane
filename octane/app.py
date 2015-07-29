@@ -20,11 +20,12 @@ from octane import log
 
 
 class OctaneApp(app.App):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(OctaneApp, self).__init__(
             description='Octane - upgrade your Fuel',
             version=octane.__version__,
             command_manager=cm.CommandManager('octane'),
+            **kwargs
         )
 
     def configure_logging(self):
