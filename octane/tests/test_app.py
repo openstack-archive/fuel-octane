@@ -12,15 +12,21 @@
 
 import io
 
+import pytest
+
 from octane import app as o_app
 
 
-def test_help():
-    out, err = io.BytesIO(), io.BytesIO()
-    app = o_app.OctaneApp(stdin=io.BytesIO(), stdout=out, stderr=err)
+@pytest.fixture
+def octane_app():
+    return o_app.OctaneApp(stdin=io.BytesIO(), stdout=io.BytesIO(),
+                           stderr=io.BytesIO())
+
+
+def test_help(octane_app):
     try:
-        app.run(["--help"])
+        octane_app.run(["--help"])
     except SystemExit as e:
         assert e.code == 0
-    assert not err.getvalue()
-    assert 'Could not' not in out.getvalue()
+    assert not octane_app.stderr.getvalue()
+    assert 'Could not' not in octane_app.stdout.getvalue()
