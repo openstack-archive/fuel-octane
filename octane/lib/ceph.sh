@@ -148,7 +148,7 @@ prepare_ceph_osd_upgrade() {
             ssh root@$node sh -c "'
                 f=\$(mktemp)
                 awk -f /dev/stdin /etc/ceph/ceph.conf > \$f
-                mv \$f /etc/ceph/ceph.conf
+                mv \$f /etc/ceph/ceph.conf && chmod 644 /etc/ceph/ceph.conf
             '" <<EOF
 BEGIN {
     flag = 0
