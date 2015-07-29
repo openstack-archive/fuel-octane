@@ -42,13 +42,13 @@ def set_cobbler_provision(env_id):
     env.set_settings_data(settings)
 
 
-def upgrade_env(orig_id):
+def upgrade_env(env_id):
     target_release = find_release("Ubuntu", "2014.2.2-6.1")
     LOG.info("Cloning env %s for release %s",
-             orig_id, target_release.data['name'])
+             env_id, target_release.data['name'])
     res, _ = subprocess.call(
         ["fuel2", "env", "clone", "-f", "json",
-         str(orig_id), uuid.uuid4().hex, str(target_release.data['id'])],
+         str(env_id), uuid.uuid4().hex, str(target_release.data['id'])],
         stdout=subprocess.PIPE,
     )
     for kv in json.loads(res):
@@ -65,10 +65,10 @@ def upgrade_env(orig_id):
 class UpgradeEnvCommand(cmd.Command):
     def get_parser(self, prog_name):
         parser = super(UpgradeEnvCommand, self).get_parser(prog_name)
-        parser.add_argument('orig_id', type=int, metavar='ORIG_ID')
+        parser.add_argument('env_id', type=int, metavar='ENV_ID')
         return parser
 
     def take_action(self, parsed_args):
-        seed_id = upgrade_env(parsed_args.orig_id)
+        seed_id = upgrade_env(parsed_args.env_id)
         print(seed_id)  # TODO: This shouldn't be needed
         set_cobbler_provision(seed_id)
