@@ -3,5 +3,9 @@
 # examine requirements of software listed there.
 pbr>=0.6,!=0.7,<1.0
 python-fuelclient>=6.1  # it needs specific version of argparse
+debtcollector<0.6.0  # the last version supporting old pbr
+oslo.utils<2.0.0  # the last version supporting old pbr
+oslo.config<2.0.0  # the last version with namespace package
+oslo.serialization<1.7.0  # the last version with namespace package
 cliff>=1.7.0,<=1.9.0
 paramiko==1.13.0
