@@ -10,11 +10,41 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os.path
+import time
+
 from cliff import command as cmd
+from fuelclient.objects import environment as environment_obj
+from fuelclient.objects import node as node_obj
+
+from octane import magic_consts
+from octane.util import ssh
+
+
+def delete_fuel_resources(seed_env):
+    for node in node_obj.Node.get_all():
+        if node.data['cluster'] != seed_env.data['id']:
+            continue
+        if 'controller' in node.data['roles']:
+            break
+    else:
+        raise Exception("Can't find controller node in env %s" %
+                        seed_env.data['id'])
+    sftp = ssh.sftp(node)
+    sftp.put(
+        os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
+        "/tmp/delete_fuel_resources.py",
+    )
+    ssh.call(
+        ["sh", "-c", ". /root/openrc; python /tmp/delete_fuel_resources.py"],
+        node=node,
+    )
 
 
 def upgrade_db(orig_id, seed_id):
-    pass
+    orig_env = environment_obj.Environment(orig_id)
+    seed_env = environment_obj.Environment(seed_id)
+    delete_fuel_resources(seed_env)
 
 
 class UpgradeDBCommand(cmd.Command):
