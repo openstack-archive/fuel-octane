@@ -587,7 +587,7 @@ neutron_update_admin_tenant_id() {
     while [ -z "$tenant_id" ]; do
         tenant_id=$(ssh root@$cic_node ". openrc;
 keystone tenant-get services \
-| awk -F\| '$2 ~ /id/{print $3}' | tr -d \ ")
+| awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
         sleep 3
     done
     list_nodes $1 controller | xargs -I{} ssh root@{} \
