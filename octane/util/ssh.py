@@ -160,3 +160,16 @@ def popen(cmd, **kwargs):
 
 def call(cmd, **kwargs):
     return subprocess.call(cmd, popen_class=SSHPopen, **kwargs)
+
+
+@_cache
+def _get_sftp(node):
+    transport = _get_client(node).get_transport()
+    return paramiko.SFTPClient.from_transport(transport)
+
+_get_client.invalidate.append(_get_sftp)
+
+
+def sftp(node):
+    _get_client(node)  # ensure we're still connected
+    return _get_sftp(node)
