@@ -47,15 +47,6 @@ class ControllerUpgrade(object):
         tasks_helpers.skip_tasks(tasks)
         env.update_deployment_tasks(tasks)
 
-    @staticmethod
-    def cleanup(node, seed_env):
-        ssh.call(
-            ["stop", "ceph-mon", "id=node-%s" % (node.data['id'],)],
-            node=node,
-        )
-        ssh.call(["/etc/init.d/ceph", "start", "mon"], node=node)
-
-
 # TODO: use stevedore for this
 role_upgrade_handlers = {
     'controller': ControllerUpgrade,
