@@ -21,29 +21,65 @@ from paramiko import channel
 from octane import magic_consts
 from octane.util import subprocess
 
-_CLIENTS = {}
-_CLIENTS_LOCK = threading.Lock()
+LOG = logging.getLogger(__name__)
 
 
-def _get_client(node):
-    node_id = node.data['id']
-    try:
-        return _CLIENTS[node_id]
-    except KeyError:
-        with _CLIENTS_LOCK:
+class _cache(object):
+    def __init__(self, new):
+        self.new = new
+        self.cache = {}
+        self.lock = threading.Lock()
+        self.invalidate = []
+        self.check_fn = None
+
+    def __call__(self, node):
+        node_id = node.data['id']
+        try:
+            obj = self.cache[node_id]
+        except KeyError:
+            obj = None
+        else:
+            if not self.check_fn or self.check_fn(node, obj):
+                return obj
+        # Now obj is either bad old obj or None
+        with self.lock:
             try:
-                return _CLIENTS[node_id]
+                new_obj = self.cache[node_id]
             except KeyError:
-                client = _new_client(node.data['ip'])
-                _CLIENTS[node_id] = client
-                return client
+                pass  # Need to just create a new one
+            else:
+                if new_obj is not obj:
+                    return new_obj  # Someone already created a new one
+                # We're going to replace this obj, invalidate other caches
+                for cache in self.invalidate:
+                    with cache.lock:
+                        cache.cache.pop(node_id, None)
+
+            new_obj = self.new(node)
+            self.cache[node_id] = new_obj
+            return new_obj
+
+    def check(self, fn):
+        self.check_fn = fn
+        return fn
 
 
-def _new_client(ip):
+@_cache
+def _get_client(node):
+    LOG.info("Creating new SSH connection to node %s", node.data['id'])
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(ip, key_filename=magic_consts.SSH_KEYS)
+    client.connect(node.data['ip'], key_filename=magic_consts.SSH_KEYS)
     return client
+
+
+@_get_client.check
+def _check_client(node, client):
+    t = client.get_transport()
+    if t and t.is_active():
+        return True
+    LOG.info("SSH connection to node %s died, reconnecting", node.data['id'])
+    return False
 
 
 class ChannelFile(io.IOBase, channel.ChannelFile):
