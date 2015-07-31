@@ -25,6 +25,8 @@ with open('"${nodefile}"') as f:
   config = yaml.safe_load(f)
   ints = config['network_scheme']['endpoints']
   print ints['br-ex']['gateway']")
+    [ -z "$gw_ip" ] && return
+    [[ "$gw_ip" =~ none ]] && return
     ssh root@node-$1 "ip route delete default;
         ip route add default via $gw_ip"
 }

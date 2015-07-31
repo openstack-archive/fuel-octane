@@ -512,7 +512,9 @@ upgrade_node_postdeploy() {
                     ;;
             esac
         done
-    restore_default_gateway $2
+    if [ "$3" =~ isolated ]; then
+        restore_default_gateway $2
+    fi
 }
 
 upgrade_node() {
@@ -534,7 +536,7 @@ upgrade_node() {
     done
     env_action $env deploy "$@"
     for n in $@; do
-        upgrade_node_postdeploy $env $n
+        upgrade_node_postdeploy $env $n $isolated
     done
 }
 
