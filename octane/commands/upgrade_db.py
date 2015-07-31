@@ -79,6 +79,24 @@ def disable_apis(env):
                 new.write(use_backend_line)
         ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
 
+_default_exclude_services = ('mysql', 'haproxy', 'p_dns', 'p_ntp')
+
+
+def parse_crm_status(status_out, exclude=_default_exclude_services):
+    for match in re.finditer(r"clone.*\[(.*)\]", status_out):
+        name = match.group(1)
+        if any(service in name for service in exclude):
+            continue
+        yield name
+
+
+def stop_corosync_services(env):
+    controllers = list(get_controllers(env))
+    for node in controllers:
+        status_out, _ = ssh.call(['crm', 'status'], stdout=True, node=node)
+        for service in parse_crm_status(status_out):
+            ssh.call(['crm', 'resource', 'stop', service], node=node)
+
 
 def upgrade_db(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
@@ -87,6 +105,7 @@ def upgrade_db(orig_id, seed_id):
     # Wait for Neutron to reconfigure networks
     time.sleep(7)  # FIXME: Use more deterministic way
     disable_apis(orig_env)
+    stop_corosync_services(seed_env)
 
 
 class UpgradeDBCommand(cmd.Command):
