@@ -177,6 +177,10 @@ def sftp(node):
     return _get_sftp(node)
 
 
+class DontUpdateException(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def update_file(sftp, filename):
     old = sftp.open(filename, 'r')
@@ -191,6 +195,9 @@ def update_file(sftp, filename):
     with contextlib.nested(old, new):
         try:
             yield old, new
+        except DontUpdateException:
+            sftp.unlink(temp_filename)
+            return
         except Exception:
             sftp.unlink(temp_filename)
             raise
