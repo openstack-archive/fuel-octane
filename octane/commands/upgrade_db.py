@@ -77,7 +77,7 @@ def disable_apis(env):
                 if not contents.endswith('\n'):
                     new.write('\n')
                 new.write(use_backend_line)
-    ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=controllers[0])
+        ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
 
 
 def upgrade_db(orig_id, seed_id):
