@@ -27,7 +27,6 @@ with open('"${nodefile}"') as f:
   print ints['br-ex']['gateway']")
     ssh root@node-$1 "ip route delete default;
         ip route add default via $gw_ip"
-    done
 }
 
 revert_patch_fuel_components() {
