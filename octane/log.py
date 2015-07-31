@@ -11,6 +11,7 @@
 # under the License.
 
 import logging
+import string
 
 
 class ColorFormatter(logging.Formatter):
@@ -22,7 +23,10 @@ class ColorFormatter(logging.Formatter):
         logging.CRITICAL: '\033[01;31m',  # BOLD RED
     }
 
-    def format(self, record):
+    def format(self, record, string=string):
+        # Hack to get last log line instead of exception on 2.6
+        if string.find is None:
+            string.find = str.find
         res = logging.Formatter.format(self, record)  # old-style class on 2.6
         return self.LEVEL_COLORS[record.levelno] + res + '\033[m'
 
