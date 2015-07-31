@@ -4,20 +4,7 @@ OCTANE_PATH="$(readlink -e "$(dirname "$REVERT_PATH")/..")"
 
 ## functions
 
-revert_prepare_osd_upgrade () {
-    local env_id
-    local cic_node
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    env_id=$(get_env_by_node $1)
-    cic_node=$(list_nodes $env_id 'controller' | head -1)
-    [ -z "$(ssh root@$cic_node ceph health | grep HEALTH_OK)" ] && \
-        die "Ceph cluster is unhealthy, exiting"
-    ssh root@$ctrl ceph osd unset noout
-    revert_pman_udate_node node-$1
-}
-
 revert_prepare_fuel () {
-    revert_prepare_osd_upgrade
     revert_patch_fuel_components puppet
     revert_all_patches
 }
