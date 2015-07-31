@@ -21,15 +21,21 @@ from octane import magic_consts
 from octane.util import ssh
 
 
-def delete_fuel_resources(seed_env):
+def get_controllers(env):
+    found = False
     for node in node_obj.Node.get_all():
-        if node.data['cluster'] != seed_env.data['id']:
+        if node.data['cluster'] != env.data['id']:
             continue
         if 'controller' in node.data['roles']:
-            break
-    else:
+            yield node
+            found = True
+    if not found:
         raise Exception("Can't find controller node in env %s" %
-                        seed_env.data['id'])
+                        env.data['id'])
+
+
+def delete_fuel_resources(seed_env):
+    node = next(get_controllers(seed_env))
     sftp = ssh.sftp(node)
     sftp.put(
         os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
