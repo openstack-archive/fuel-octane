@@ -10,9 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import io
 import logging
 import pipes
+import random
 import threading
 
 import paramiko
@@ -173,3 +175,30 @@ _get_client.invalidate.append(_get_sftp)
 def sftp(node):
     _get_client(node)  # ensure we're still connected
     return _get_sftp(node)
+
+
+@contextlib.contextmanager
+def update_file(sftp, filename):
+    old = sftp.open(filename, 'r')
+    try:
+        temp_filename = '%s.octane.%08x' % (filename,
+                                            random.randrange(1 << 8 * 4))
+        new = sftp.open(temp_filename, 'wx')
+    except IOError:  # we're unlucky, try other name (or fail)
+        temp_filename = '%s.octane.%08x' % (filename,
+                                            random.randrange(1 << 8 * 4))
+        new = sftp.open(temp_filename, 'wx')
+    with contextlib.nested(old, new):
+        try:
+            yield old, new
+        except Exception:
+            sftp.unlink(temp_filename)
+            raise
+        stat = old.stat()
+        new.chmod(stat.st_mode)
+        new.chown(stat.st_uid, stat.st_gid)
+
+    bak_filename = filename + '.octane.bak'
+    sftp.rename(filename, bak_filename)
+    sftp.rename(temp_filename, filename)
+    sftp.unlink(bak_filename)
