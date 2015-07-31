@@ -19,7 +19,7 @@ revert_deployment_tasks() {
 restore_default_gateway() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     local env_id=$(get_env_by_node $1)
-    local nodefile=$(ls ${FUEL_CACHE}/deployment_${env_id}/*_$1.yaml | head -1)
+    local nodefile=$(ls ${FUEL_CACHE}/deployment_${env_id}.orig/*_$1.yaml | head -1)
     local gw_ip=$(python -c "import yaml;
 with open('"${nodefile}"') as f:
   config = yaml.safe_load(f)
