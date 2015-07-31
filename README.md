@@ -146,11 +146,20 @@ Repeat this process until all nodes are reassigned from 5.1.1 to 6.1 environment
 
 ## Finish upgrade
 
-### Cleanup 6.1 environment
+### Clean up 6.1 environment
 
 Run Octane script with 'cleanup' command to delete pending services data from
 state database.
 
 ```
 [root@fuel bin]# ./octane cleanup <SEED_ID>
+```
+
+### Clean up the Fuel Master node
+
+Run 'cleanup-fuel' command to revert all changes made to components of the Fuel
+installer and uninstall temporary packages.
+
+```
+[root@fuel bin]# ./octane cleanup-fuel
 ```

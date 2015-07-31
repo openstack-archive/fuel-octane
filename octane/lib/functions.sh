@@ -53,6 +53,13 @@ upload_deployment_info() {
     fuel deployment --env $1 --upload --dir $FUEL_CACHE
 }
 
+backup_deployment_tasks() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] &&
+    [ -d "${FUEL_CACHE}/cluster_$1" ] &&
+    cp -pR "${FUEL_CACHE}/cluster_$1" "${FUEL_CACHE}/cluster_$1.orig"
+}
+
 upload_deployment_tasks() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
@@ -505,6 +512,7 @@ upgrade_node_postdeploy() {
                     ;;
             esac
         done
+    restore_default_gateway $2
 }
 
 upgrade_node() {
@@ -637,4 +645,8 @@ delete_fuel_resources() {
         | tr \"='\" ' ' | awk '{print \$3}') \$(cat openrc | grep OS_TENANT \\
         | tr \"='\" ' ' | awk '{print \$3}') \$(. openrc; \\
             keystone endpoint-list | egrep ':5000' | awk '{print \$6}')"
+}
+
+cleanup_fuel() {
+   revert_prepare_fuel
 }
