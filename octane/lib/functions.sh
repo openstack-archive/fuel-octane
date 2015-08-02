@@ -509,6 +509,7 @@ upgrade_node_postdeploy() {
                     unset_osd_noout $1
                     ;;
                 controller)
+                    neutron_update_admin_tenant_id $1
                     ;;
             esac
         done
@@ -559,7 +560,6 @@ upgrade_cics() {
     do
         create_patch_ports $2 $br_name
     done
-    neutron_update_admin_tenant_id $2
     list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
 }
 
