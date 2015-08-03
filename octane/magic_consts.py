@@ -26,3 +26,4 @@ FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/2014.2.2-6.1/modules"
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
+OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]

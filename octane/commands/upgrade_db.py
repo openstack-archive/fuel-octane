@@ -98,6 +98,32 @@ def stop_corosync_services(env):
             ssh.call(['crm', 'resource', 'stop', service], node=node)
 
 
+def stop_upstart_services(env):
+    controllers = list(get_controllers(env))
+    service_re = re.compile("^((?:%s)[^\s]*).*start/running" %
+                            ("|".join(magic_consts.OS_SERVICES),),
+                            re.MULTILINE)
+    for node in controllers:
+        sftp = ssh.sftp(node)
+        try:
+            svc_file = sftp.open('/root/services_list')
+        except IOError:
+            with sftp.open('/root/services_list.tmp', 'w') as svc_file:
+                initctl_out, _ = ssh.call(['initctl', 'list'],
+                                          stdout=ssh.PIPE, node=node)
+                to_stop = []
+                for match in service_re.finditer(initctl_out):
+                    service = match.group(1)
+                    to_stop.append(service)
+                    svc_file.write(service + '\n')
+            sftp.rename('/root/services_list.tmp', '/root/services_list')
+        else:
+            with svc_file:
+                to_stop = svc_file.read().splitlines()
+        for service in to_stop:
+            ssh.call(['stop', service], node=node)
+
+
 def upgrade_db(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
@@ -106,6 +132,7 @@ def upgrade_db(orig_id, seed_id):
     time.sleep(7)  # FIXME: Use more deterministic way
     disable_apis(orig_env)
     stop_corosync_services(seed_env)
+    stop_upstart_services(seed_env)
 
 
 class UpgradeDBCommand(cmd.Command):
