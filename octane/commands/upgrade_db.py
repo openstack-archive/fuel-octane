@@ -12,6 +12,7 @@
 
 import os.path
 import re
+import shutil
 import time
 
 from cliff import command as cmd
@@ -124,6 +125,42 @@ def stop_upstart_services(env):
             ssh.call(['stop', service], node=node)
 
 
+def mysqldump_from_env(env):
+    node = next(get_controllers(env))
+    local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
+    with ssh.popen(['sh', '-c', 'mysqldump --add-drop-database'
+                    ' --lock-all-tables --databases %s | gzip' %
+                    (' '.join(magic_consts.OS_SERVICES),)],
+                   stdout=ssh.PIPE, node=node) as proc:
+        with open(local_fname, 'wb') as local_file:
+            shutil.copyfileobj(proc.stdout, local_file)
+    local_fname2 = os.path.join(
+        magic_consts.FUEL_CACHE,
+        'dbs.original.cluster_%s.sql.gz' % (env.data['id'],),
+    )
+    shutil.copy(local_fname, local_fname2)
+    return local_fname
+
+
+def mysqldump_restore_to_env(env, fname):
+    node = next(get_controllers(env))
+    with open(fname, 'rb') as local_file:
+        with ssh.popen(['sh', '-c', 'zcat | mysql'],
+                       stdin=ssh.PIPE, node=node) as proc:
+            shutil.copyfileobj(local_file, proc.stdin)
+
+
+def db_sync(env):
+    node = next(get_controllers(env))
+    ssh.call(['keystone-manage', 'db_sync'], node=node)
+    ssh.call(['nova-manage', 'db', 'sync'], node=node)
+    ssh.call(['heat-manage', 'db_sync'], node=node)
+    ssh.call(['glance-manage', 'db_sync'], node=node)
+    ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
+              'upgrade', 'head'], node=node)
+    ssh.call(['cinder-manage', 'db', 'sync'], node=node)
+
+
 def upgrade_db(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
@@ -133,6 +170,9 @@ def upgrade_db(orig_id, seed_id):
     disable_apis(orig_env)
     stop_corosync_services(seed_env)
     stop_upstart_services(seed_env)
+    fname = mysqldump_from_env(orig_env)
+    mysqldump_restore_to_env(seed_env, fname)
+    db_sync(seed_env)
 
 
 class UpgradeDBCommand(cmd.Command):
