@@ -25,6 +25,8 @@ from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
 
+PIPE = subprocess.PIPE
+
 
 class _cache(object):
     def __init__(self, new):
@@ -104,6 +106,8 @@ class _LogPipe(subprocess._BaseLogPipe):
 class SSHPopen(subprocess.BasePopen):
     def __init__(self, name, cmd, popen_kwargs):
         self.node = popen_kwargs.pop('node')
+        for key in ['stdin', 'stdout', 'stderr']:
+            assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
         self._channel = _get_client(self.node).get_transport().open_session()
         self._channel.exec_command(" ".join(map(pipes.quote, cmd)))

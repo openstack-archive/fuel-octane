@@ -93,7 +93,7 @@ def parse_crm_status(status_out, exclude=_default_exclude_services):
 def stop_corosync_services(env):
     controllers = list(get_controllers(env))
     for node in controllers:
-        status_out, _ = ssh.call(['crm', 'status'], stdout=True, node=node)
+        status_out, _ = ssh.call(['crm', 'status'], stdout=ssh.PIPE, node=node)
         for service in parse_crm_status(status_out):
             ssh.call(['crm', 'resource', 'stop', service], node=node)
 
