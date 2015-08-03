@@ -38,6 +38,7 @@ keystone tenant-get services \
 | awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
     [ -z "$SERVICE_TENANT_ID" ] &&
     die "Cannot determine service tenant ID for env $1, exiting"
+    export SERVICE_TENANT_ID
 }
 
 
