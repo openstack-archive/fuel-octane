@@ -66,7 +66,7 @@ Online: [ node-1 ]
      Started: [ node-1 ]
  Clone Set: clone_p_ntp [p_ntp]
      Started: [ node-1 ]
-"""[1:]
+"""[1:]  # noqa
 CRM_STATUS_PARSE_RESULT = [
     "p_vrouter",
     "p_heat-engine",
