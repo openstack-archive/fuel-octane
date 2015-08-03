@@ -25,8 +25,21 @@ clone_env() {
         set_cobbler_provision $seed_id
         upload_cluster_settings $seed_id
     } > /dev/null
+#Required for updating tenant ID in Neutron config on 6.1
+    get_service_tenant_id $1
     echo $seed_id
 }
+
+get_service_tenant_id() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    local cic_node=$(list_nodes $1 controller | head -1)
+    SERVICE_TENANT_ID=$(ssh root@$cic_node ". openrc;
+keystone tenant-get services \
+| awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
+    [ -z "$SERVICE_TENANT_ID" ] &&
+    die "Cannot determine service tenant ID for env $1, exiting"
+}
+
 
 get_deployment_info() {
     local cmd
@@ -594,14 +607,8 @@ neutron_update_admin_tenant_id() {
     local tenant_id=''
     [ -z "$1" ] && die "No env ID provided, exiting"
     cic_node=$(list_nodes $1 controller | head -1)
-    while [ -z "$tenant_id" ]; do
-        tenant_id=$(ssh root@$cic_node ". openrc;
-keystone tenant-get services \
-| awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
-        sleep 3
-    done
     list_nodes $1 controller | xargs -I{} ssh root@{} \
-        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' \
+        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $SERVICE_TENANT_ID/' \
 -i /etc/neutron/neutron.conf;
 restart neutron-server"
 }
