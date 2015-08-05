@@ -47,6 +47,10 @@ def dump_yaml_file(dict_obj, filename):
         yaml.dump(dict_obj, f, default_flow_style=False)
 
 
+def get_actions(host_config):
+    return host_config['network_scheme']['transformations']
+
+
 def remove_patch_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
@@ -110,6 +114,19 @@ def get_bridge_provider(actions, bridge):
         return providers[-1]
     else:
         return None
+
+
+def get_patch_port_action(host_config, bridge):
+    actions = get_actions(host_config)
+    provider = get_bridge_provider(actions, bridge)
+    for action in actions:
+        if provider == 'ovs' and action.get('action') == 'add-patch':
+            bridges = action.get('bridges', [])
+            if bridges[0] == bridge:
+                return action
+        elif provider == 'lnx' and action.get('action') == 'add-port':
+            if action.get('bridge') == bridge:
+                return action
 
 
 def lnx_add_port(actions, bridge):

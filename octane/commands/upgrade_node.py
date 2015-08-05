@@ -13,6 +13,7 @@
 import logging
 import time
 
+from octane.helpers import network
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
@@ -34,6 +35,7 @@ class ControllerUpgrade(object):
             # From backup_deployment_info
             env.write_facts_to_dir('deployment', deployment_info,
                                    directory=magic_consts.FUEL_CACHE)
+            network.isolate(node, env, deployment_info)
         for info in deployment_info:
             if isolated:
                 transformations.remove_physical_ports(info)
