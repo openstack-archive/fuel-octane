@@ -527,7 +527,7 @@ upgrade_node_postdeploy() {
                     ;;
             esac
         done
-    if [ "$3" == "isolated" ]]; then
+    if [ "$3" == "isolated" ]; then
         restore_default_gateway $2
     fi
 }
