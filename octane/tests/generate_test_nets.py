@@ -110,7 +110,7 @@ class TestResourcesGenerator(object):
             if network.get("router:external"):
                 external_network = network
         needed_ips = networks_count*vms_per_net - len(
-            self.neutron.list_floatingips())
+            self.neutron.list_floatingips()['floatingips'])
         if needed_ips > 0:
             for i in xrange(needed_ips):
                 self.neutron.create_floatingip(
