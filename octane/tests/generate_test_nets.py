@@ -103,7 +103,23 @@ class TestResourcesGenerator(object):
         flavor = self.nova.flavors.create(name="testflav", ram=128, disk=5,
                                           vcpus=1)
         image_id = self.nova.images.list()[0].id
-        print flavor.id, image_id
+
+        for network in self.neutron.list_networks()["networks"]:
+            if network.get("router:external"):
+                external_network = network
+        needed_ips = networks_count*vms_per_net - len(
+            self.neutron.list_floatingips())
+        if needed_ips > 0:
+            for i in xrange(needed_ips):
+                self.neutron.create_floatingip(
+                    {
+                        'floatingip': {
+                            'floating_network_id': external_network["id"]
+                        }
+                    }
+                )
+        floatingip_list = self.nova.floating_ips.list()
+
         for net in xrange(networks_count):
             router = self._create_router("testrouter{0}".format(net))
             network = self._create_network("testnet{0}".format(net))
@@ -116,6 +132,7 @@ class TestResourcesGenerator(object):
                                              flavor.id,
                                              "default",
                                              network["id"])
+                server.add_floating_ip(floatingip_list.pop())
 
 
 if __name__ == '__main__':
