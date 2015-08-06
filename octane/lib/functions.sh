@@ -25,20 +25,23 @@ clone_env() {
         set_cobbler_provision $seed_id
         upload_cluster_settings $seed_id
     } > /dev/null
-#Required for updating tenant ID in Neutron config on 6.1
-    get_service_tenant_id $1
     echo $seed_id
 }
 
 get_service_tenant_id() {
-    [ -z "$1" ] && die "No environment ID provided, exiting"
-    local cic_node=$(list_nodes $1 controller | head -1)
-    SERVICE_TENANT_ID=$(ssh root@$cic_node ". openrc;
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    local env=$(get_env_by_node $1)
+    local filename="${FUEL_CACHE}/env-${env}-service-tenant-id"
+    if [ -f "$filename" ]; then
+        SERVICE_TENANT_ID=$(cat $filename)
+    else
+        SERVICE_TENANT_ID=$(ssh root@$(get_host_ip_by_node_id $1) ". openrc;
 keystone tenant-get services \
 | awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
+    fi
     [ -z "$SERVICE_TENANT_ID" ] &&
-    die "Cannot determine service tenant ID for env $1, exiting"
-    export SERVICE_TENANT_ID
+    die "Cannot determine service tenant ID for node $1, exiting"
+    echo $SERVICE_TENANT_ID > $filename
 }
 
 
@@ -441,6 +444,8 @@ cleanup_compute_upgrade() {
 prepare_controller_upgrade() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
+    #Required for updating tenant ID in Neutron config on 6.1
+    get_service_tenant_id $1
 }
 
 upgrade_node_preprovision() {
