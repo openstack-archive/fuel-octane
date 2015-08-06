@@ -118,7 +118,7 @@ class TestResourcesGenerator(object):
                         }
                     }
                 )
-        floatingip_list = self.nova.floating_ips.list()
+        floatingip_list = self.neutron.list_floatingips()['floatingips']
 
         for net in xrange(networks_count):
             router = self._create_router("testrouter{0}".format(net))
@@ -132,7 +132,10 @@ class TestResourcesGenerator(object):
                                              flavor.id,
                                              "default",
                                              network["id"])
-                server.add_floating_ip(floatingip_list.pop())
+                port_id = server.interface_list()[0].port_id
+                self.neutron.update_floatingip(floatingip_list.pop()['id'],
+                                               {'floatingip': {
+                                                   'port_id': port_id}})
 
 
 if __name__ == '__main__':
