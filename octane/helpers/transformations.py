@@ -130,7 +130,8 @@ def ovs_add_patch_ports(actions, bridge):
             tags = action.get("tags", ["", ""])
             trunks = action.get("trunks", [])
     for tag in tags:
-        tag = "tag={0}".format(str(tag)) if tag
+        if tag:
+            tag = "tag={0}".format(str(tag))
     trunk_str = ",".join(trunks)
     if trunk_str:
         trunk_param = "trunks=[{0}]".format(trunk_str)
