@@ -1,3 +1,5 @@
+import time
+
 import neutronclient.neutron.client
 import keystoneclient.v2_0.client as ksclient
 from novaclient import client as nova
@@ -132,6 +134,10 @@ class TestResourcesGenerator(object):
                                              flavor.id,
                                              "default",
                                              network["id"])
+
+                while self.nova.servers.get(server.id).status != 'ACTIVE':
+                    time.sleep(1)
+
                 port_id = server.interface_list()[0].port_id
                 self.neutron.update_floatingip(floatingip_list.pop()['id'],
                                                {'floatingip': {
