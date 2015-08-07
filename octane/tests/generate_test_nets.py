@@ -129,9 +129,13 @@ if __name__ == '__main__':
                         help='admin tenant')
     parser.add_argument('keystone_url', metavar='<keystone_url>', type=str,
                         help='Keystone url')
+    parser.add_argument('--num-routers', type=int, default=3,
+                        help='Number of routers')
+    parser.add_argument('--num-servers', type=int, default=5,
+                        help='Number of servers')
     args = parser.parse_args()
 
     generator = TestResourcesGenerator(args.username, args.password,
                                        args.tenant_name,
                                        args.keystone_url)
-    generator.infra_generator(3, 5)
+    generator.infra_generator(args.num_routers, args.num_servers)
