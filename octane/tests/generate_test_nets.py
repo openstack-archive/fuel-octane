@@ -1,3 +1,4 @@
+import random
 import neutronclient.neutron.client
 import keystoneclient.v2_0.client as ksclient
 from novaclient import client as nova
@@ -105,12 +106,13 @@ class TestResourcesGenerator(object):
         image_id = self.nova.images.list()[0].id
         print flavor.id, image_id
         for net in xrange(networks_count):
-            router = self._create_router("testrouter{0}".format(net))
-            network = self._create_network("testnet{0}".format(net))
+            name = random.randint(0x000000, 0xffffff)
+            router = self._create_router("testrouter{0}".format(name))
+            network = self._create_network("testnet{0}".format(name))
             subnet = self._create_subnet(network, "12.0.{0}.0/24".format(net))
             self._uplink_subnet_to_router(router, subnet)
             for vm in xrange(vms_per_net):
-                server = self._create_server("testserver{0}{1}".format(net,
+                server = self._create_server("testserver{0}-{1}".format(name,
                                                                        vm),
                                              image_id,
                                              flavor.id,
