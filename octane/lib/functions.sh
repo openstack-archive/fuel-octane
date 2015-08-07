@@ -445,7 +445,7 @@ prepare_controller_upgrade() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
     #Required for updating tenant ID in Neutron config on 6.1
-    get_service_tenant_id $1
+    get_service_tenant_id $2
 }
 
 upgrade_node_preprovision() {
