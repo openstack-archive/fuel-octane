@@ -16,6 +16,9 @@ import json
 import logging
 import uuid
 
+from octane import magic_consts
+from octane.commands.upgrade_db import get_controllers
+from octane.util import ssh
 from octane.util import subprocess
 
 from cliff import command as cmd
@@ -43,7 +46,7 @@ def set_cobbler_provision(env_id):
 
 
 def upgrade_env(env_id):
-    target_release = find_release("Ubuntu", "2014.2.2-6.1")
+    target_release = find_release("Ubuntu", "2015.1.0-7.0")
     LOG.info("Cloning env %s for release %s",
              env_id, target_release.data['name'])
     res, _ = subprocess.call(
@@ -75,4 +78,3 @@ class UpgradeEnvCommand(cmd.Command):
     def take_action(self, parsed_args):
         seed_id = upgrade_env(parsed_args.env_id)
         print(seed_id)  # TODO: This shouldn't be needed
-        set_cobbler_provision(seed_id)

@@ -31,16 +31,6 @@ def patch_puppet():
                             cwd=magic_consts.PUPPET_DIR)
 
 
-def install_octane_nailgun():
-    octane_nailgun = os.path.join(magic_consts.CWD, '..', 'octane_nailgun')
-    subprocess.call(["python", "setup.py", "bdist_wheel"], cwd=octane_nailgun)
-    wheel = glob.glob(os.path.join(octane_nailgun, 'dist', '*.whl'))[0]
-    subprocess.call(["dockerctl", "copy", wheel, "nailgun:/root/"])
-    docker.run_in_container("nailgun", ["pip", "install", "-U",
-                                        "/root/" + os.path.basename(wheel)])
-    docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
-
-
 def apply_patches(revert=False):
     for container, prefix, patch in magic_consts.PATCHES:
         docker.apply_patches(container, prefix,
@@ -56,10 +46,8 @@ def prepare():
     octane_fuelclient = os.path.join(magic_consts.CWD, '..',
                                      'octane_fuelclient')
     subprocess.call(["pip", "install", "-U", octane_fuelclient])
-    patch_puppet()
     # From patch_all_containers
     apply_patches()
-    install_octane_nailgun()
 
 
 class PrepareCommand(cmd.Command):
