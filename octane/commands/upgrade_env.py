@@ -38,6 +38,16 @@ def find_release(operating_system, version):
                         operating_system, version)
 
 
+def find_deployable_release(operating_system):
+    for release in release_obj.Release.get_all():
+        if release.data['operating_system'] == operating_system and \
+                release.data['is_deployable']:
+            return release
+    else:
+        raise Exception("Deployable release not found for os %s",
+                        operating_system)
+
+
 def set_cobbler_provision(env_id):
     env = environment_obj.Environment(env_id)
     settings = env.get_settings_data()
@@ -46,7 +56,7 @@ def set_cobbler_provision(env_id):
 
 
 def upgrade_env(env_id):
-    target_release = find_release("Ubuntu", "2015.1.0-7.0")
+    target_release = find_deployable_release("Ubuntu")
     LOG.info("Cloning env %s for release %s",
              env_id, target_release.data['name'])
     res, _ = subprocess.call(
