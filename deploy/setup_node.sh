@@ -14,6 +14,8 @@ MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
 sudo apt-get install -y policykit-1
 sudo service polkitd start
 
+sudo apt-get isntall -y dpkg-dev acl
+
 # Transmission
 sudo apt-get install -y transmission-cli transmission-daemon
 DOWNLOADS_DIR="$HOME/Downloads"
