@@ -126,12 +126,10 @@ def upgrade_node(env_id, node_ids, isolated=False):
     for node in nodes:
         call_role_upgrade_handlers(role_handlers, 'prepare', node, env)
 
-    subprocess.call(
-        ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
     for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "discover")
+        subprocess.call(
+            ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
 
-    env.install_selected_nodes('provision', nodes)
     for node in nodes:  # TODO: create wait_for_nodes method here
         wait_for_node(node, "provisioned")
 
