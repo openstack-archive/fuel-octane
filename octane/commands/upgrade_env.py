@@ -16,8 +16,8 @@ import json
 import logging
 import uuid
 
-from octane import magic_consts
 from octane.commands.upgrade_db import get_controllers
+from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
 
