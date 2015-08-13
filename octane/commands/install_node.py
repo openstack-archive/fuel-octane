@@ -26,13 +26,23 @@ LOG = logging.getLogger(__name__)
 
 
 def update_node_settings(node, disks_fixture, ifaces_fixture):
+    LOG.info("Updating node %s disk settings with fixture: %s",
+             str(node.id), disks_fixture)
     disks = node.get_attribute('disks')
-    new_disks = copy_disks(disks_fixture, disks, 'by_extra')
-    node.upload_node_attributes('disks', new_disks)
+    LOG.info("Original node %s disk settings: %s",
+             str(node.id), disks)
+    new_disks = list(copy_disks(disks_fixture, disks, 'by_extra'))
+    LOG.info("New disk info generated: %s", new_disks)
+    node.upload_node_attribute('disks', new_disks)
 
+    LOG.info("Updating node %s network settings with fixture: %s",
+             str(node.id), ifaces_fixture)
     ifaces = node.get_attribute('interfaces')
-    new_ifaces = copy_ifaces(ifaces_fixture, ifaces)
-    node.upload_node_attributes('interfaces', new_ifaces)
+    LOG.info("Original node %s network settings: %s",
+             str(node.id), ifaces)
+    new_ifaces = list(copy_ifaces(ifaces_fixture, ifaces))
+    LOG.info("New interfaces info generated: %s", new_ifaces)
+    node.upload_node_attribute('interfaces', new_ifaces)
 
 
 def install_node(orig_id, seed_id, node_ids, isolated=False):

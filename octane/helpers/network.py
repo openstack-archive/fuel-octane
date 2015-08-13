@@ -92,10 +92,10 @@ def create_overlay_networks(node, env, provider):
 
 
 def isolate(node, env, deployment_info):
-    if 'controller' not in node.data['management']['roles']:
+    if 'controller' not in node.data['roles']:
         return
     for info in deployment_info:
-        if 'controller' not in node.data['management']['roles']:
+        if 'controller' not in node.data['roles']:
             continue
         actions = ts.get_net_actions(info)
     install_openvswitch(node)
