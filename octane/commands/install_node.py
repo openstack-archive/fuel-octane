@@ -31,7 +31,7 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
     disks = node.get_attribute('disks')
     LOG.info("Original node %s disk settings: %s",
              str(node.id), disks)
-    new_disks = list(copy_disks(disks_fixture, disks, 'by_extra'))
+    new_disks = list(copy_disks(disks_fixture, disks, 'by_name'))
     LOG.info("New disk info generated: %s", new_disks)
     node.upload_node_attribute('disks', new_disks)
 
