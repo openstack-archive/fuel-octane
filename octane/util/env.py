@@ -30,7 +30,8 @@ def get_controllers(env):
     for node in node_obj.Node.get_all():
         if node.data['cluster'] != env.data['id']:
             continue
-        if 'controller' in node.data['roles']:
+        if ('controller' in node.data['roles'] or
+                'controller' in node.data['pending_roles']):
             yield node
             found = True
     if not found:
