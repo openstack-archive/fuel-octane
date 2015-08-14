@@ -2,9 +2,7 @@ import yaml
 import os
 import re
 import argparse
-
-
-BRIDGES = ('br-ex', 'br-mgmt')
+from octane import magic_consts
 
 
 def get_parser():
@@ -70,7 +68,7 @@ def remove_physical_port(host_config, bridge_name):
 
 
 def remove_patch_ports(host_config):
-    for bridge_name in BRIDGES:
+    for bridge_name in magic_consts.BRIDGES:
         host_config = remove_patch_port(host_config, bridge_name)
     return host_config
 
