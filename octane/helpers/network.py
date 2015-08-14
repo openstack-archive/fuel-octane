@@ -89,7 +89,7 @@ def create_overlay_networks(node, hub, env, provider):
 
 def isolate(node, env, deployment_info):
     nodes = list(get_controllers(env))
-    if node not in nodes:
+    if node.id not in [n.id for n in nodes]:
         LOG.info("Node is not a controller: %s", node)
         return
     for info in deployment_info:
