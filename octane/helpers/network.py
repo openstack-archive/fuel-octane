@@ -93,7 +93,7 @@ def isolate(node, env, deployment_info):
         LOG.info("Node is not a controller: %s", node)
         return
     for info in deployment_info:
-        actions = ts.get_net_actions(info)
+        actions = ts.get_actions(info)
         LOG.info("Network scheme actions for node %s: %s",
                  node.id, actions)
     for bridge in magic_consts.BRIDGES:
