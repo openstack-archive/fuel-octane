@@ -106,12 +106,12 @@ def update_env_deployment_info(dirname, action):
 def get_bridge_provider(actions, bridge):
     add_br_actions = [action for action in actions
                       if action.get("action") == "add-br"]
-    providers = [action.get("provider") for action in add_br_actions
+    providers = [action.get("provider", "lnx") for action in add_br_actions
                  if action.get("name") == bridge]
     if len(providers):
         return providers[-1]
     else:
-        return None
+        return 'lnx'
 
 
 def get_patch_port_action(host_config, bridge):

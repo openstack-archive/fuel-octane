@@ -99,7 +99,7 @@ def isolate(node, env, deployment_info):
     for bridge in magic_consts.BRIDGES:
         provider = ts.get_bridge_provider(actions, bridge)
         LOG.info("Found provider for bridge %s: %s", bridge, provider)
-        if bridge == magic_consts.BRIDGES[0]:
+        if provider == 'ovs' and bridge == magic_consts.BRIDGES[0]:
             LOG.info("Installing openvswitch to node %s", node.id)
             install_openvswitch(node)
         create_bridge = create_bridge_providers[provider]
