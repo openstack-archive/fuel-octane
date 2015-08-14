@@ -15,8 +15,8 @@ from fuelclient.objects import environment as environment_obj
 
 from octane.helpers import network
 from octane import magic_consts
-from octane.upgrade_db import get_controllers
-from octane.upgrade_db import parse_crm_status
+from octane.commands.upgrade_db import get_controllers
+from octane.commands.upgrade_db import parse_crm_status
 from octane.util import ssh
 
 
