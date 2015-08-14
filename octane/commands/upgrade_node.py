@@ -42,7 +42,6 @@ class ControllerUpgrade(object):
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
-            transformations.reset_gw_admin(info)
         env.upload_facts('deployment', deployment_info)
 
         tasks = env.get_deployment_tasks()

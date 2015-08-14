@@ -79,33 +79,36 @@ create_bridge_providers = {
 }
 
 
-def create_overlay_networks(node, env, provider):
+def create_overlay_networks(node, hub, env, provider):
     create_tunnel_from_node = create_tunnel_providers[provider]
-    nodes = list(get_controllers(env))
     key = node.data['id']
-    for node_item in nodes:
-        if 'primary_controller' in node_item.data['roles']:
-            hub = node_item
     for bridge in magic_consts.BRIDGES:
         create_tunnel_from_node(node, hub, bridge, key)
         create_tunnel_from_node(hub, node, bridge, key)
 
 
 def isolate(node, env, deployment_info):
-    if 'controller' not in node.data['roles']:
+    nodes = list(get_controllers(env))
+    if node not in nodes:
+        LOG.info("Node is not a controller: %s", node)
         return
     for info in deployment_info:
-        if 'controller' not in node.data['roles']:
-            continue
         actions = ts.get_net_actions(info)
-    install_openvswitch(node)
+        LOG.info("Network scheme actions for node %s: %s",
+                 node.id, actions)
     for bridge in magic_consts.BRIDGES:
-        provider = ts.get_bridge_provider(actions,
-                                          bridge)
+        provider = ts.get_bridge_provider(actions, bridge)
+        LOG.info("Found provider for bridge %s: %s", bridge, provider)
+        if bridge == magic_consts.BRIDGES[0]:
+            LOG.info("Installing openvswitch to node %s", node.id)
+            install_openvswitch(node)
         create_bridge = create_bridge_providers[provider]
         create_bridge(node, bridge)
-
-        create_overlay_networks(node, env, provider)
+        if len(nodes) > 1:
+            hub = nodes[-1] if nodes[0] == node else nodes[0]
+            LOG.info("Creating tun for bridge %s on node %s, hub %s",
+                     bridge, node.id, hub.id)
+            create_overlay_networks(node, hub, env, provider)
 
 
 def list_tunnels(node, bridge):
