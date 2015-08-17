@@ -114,6 +114,10 @@ def get_bridge_provider(actions, bridge):
         return 'lnx'
 
 
+def get_admin_iface(actions):
+    return 'br-fw-admin'
+
+
 def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
     provider = get_bridge_provider(actions, bridge)
