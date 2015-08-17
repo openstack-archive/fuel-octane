@@ -152,13 +152,13 @@ def mysqldump_restore_to_env(env, fname):
 
 def db_sync(env):
     node = next(get_controllers(env))
-    ssh.call(['keystone-manage', 'db_sync'], node=node)
-    ssh.call(['nova-manage', 'db', 'sync'], node=node)
-    ssh.call(['heat-manage', 'db_sync'], node=node)
-    ssh.call(['glance-manage', 'db_sync'], node=node)
+    ssh.call(['keystone-manage', 'db_sync'], node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
+    ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
+    ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
-              'upgrade', 'head'], node=node)
-    ssh.call(['cinder-manage', 'db', 'sync'], node=node)
+              'upgrade', 'head'], node=node, parse_levels='^(?P<level>[A-Z]+)')
+    ssh.call(['cinder-manage', 'db', 'sync'], node=node, parse_levels=True)
 
 
 def upgrade_db(orig_id, seed_id):
