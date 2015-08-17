@@ -19,6 +19,7 @@ import uuid
 from octane.util import subprocess
 
 from cliff import command as cmd
+from fuelclient.objects import environment
 from zabbix_client import ZabbixServerProxy
 
 LOG = logging.getLogger(__name__)
@@ -37,8 +38,10 @@ def get_host_snmp_ip(client, host_id):
 
 
 def get_zabbix_url(env_id):
-    # FIXME remove hardcode
-    return 'http://172.16.43.228/zabbix'
+    env = environment.Environment(env_id)
+    data = env.get_network_data()
+    ip = data['public_vip']
+    return 'http://{0}/zabbix'.format(ip)
 
 
 def get_zabbix_credentials(env_id):
@@ -60,9 +63,9 @@ def transfer_zabbix_monitoring_emc(orig_env_id, seed_env_id):
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
-    configuration_string = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
-    print(configuration_string)
-    # update seed env
+    settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+    return {'hosts': {'value': settings},
+            'metadata': {'enabled': True}}
 
 
 def transfer_zabbix_monitoring_extreme_networks(orig_env_id, seed_env_id):
@@ -73,9 +76,9 @@ def transfer_zabbix_monitoring_extreme_networks(orig_env_id, seed_env_id):
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
-    configuration_string = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
-    print(configuration_string)
-    # update seed env
+    settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+    return {'hosts': {'value': settings},
+            'metadata': {'enabled': True}}
 
 
 class UpgradePluginCommand(cmd.Command):
@@ -105,11 +108,17 @@ class UpgradePluginCommand(cmd.Command):
     def take_action(self, parsed_args):
         orig_env_id = parsed_args.orig_env
         seed_env_id = parsed_args.seed_env
+        attrs = {}
 
         if parsed_args.zabbix_snmptrap:
-            transfer_zabbix_snmptrap(orig_env_id, seed_env_id)
-        if parsed_args.zabbix_monitoring_emc:
-            transfer_zabbix_monitoring_emc(orig_env_id, seed_env_id)
-        if parsed_args.zabbix_monitoring_extreme_networks:
-            transfer_zabbix_monitoring_extreme_networks(
+            attrs['zabbix_snmptrapd'] = transfer_zabbix_snmptrap(
                 orig_env_id, seed_env_id)
+        if parsed_args.zabbix_monitoring_emc:
+            attrs['zabbix_monitoring_emc'] = transfer_zabbix_monitoring_emc(
+                orig_env_id, seed_env_id)
+        if parsed_args.zabbix_monitoring_extreme_networks:
+            attrs['zabbix_monitoring_extreme_networks'] = \
+                transfer_zabbix_monitoring_extreme_networks(orig_env_id,
+                                                            seed_env_id)
+        seed_env = environment.Environment(seed_env_id)
+        seed_env.update_attributes({'editable': attrs})
