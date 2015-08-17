@@ -41,9 +41,7 @@ case $1 in
         upgrade_cics $2 $3
         ;;
     upgrade-db)
-        [ -z "$2" ] && die "$(usage)"
-        [ -z "$3" ] && die "$(usage)"
-        upgrade_db $2 $3
+        pycmd "$@"
         ;;
     upgrade-ceph)
         [ -z "$2" ] && die "$(usage)"

@@ -524,23 +524,6 @@ upgrade_cics() {
     list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
 }
 
-upgrade_db() {
-    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
-    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    local method=${3:-mysqldump}
-    delete_fuel_resources $2
-    sleep 7
-    set_pssh_hosts $1 && {
-        disable_apis
-    } && unset PSSH_RUN
-    set_pssh_hosts $2 && {
-        stop_corosync_services
-        stop_upstart_services
-    } && unset PSSH_RUN
-    ${method}_from_env $1
-    ${method}_restore_to_env $2
-}
-
 upgrade_ceph() {
     [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
     [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
