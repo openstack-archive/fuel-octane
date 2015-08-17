@@ -12,15 +12,16 @@
 
 from __future__ import print_function
 
-import json
 import logging
+import re
 import uuid
 
-from octane.util import subprocess
+from octane.commands.upgrade_db import get_controllers
+from octane.util import ssh
 
 from cliff import command as cmd
 from fuelclient.objects import environment
-from zabbix_client import ZabbixServerProxy
+import zabbix_client
 
 LOG = logging.getLogger(__name__)
 
@@ -37,28 +38,32 @@ def get_host_snmp_ip(client, host_id):
                                     filter={'type': 2})[0]['ip']
 
 
-def get_zabbix_url(env_id):
-    env = environment.Environment(env_id)
+def get_zabbix_url(env):
     data = env.get_network_data()
     ip = data['public_vip']
     return 'http://{0}/zabbix'.format(ip)
 
 
-def get_zabbix_credentials(env_id):
+def get_zabbix_credentials(env):
     # FIXME remove hardcode
     return 'admin', 'Vdzhw1OY'
 
 
-def transfer_zabbix_snmptrap(orig_env_id, seed_env_id):
+def transfer_zabbix_snmptrap(orig_env):
     # go to controller and parse /etc/snmp/snmptrapd.conf
     # ACCESS CONTROL sections
-    pass
+    node = next(get_controllers(orig_env))
+    data, _ = ssh.call(['cat', '/etc/snmp/snmptrapd.conf'], stdout=ssh.PIPE, node=node)
+    template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
+    match = template.search(data)
+    return {'community': {'value': match.group(1)},
+            'metadata': {'enabled': True}}
 
 
-def transfer_zabbix_monitoring_emc(orig_env_id, seed_env_id):
-    url = get_zabbix_url(orig_env_id)
-    user, password = get_zabbix_credentials(orig_env_id)
-    client = ZabbixServerProxy(url)
+def transfer_zabbix_monitoring_emc(orig_env):
+    url = get_zabbix_url(orig_env)
+    user, password = get_zabbix_credentials(orig_env)
+    client = zabbix_client.ZabbixServerProxy(url)
     client.user.login(user=user, password=password)
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
     for host in hosts:
@@ -68,10 +73,10 @@ def transfer_zabbix_monitoring_emc(orig_env_id, seed_env_id):
             'metadata': {'enabled': True}}
 
 
-def transfer_zabbix_monitoring_extreme_networks(orig_env_id, seed_env_id):
-    url = get_zabbix_url(orig_env_id)
-    user, password = get_zabbix_credentials(orig_env_id)
-    client = ZabbixServerProxy(url)
+def transfer_zabbix_monitoring_extreme_networks(orig_env):
+    url = get_zabbix_url(orig_env)
+    user, password = get_zabbix_credentials(orig_env)
+    client = zabbix_client.ZabbixServerProxy(url)
     client.user.login(user=user, password=password)
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
     for host in hosts:
@@ -106,19 +111,18 @@ class UpgradePluginCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        orig_env_id = parsed_args.orig_env
-        seed_env_id = parsed_args.seed_env
+        orig_env = environment.Environment(parsed_args.orig_env)
+        seed_env = environment.Environment(parsed_args.seed_env)
         attrs = {}
 
         if parsed_args.zabbix_snmptrap:
             attrs['zabbix_snmptrapd'] = transfer_zabbix_snmptrap(
-                orig_env_id, seed_env_id)
+                orig_env)
         if parsed_args.zabbix_monitoring_emc:
             attrs['zabbix_monitoring_emc'] = transfer_zabbix_monitoring_emc(
-                orig_env_id, seed_env_id)
+                orig_env)
         if parsed_args.zabbix_monitoring_extreme_networks:
             attrs['zabbix_monitoring_extreme_networks'] = \
-                transfer_zabbix_monitoring_extreme_networks(orig_env_id,
-                                                            seed_env_id)
-        seed_env = environment.Environment(seed_env_id)
+                transfer_zabbix_monitoring_extreme_networks(orig_env)
+
         seed_env.update_attributes({'editable': attrs})
