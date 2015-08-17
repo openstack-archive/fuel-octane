@@ -47,7 +47,7 @@ def create_lnx_bridge(node, bridge):
     ssh.call(cmd, node=node)
 
 
-def create_tunnel_from_node_ovs(local, remote, bridge, key):
+def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
     gre_port = '%s--gre-%s' % (bridge, remote.data['ip'])
     cmd = ['ovs-vsctl', 'add-port', gre_port,
            '--', 'set', 'Interface', gre_port,
@@ -57,15 +57,18 @@ def create_tunnel_from_node_ovs(local, remote, bridge, key):
     ssh.call(cmd, node=local)
 
 
-def create_tunnel_from_node_lnx(local, remote, bridge, key):
-    gre_port = '%s--gre-%s' % (bridge, remote.data['ip'])
+def create_tunnel_from_node_lnx(local, remote, bridge, key, admin_iface):
+    gre_port = 'gre%s' % (key)
     cmd = ['ip', 'tunnel', 'add', gre_port,
            'mode', 'gre',
            'remote', remote.data['ip'],
            'local', local.data['ip'],
-           'ttl', '255']
+           'ttl', '255',
+           'dev', admin_iface]
     ssh.call(cmd, node=local)
-    cmd = ['brctl', 'addif', gre_port, bridge]
+    cmd = ['ip', 'link', 'set', 'up', 'dev', gre_port]
+    ssh.call(cmd, node=local)
+    cmd = ['brctl', 'addif', bridge, gre_port]
     ssh.call(cmd, node=local)
 
 
@@ -79,19 +82,7 @@ create_bridge_providers = {
 }
 
 
-def create_overlay_networks(node, hub, env, provider):
-    create_tunnel_from_node = create_tunnel_providers[provider]
-    key = node.data['id']
-    for bridge in magic_consts.BRIDGES:
-        create_tunnel_from_node(node, hub, bridge, key)
-        create_tunnel_from_node(hub, node, bridge, key)
-
-
-def isolate(node, env, deployment_info):
-    nodes = list(get_controllers(env))
-    if node.id not in [n.id for n in nodes]:
-        LOG.info("Node is not a controller: %s", node)
-        return
+def create_bridges(node, env, deployment_info):
     for info in deployment_info:
         actions = ts.get_actions(info)
         LOG.info("Network scheme actions for node %s: %s",
@@ -104,11 +95,58 @@ def isolate(node, env, deployment_info):
             install_openvswitch(node)
         create_bridge = create_bridge_providers[provider]
         create_bridge(node, bridge)
-        if len(nodes) > 1:
-            hub = nodes[-1] if nodes[0] == node else nodes[0]
-            LOG.info("Creating tun for bridge %s on node %s, hub %s",
-                     bridge, node.id, hub.id)
-            create_overlay_networks(node, hub, env, provider)
+
+
+def create_overlay_networks(node, remote, env, deployment_info, key=0):
+    """Create GRE tunnels between a node and another node in the environment
+    for all bridges listed in constant BRIDGES.
+
+    :param: node
+    :param: remote
+    :param: env
+    :param: deployment_info
+    :param: key
+    """
+
+    for info in deployment_info:
+        actions = ts.get_actions(info)
+    for bridge in magic_consts.BRIDGES:
+        provider = ts.get_bridge_provider(actions, bridge)
+        admin_iface = ts.get_admin_iface(actions)
+        create_tunnel_from_node = create_tunnel_providers[provider]
+        LOG.info("Creating tun for bridge %s on node %s, remote %s",
+                 bridge, node.id, remote.id)
+        create_tunnel_from_node(node, remote, bridge, key, admin_iface)
+
+
+def isolate(node, env, deployment_info):
+    """Isolate a given node in the environment from networks connected to
+    bridges from maigc_consts.BRIDGES list. Create bridges on the node and
+    create tunnels that constitute overlay network on top of the admin network.
+    It ensures that nodes are connected during the deployment, as required.
+
+    If there's only 1 controller node in the environment, there's no need to
+    create any tunnels.
+
+    :param: node
+    :param: env
+    :param: deployment_info
+    """
+
+    nodes = list(get_controllers(env))
+    if node.id not in [n.id for n in nodes]:
+        LOG.info("Node is not a controller: %s", node)
+        return
+    create_bridges(node, env, deployment_info)
+    if len(nodes) > 1:
+        nodes.sort(key=lambda node: node.id)
+        if node.id == nodes[0].id:
+            for node in nodes[1:]:
+                create_overlay_networks(nodes[0], node, env, deployment_info,
+                                        node.id)
+        else:
+            create_overlay_networks(node, nodes[0], env, deployment_info,
+                                    node.id)
 
 
 def list_tunnels(node, bridge):
