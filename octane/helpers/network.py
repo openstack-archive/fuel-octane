@@ -49,7 +49,7 @@ def create_lnx_bridge(node, bridge):
 
 def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
     gre_port = '%s--gre-%s' % (bridge, remote.data['ip'])
-    cmd = ['ovs-vsctl', 'add-port', gre_port,
+    cmd = ['ovs-vsctl', 'add-port', bridge, gre_port,
            '--', 'set', 'Interface', gre_port,
            'type=gre',
            'options:remote_ip=%s' % (remote.data['ip'],),
