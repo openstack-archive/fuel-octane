@@ -58,15 +58,16 @@ def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
 
 
 def create_tunnel_from_node_lnx(local, remote, bridge, key, admin_iface):
-    gre_port = 'gre%s' % (key)
-    cmd = ['ip', 'tunnel', 'add', gre_port,
-           'mode', 'gre',
+    gre_port = 'gre%s-%s' % (remote.id, key)
+    cmd = ['ip', 'link', 'add', gre_port,
+           'type', 'gretap',
            'remote', remote.data['ip'],
            'local', local.data['ip'],
-           'ttl', '255',
-           'dev', admin_iface]
+           'key', str(key)]
     ssh.call(cmd, node=local)
     cmd = ['ip', 'link', 'set', 'up', 'dev', gre_port]
+    ssh.call(cmd, node=local)
+    cmd = ['ip', 'link', 'set', 'mtu', '1450', 'dev', gre_port]
     ssh.call(cmd, node=local)
     cmd = ['brctl', 'addif', bridge, gre_port]
     ssh.call(cmd, node=local)
@@ -116,7 +117,9 @@ def create_overlay_networks(node, remote, env, deployment_info, key=0):
         create_tunnel_from_node = create_tunnel_providers[provider]
         LOG.info("Creating tun for bridge %s on node %s, remote %s",
                  bridge, node.id, remote.id)
-        create_tunnel_from_node(node, remote, bridge, key, admin_iface)
+        create_tunnel_from_node(node, remote, bridge, key,
+                                admin_iface)
+        key += 1
 
 
 def isolate(node, env, deployment_info):
