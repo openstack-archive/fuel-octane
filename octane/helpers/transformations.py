@@ -125,15 +125,25 @@ def lnx_add_port(actions, bridge):
 def ovs_add_patch_ports(actions, bridge):
     for action in actions:
         if (action.get("action") == "add-patch" and
-                bridge in action.get("bridges")):
-            bridges = action.get("bridges")
+                bridge in action.get("bridges", [])):
+            bridges = action.get("bridges", [])
+            tags = action.get("tags", ["", ""])
+            trunks = action.get("trunks", [])
+    for tag in tags:
+        if tag:
+            tag = "tag={0}".format(str(tag))
+    trunk_str = ",".join(trunks)
+    if trunk_str:
+        trunk_param = "trunks=[{0}]".format(trunk_str)
     if bridges:
-        return ["ovs-vsctl add-port {0} {0}--{1} "
+        return ["ovs-vsctl add-port {0} {0}--{1} {3} {4}"
                 "-- set interface {0}--{1} type=patch "
-                "options:peer={1}--{0}".format(bridges[0], bridges[1]),
-                "ovs-vsctl add-port {1} {1}--{0} "
+                "options:peer={1}--{0}"
+                .format(bridges[0], bridges[1], tags[0], trunk_param),
+                "ovs-vsctl add-port {1} {1}--{0} {3} {4}"
                 "-- set interface {1}--{0} type=patch "
-                "options:peer={0}--{1}".format(bridges[0], bridges[1])]
+                "options:peer={0}--{1}"
+                .format(bridges[0], bridges[1], tags[1], trunk_param)]
 
 
 def main():

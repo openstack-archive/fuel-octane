@@ -1,3 +1,4 @@
+import random
 import time
 
 import neutronclient.neutron.client
@@ -123,12 +124,13 @@ class TestResourcesGenerator(object):
         floatingip_list = self.neutron.list_floatingips()['floatingips']
 
         for net in xrange(networks_count):
-            router = self._create_router("testrouter{0}".format(net))
-            network = self._create_network("testnet{0}".format(net))
+            name = random.randint(0x000000, 0xffffff)
+            router = self._create_router("testrouter{0}".format(name))
+            network = self._create_network("testnet{0}".format(name))
             subnet = self._create_subnet(network, "12.0.{0}.0/24".format(net))
             self._uplink_subnet_to_router(router, subnet)
             for vm in xrange(vms_per_net):
-                server = self._create_server("testserver{0}{1}".format(net,
+                server = self._create_server("testserver{0}-{1}".format(name,
                                                                        vm),
                                              image_id,
                                              flavor.id,
@@ -155,9 +157,13 @@ if __name__ == '__main__':
                         help='admin tenant')
     parser.add_argument('keystone_url', metavar='<keystone_url>', type=str,
                         help='Keystone url')
+    parser.add_argument('--num-routers', type=int, default=3,
+                        help='Number of routers')
+    parser.add_argument('--num-servers', type=int, default=5,
+                        help='Number of servers')
     args = parser.parse_args()
 
     generator = TestResourcesGenerator(args.username, args.password,
                                        args.tenant_name,
                                        args.keystone_url)
-    generator.infra_generator(3, 5)
+    generator.infra_generator(args.num_routers, args.num_servers)
