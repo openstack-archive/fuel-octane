@@ -74,7 +74,7 @@ def remove_patch_ports(host_config):
 
 
 def remove_physical_ports(host_config):
-    for bridge_name in BRIDGES:
+    for bridge_name in magic_consts.BRIDGES:
         host_config = remove_physical_port(host_config, bridge_name)
     return host_config
 
