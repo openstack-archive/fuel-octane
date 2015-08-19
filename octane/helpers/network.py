@@ -140,8 +140,8 @@ def isolate(node, env, deployment_info):
     if node.id not in [n.id for n in nodes]:
         LOG.info("Node is not a controller: %s", node)
         return
-    create_bridges(node, env, deployment_info)
     if len(nodes) > 1:
+        create_bridges(node, env, deployment_info)
         nodes.sort(key=lambda node: node.id)
         if node.id == nodes[0].id:
             for node in nodes[1:]:
