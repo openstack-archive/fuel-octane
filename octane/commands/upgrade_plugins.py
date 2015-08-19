@@ -136,7 +136,7 @@ class UpgradePluginsCommand(cmd.Command):
     """Transfer settings for specified plugin from ORIG_ENV to SEED_ENV"""
 
     def get_parser(self, prog_name):
-        parser = super(UpgradePluginCommand, self).get_parser(prog_name)
+        parser = super(UpgradePluginsCommand, self).get_parser(prog_name)
         parser.add_argument(
             'orig_env',
             type=int,
