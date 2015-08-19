@@ -15,6 +15,7 @@ from __future__ import print_function
 import logging
 import re
 import uuid
+import yaml
 
 from octane.commands.upgrade_db import get_controllers
 from octane.util import ssh
@@ -44,15 +45,39 @@ def get_zabbix_url(env):
     return 'http://{0}/zabbix'.format(ip)
 
 
+def get_astute_yaml(env):
+    node = next(get_controllers(env))
+    data, _ = ssh.call(['cat', '/etc/astute.yaml'], stdout=ssh.PIPE, node=node)
+    return yaml.load(data)
+
+
 def get_zabbix_credentials(env):
-    # FIXME remove hardcode
-    return 'admin', 'Vdzhw1OY'
+    astute = get_astute_yaml(env)
+    return astute['zabbix']['username'], astute['zabbix']['password']
 
 
-def transfer_zabbix_snmptrap(orig_env):
+def zabbix_monitoring_settings(env):
+    astute = get_astute_yaml(env)
+    return {'username': {'value': astute['zabbix']['username']},
+            'password': {'value': astute['zabbix']['password']},
+            'db_password': {'value': astute['zabbix']['db_password']},
+            'metadata': {'enabled': astute['zabbix']['enabled']}}
+
+
+def emc_vnx_settings(env):
+    astute = get_astute_yaml(env)
+    return {'emc_sp_a_ip': {'value': astute['storage']['emc_sp_a_ip']},
+            'emc_sp_b_ip': {'value': astute['storage']['emc_sp_b_ip']},
+            'emc_password': {'value': astute['storage']['emc_password']},
+            'emc_username': {'value': astute['storage']['emc_username']},
+            'emc_pool_name': {'value': astute['storage']['emc_pool_name']},
+            'metadata': {'enabled': astute['storage']['volumes_emc']}}
+
+
+def zabbix_snmptrapd_settings(env):
     # go to controller and parse /etc/snmp/snmptrapd.conf
     # ACCESS CONTROL sections
-    node = next(get_controllers(orig_env))
+    node = next(get_controllers(env))
     data, _ = ssh.call(['cat', '/etc/snmp/snmptrapd.conf'], stdout=ssh.PIPE, node=node)
     template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
     match = template.search(data)
@@ -60,9 +85,9 @@ def transfer_zabbix_snmptrap(orig_env):
             'metadata': {'enabled': True}}
 
 
-def transfer_zabbix_monitoring_emc(orig_env):
-    url = get_zabbix_url(orig_env)
-    user, password = get_zabbix_credentials(orig_env)
+def zabbix_monitoring_emc_settings(env):
+    url = get_zabbix_url(env)
+    user, password = get_zabbix_credentials(env)
     client = zabbix_client.ZabbixServerProxy(url)
     client.user.login(user=user, password=password)
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
@@ -73,9 +98,9 @@ def transfer_zabbix_monitoring_emc(orig_env):
             'metadata': {'enabled': True}}
 
 
-def transfer_zabbix_monitoring_extreme_networks(orig_env):
-    url = get_zabbix_url(orig_env)
-    user, password = get_zabbix_credentials(orig_env)
+def zabbix_monitoring_extreme_networks_settings(env):
+    url = get_zabbix_url(env)
+    user, password = get_zabbix_credentials(env)
     client = zabbix_client.ZabbixServerProxy(url)
     client.user.login(user=user, password=password)
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
@@ -86,43 +111,52 @@ def transfer_zabbix_monitoring_extreme_networks(orig_env):
             'metadata': {'enabled': True}}
 
 
+def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
+    orig_env = environment.Environment(orig_env_id)
+    seed_env = environment.Environment(seed_env_id)
+    attrs = {}
+    for plugin_name in plugins:
+        plugin = plugin_name.replace('-', '_')
+        attrs[plugin] = PLUGINS[plugin_name](orig_env)
+        print(plugin)
+    seed_env.update_attributes({'editable': attrs})
+
+
+PLUGINS = {
+    'zabbix-monitoring': zabbix_monitoring_settings,
+    'emc-vnx': emc_vnx_settings,
+    'zabbix-snmptrapd': zabbix_snmptrapd_settings,
+    'zabbix-monitoring-emc': zabbix_monitoring_emc_settings,
+    'zabbix-monitoring-extreme-networks': \
+         zabbix_monitoring_extreme_networks_settings,
+}
+
+
 class UpgradePluginCommand(cmd.Command):
     """Transfer settings for specified plugin from ORIG_ENV to SEED_ENV"""
 
     def get_parser(self, prog_name):
         parser = super(UpgradePluginCommand, self).get_parser(prog_name)
         parser.add_argument(
-            'orig_env', type=int, metavar='ORIG_ID',
+            'orig_env',
+            type=int,
+            metavar='ORIG_ID',
             help="ID of original environment")
         parser.add_argument(
-            'seed_env', type=int, metavar='SEED_ID',
+            'seed_env',
+            type=int,
+            metavar='SEED_ID',
             help="ID of seed environment")
+        parser.add_argument(
+            'plugins',
+            metavar='PLUGINS',
+            choices=PLUGINS,
+            nargs="+",
+            help="Choose from {0}".format(PLUGINS.keys()))
 
-        parser.add_argument(
-            '--zabbix-snmptrap', action='store_true',
-            help="Transfer settings for zabbix-snmptrapd plugin")
-        parser.add_argument(
-            '--zabbix-monitoring-emc', action='store_true',
-            help="Transfer settings for zabbix-monitoring-emc plugin")
-        parser.add_argument(
-            '--zabbix-monitoring-extreme-networks', action='store_true',
-            help="Transfer settings for zabbix-monitoring-extreme-networks"
-                 "plugins")
         return parser
 
     def take_action(self, parsed_args):
-        orig_env = environment.Environment(parsed_args.orig_env)
-        seed_env = environment.Environment(parsed_args.seed_env)
-        attrs = {}
-
-        if parsed_args.zabbix_snmptrap:
-            attrs['zabbix_snmptrapd'] = transfer_zabbix_snmptrap(
-                orig_env)
-        if parsed_args.zabbix_monitoring_emc:
-            attrs['zabbix_monitoring_emc'] = transfer_zabbix_monitoring_emc(
-                orig_env)
-        if parsed_args.zabbix_monitoring_extreme_networks:
-            attrs['zabbix_monitoring_extreme_networks'] = \
-                transfer_zabbix_monitoring_extreme_networks(orig_env)
-
-        seed_env.update_attributes({'editable': attrs})
+        transfer_plugins_settings(parsed_args.orig_env,
+                                  parsed_args.seed_env,
+                                  parsed_args.plugins)
