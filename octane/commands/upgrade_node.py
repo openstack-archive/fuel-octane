@@ -17,6 +17,7 @@ import time
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import ssh
 from octane.util import subprocess
 
 from cliff import command as cmd
@@ -24,6 +25,38 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 LOG = logging.getLogger(__name__)
+
+
+def parse_tenant_get(output, field):
+    for line in output.splitlines()[3:-1]:
+        parts = line.split()
+        if parts[1] == field:
+            return parts[3]
+    raise Exception(
+        "Field {0} not found in output:\n{1}".format(field, output))
+
+
+def get_service_tenant_id(node):
+    fname = os.path.join(
+        magic_consts.FUEL_CACHE,
+        "env-{0}-service-tenant-id".format(node.data['cluster']),
+    )
+    if os.path.exists(fname):
+        with open(fname) as f:
+            return f.readline()
+
+    tenant_out, _ = ssh.call(
+        [
+            'sh', '-c',
+            '. /root/openrc; keystone tenant-get services',
+        ],
+        node=node,
+        stdout=ssh.PIPE,
+    )
+    tenant_id = parse_tenant_get(tenant_out, 'id')
+    with open(fname, 'w') as f:
+        f.write(tenant_id)
+    return tenant_id
 
 
 class UpgradeHandler(object):
@@ -46,6 +79,14 @@ class UpgradeHandler(object):
 
 
 class ControllerUpgrade(UpgradeHandler):
+    def __init__(self, node, env, isolated):
+        super(ControllerUpgrade, self).__init__(node, env, isolated)
+        self.service_tenant_id = None
+        self.gateway = None
+
+    def preupgrade(self):
+        self.service_tenant_id = get_service_tenant_id(self.node)
+
     def predeploy(self):
         deployment_info = self.env.get_default_facts(
             'deployment', nodes=[self.node.data['id']])
@@ -61,6 +102,8 @@ class ControllerUpgrade(UpgradeHandler):
         for info in deployment_info:
             if self.isolated:
                 transformations.remove_physical_ports(info)
+                endpoints = deployment_info[0]["network_scheme"]["endpoints"]
+                self.gateway = endpoints["br-ex"]["gateway"]
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
@@ -70,6 +113,23 @@ class ControllerUpgrade(UpgradeHandler):
         tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
         self.env.update_deployment_tasks(tasks)
+
+    def postdeploy(self):
+        # From neutron_update_admin_tenant_id
+        sftp = ssh.sftp(self.node)
+        with ssh.update_file(sftp, '/etc/neutron/neutron.conf') as (old, new):
+            for line in old:
+                if line.startswith('nova_admin_tenant_id'):
+                    new.write('nova_admin_tenant_id = {0}\n'.format(
+                        self.service_tenant_id))
+                else:
+                    new.write(line)
+        ssh.call(['restart', 'neutron-server'], node=self.node)
+        if self.isolated:
+            # From restore_default_gateway
+            ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
+            ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],
+                     node=self.node)
 
 # TODO: use stevedore for this
 role_upgrade_handlers = {
