@@ -11,6 +11,7 @@
 # under the License.
 
 import logging
+import os
 import time
 
 from octane.helpers import tasks as tasks_helpers
@@ -34,6 +35,11 @@ class ControllerUpgrade(object):
             # From backup_deployment_info
             env.write_facts_to_dir('deployment', deployment_info,
                                    directory=magic_consts.FUEL_CACHE)
+            backup_path = os.path.join(
+                magic_consts.FUEL_CACHE,
+                "deployment_{0}".format(node.data['cluster']),
+            )
+            os.rename(backup_path, backup_path + '.orig')
         for info in deployment_info:
             if isolated:
                 transformations.remove_physical_ports(info)
