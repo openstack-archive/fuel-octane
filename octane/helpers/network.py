@@ -48,7 +48,19 @@ def create_lnx_bridge(node, bridge):
 
 
 def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
+    def check_tunnel(node, bridge, port):
+        cmd = ['sh', '-c',
+               'ovs-vsctl list-ports %s | grep -q %s' % (bridge, port)]
+        try:
+            ssh.call(cmd, node=node)
+        except subprocess.CalledProcessError:
+            return False
+        else:
+            return True
+
     gre_port = '%s--gre-%s' % (bridge, remote.data['ip'])
+    if check_tunnel(local, bridge, gre_port):
+        return
     cmd = ['ovs-vsctl', 'add-port', bridge, gre_port,
            '--', 'set', 'Interface', gre_port,
            'type=gre',
@@ -58,19 +70,30 @@ def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
 
 
 def create_tunnel_from_node_lnx(local, remote, bridge, key, admin_iface):
+    def check_tunnel(node, port):
+        cmd = ['sh', '-c',
+               'ip link show dev %s' % (bridge, port)]
+        try:
+            ssh.call(cmd, node=node)
+        except subprocess.CalledProcessError:
+            return False
+        else:
+            return True
+
+    if check_tunnel(local, gre_port):
+        return
     gre_port = 'gre%s-%s' % (remote.id, key)
-    cmd = ['ip', 'link', 'add', gre_port,
-           'type', 'gretap',
-           'remote', remote.data['ip'],
-           'local', local.data['ip'],
-           'key', str(key)]
-    ssh.call(cmd, node=local)
-    cmd = ['ip', 'link', 'set', 'up', 'dev', gre_port]
-    ssh.call(cmd, node=local)
-    cmd = ['ip', 'link', 'set', 'mtu', '1450', 'dev', gre_port]
-    ssh.call(cmd, node=local)
-    cmd = ['brctl', 'addif', bridge, gre_port]
-    ssh.call(cmd, node=local)
+    cmds.append(['ip', 'link', 'add', gre_port,
+                 'type', 'gretap',
+                 'remote', remote.data['ip'],
+                 'local', local.data['ip'],
+                 'key', str(key)])
+    cmds.append(['ip', 'link', 'set', 'up', 'dev', gre_port])
+    cmds.append(['ip', 'link', 'set', 'mtu', '1450', 'dev', gre_port])
+    cmds.append(['ip', 'link', 'set', 'up', 'dev', bridge])
+    cmds.append(['brctl', 'addif', bridge, gre_port])
+    for cmd in cmds:
+        ssh.call(cmd, node=local)
 
 
 create_tunnel_providers = {
@@ -142,13 +165,20 @@ def isolate(node, env, deployment_info):
         return
     if len(nodes) > 1:
         create_bridges(node, env, deployment_info)
-        nodes.sort(key=lambda node: node.id)
-        if node.id == nodes[0].id:
-            for node in nodes[1:]:
-                create_overlay_networks(nodes[0], node, env, deployment_info,
-                                        node.id)
-        else:
-            create_overlay_networks(node, nodes[0], env, deployment_info,
+        ready_nodes = [n for n in nodes if 'controller' in n.data['roles']]
+        ready_nodes.sort(key=lambda n: n.id)
+        pending_nodes = [n for n in nodes
+                         if 'controllers' in n.data['pending_roles']]
+        for node in pending_nodes:
+            create_overlay_networks(ready_nodes[0],
+                                    node,
+                                    env,
+                                    deployment_info,
+                                    node.id)
+            create_overlay_networks(node,
+                                    ready_nodes[0],
+                                    env,
+                                    deployment_info,
                                     node.id)
 
 
