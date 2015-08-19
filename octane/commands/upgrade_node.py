@@ -39,6 +39,7 @@ class ControllerUpgrade(object):
         for info in deployment_info:
             if isolated:
                 transformations.remove_physical_ports(info)
+                transformations.reset_gw_admin(info)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
