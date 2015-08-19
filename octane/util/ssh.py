@@ -80,8 +80,11 @@ def _get_client(node):
 @_get_client.check
 def _check_client(node, client):
     t = client.get_transport()
-    if t and t.is_active():
-        return True
+    if t:
+        # Send normal keepalive packet, but wait for result to let socket die
+        t.global_request('keepalive@lag.net', wait=True)
+        if t.is_active():
+            return True
     LOG.info("SSH connection to node %s died, reconnecting", node.data['id'])
     return False
 
