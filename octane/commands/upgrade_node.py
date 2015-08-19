@@ -26,32 +26,50 @@ from fuelclient.objects import node as node_obj
 LOG = logging.getLogger(__name__)
 
 
-class ControllerUpgrade(object):
-    @staticmethod
-    def predeploy(node, env, isolated):
-        deployment_info = env.get_default_facts(
-            'deployment', nodes=[node.data['id']])
-        if isolated:
+class UpgradeHandler(object):
+    def __init__(self, node, env, isolated):
+        self.node = node
+        self.env = env
+        self.isolated = isolated
+
+    def preupgrade(self):
+        raise NotImplementedError('preupgrade')
+
+    def prepare(self):
+        raise NotImplementedError('prepare')
+
+    def predeploy(self):
+        raise NotImplementedError('predeploy')
+
+    def postdeploy(self):
+        raise NotImplementedError('postdeploy')
+
+
+class ControllerUpgrade(UpgradeHandler):
+    def predeploy(self):
+        deployment_info = self.env.get_default_facts(
+            'deployment', nodes=[self.node.data['id']])
+        if self.isolated:
             # From backup_deployment_info
-            env.write_facts_to_dir('deployment', deployment_info,
-                                   directory=magic_consts.FUEL_CACHE)
+            self.env.write_facts_to_dir('deployment', deployment_info,
+                                        directory=magic_consts.FUEL_CACHE)
             backup_path = os.path.join(
                 magic_consts.FUEL_CACHE,
-                "deployment_{0}".format(node.data['cluster']),
+                "deployment_{0}".format(self.node.data['cluster']),
             )
             os.rename(backup_path, backup_path + '.orig')
         for info in deployment_info:
-            if isolated:
+            if self.isolated:
                 transformations.remove_physical_ports(info)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
             transformations.reset_gw_admin(info)
-        env.upload_facts('deployment', deployment_info)
+        self.env.upload_facts('deployment', deployment_info)
 
-        tasks = env.get_deployment_tasks()
+        tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
-        env.update_deployment_tasks(tasks)
+        self.env.update_deployment_tasks(tasks)
 
 # TODO: use stevedore for this
 role_upgrade_handlers = {
@@ -59,24 +77,26 @@ role_upgrade_handlers = {
 }
 
 
-def get_role_upgrade_handlers(roles):
+def get_role_upgrade_handlers(node, env, isolated):
     role_handlers = []
-    for role in roles:
+    for role in node.data['roles']:
         try:
-            role_handlers.append(role_upgrade_handlers[role])
+            cls = role_upgrade_handlers[role]
         except KeyError:
             LOG.warn("Role '%s' is not supported, skipping")
+        else:
+            role_handlers.append(cls(node, env, isolated))
     return role_handlers
 
 
-def call_role_upgrade_handlers(handlers, method, node, env, **kwargs):
-    for handler in handlers[node]:
-        try:
-            meth = getattr(handler, method)
-        except AttributeError:
-            LOG.debug("No '%s' method in handler %s", method, handler.__name__)
-        else:
-            meth(node, env, **kwargs)
+def call_role_upgrade_handlers(handlers, method):
+    for node_handlers in handlers.values():
+        for handler in node_handlers:
+            try:
+                getattr(handler, method)()
+            except NotImplementedError:
+                LOG.debug("Method '%s' not implemented in handler %s",
+                          method, type(handler).__name__)
 
 
 def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
@@ -123,12 +143,10 @@ def upgrade_node(env_id, node_ids, isolated=False):
 
     role_handlers = {}
     for node in nodes:
-        role_handlers[node] = get_role_upgrade_handlers(node.data['roles'])
+        role_handlers[node] = get_role_upgrade_handlers(node, env, isolated)
 
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'preupgrade', node, env)
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'prepare', node, env)
+    call_role_upgrade_handlers(role_handlers, 'preupgrade')
+    call_role_upgrade_handlers(role_handlers, 'prepare')
 
     subprocess.call(
         ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
@@ -139,15 +157,13 @@ def upgrade_node(env_id, node_ids, isolated=False):
     for node in nodes:  # TODO: create wait_for_nodes method here
         wait_for_node(node, "provisioned")
 
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'predeploy', node, env,
-                                   isolated=isolated)
+    call_role_upgrade_handlers(role_handlers, 'predeploy')
 
     env.install_selected_nodes('deploy', nodes)
     for node in nodes:  # TODO: create wait_for_nodes method here
         wait_for_node(node, "ready")
 
-    call_role_upgrade_handlers(role_handlers, 'cleanup', node, env)
+    call_role_upgrade_handlers(role_handlers, 'postdeploy')
 
 
 class UpgradeNodeCommand(cmd.Command):
