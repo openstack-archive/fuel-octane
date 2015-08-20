@@ -82,7 +82,7 @@ def zabbix_snmptrapd_settings(astute):
 def get_zabbix_client(astute):
     url = get_zabbix_url(astute)
     user, password = get_zabbix_credentials(astute)
-    session = requests.session.Session();
+    session = requests.Session();
     node_cidr = astute['network_scheme']['endpoints']['br-fw-admin']['IP'][0]
     node_ip = node_cidr.split('/')[0]
     session.proxies = {
