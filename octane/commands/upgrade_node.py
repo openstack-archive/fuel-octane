@@ -107,7 +107,6 @@ class ControllerUpgrade(UpgradeHandler):
                 )
                 with open(fname, 'w') as f:
                     yaml.dump(info, f, default_flow_style=False)
-            network.isolate(self.node, self.env, deployment_info)
         for info in deployment_info:
             if self.isolated:
                 gw = get_admin_gateway(self.env)

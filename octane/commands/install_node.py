@@ -15,6 +15,7 @@ import logging
 from octane.commands.upgrade_db import get_controllers
 from octane.commands.upgrade_node import ControllerUpgrade
 from octane.commands.upgrade_node import wait_for_node
+from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
 from octane import magic_consts
@@ -24,6 +25,18 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 LOG = logging.getLogger(__name__)
+
+
+def isolate(nodes, env):
+    nodes.sort(key=lambda node: node.id, reverse=True)
+    hub = nodes[0]
+    deployment_info = env.get_default_facts(
+        'deployment', nodes=[hub.data['id']])
+    network.create_bridges(hub, env, deployment_info)
+    for node in nodes[1:]:
+        deployment_info = env.get_default_facts(
+            'deployment', nodes=[node.data['id']])
+        network.setup_isolation(hub, node, env, deployment_info)
 
 
 def update_node_settings(node, disks_fixture, ifaces_fixture):
@@ -73,7 +86,9 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
     for node in nodes:
         # FIXME: properly call all handlers all over the place
         ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
-    seed_env.install_selected_nodes('deploy', nodes)
+    if len(nodes) > 1:
+        isolate(nodes, seed_env)
+    seed_env.deploy_changes()
     for node in nodes:
         wait_for_node(node, "ready")
 

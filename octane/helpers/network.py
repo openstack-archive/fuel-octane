@@ -141,13 +141,11 @@ def create_overlay_networks(node, remote, env, deployment_info, key=0):
         key += 1
 
 
-def isolate(node, env, deployment_info):
-    """Isolate a given node in the environment
-
-    from networks connected to bridges from maigc_consts.BRIDGES list. Create
-    bridges on the node and create tunnels that constitute overlay network on
-    top of the admin network.  It ensures that nodes are connected during the
-    deployment, as required.
+def setup_isolation(hub, node, env, deployment_info):
+    """Isolate a given node in the environment from networks connected to
+    bridges from maigc_consts.BRIDGES list. Create bridges on the node and
+    create tunnels that constitute overlay network on top of the admin network.
+    It ensures that nodes are connected during the deployment, as required.
 
     If there's only 1 controller node in the environment, there's no need to
     create any tunnels.
@@ -157,24 +155,17 @@ def isolate(node, env, deployment_info):
     :param: deployment_info
     """
 
-    nodes = list(get_controllers(env))
-    if node.id not in [n.id for n in nodes]:
-        LOG.info("Node is not a controller: %s", node)
-        return
-    if len(nodes) > 1:
-        create_bridges(node, env, deployment_info)
-        ready_nodes = [n for n in nodes if 'controller' in n.data['roles']]
-        ready_nodes.sort(key=lambda n: n.id)
-        create_overlay_networks(ready_nodes[0],
-                                node,
-                                env,
-                                deployment_info,
-                                node.id)
-        create_overlay_networks(node,
-                                ready_nodes[0],
-                                env,
-                                deployment_info,
-                                node.id)
+    create_bridges(node, env, deployment_info)
+    create_overlay_networks(hub,
+                            node,
+                            env,
+                            deployment_info,
+                            node.id)
+    create_overlay_networks(node,
+                            hub,
+                            env,
+                            deployment_info,
+                            node.id)
 
 
 def list_tunnels(node, bridge):
