@@ -112,15 +112,15 @@ def zabbix_monitoring_extreme_networks_settings(astute):
 def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     orig_env = environment.Environment(orig_env_id)
     seed_env = environment.Environment(seed_env_id)
-#    astute = get_astute_yaml(orig_env)
+    astute = get_astute_yaml(orig_env)
     attrs = {}
 
     for plugin_name in plugins:
         LOG.info("Fetching settings for plugin '%s'", plugin_name)
         plugin = plugin_name.replace('-', '_')
-#        attrs[plugin] = PLUGINS[plugin_name](astute)
+        attrs[plugin] = PLUGINS[plugin_name](astute)
 
-#    seed_env.update_attributes({'editable': attrs})
+    seed_env.update_attributes({'editable': attrs})
 
 
 PLUGINS = {
