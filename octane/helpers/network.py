@@ -168,7 +168,7 @@ def isolate(node, env, deployment_info):
         ready_nodes = [n for n in nodes if 'controller' in n.data['roles']]
         ready_nodes.sort(key=lambda n: n.id)
         pending_nodes = [n for n in nodes
-                         if 'controllers' in n.data['pending_roles']]
+                         if 'controller' in n.data['pending_roles']]
         for node in pending_nodes:
             create_overlay_networks(ready_nodes[0],
                                     node,
