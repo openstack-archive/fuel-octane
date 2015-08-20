@@ -10,19 +10,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from __future__ import print_function
-
+import argparse
 import logging
+import pyzabbix
 import re
-import uuid
 import yaml
-
-from octane.commands.upgrade_db import get_controllers
-from octane.util import ssh
 
 from cliff import command as cmd
 from fuelclient.objects import environment
-import zabbix_client
+from fuelclient.objects import node
+
+from octane.commands.upgrade_db import get_controllers
+from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
 
@@ -39,33 +38,29 @@ def get_host_snmp_ip(client, host_id):
                                     filter={'type': 2})[0]['ip']
 
 
-def get_zabbix_url(env):
-    data = env.get_network_data()
-    ip = data['public_vip']
-    return 'http://{0}/zabbix'.format(ip)
+def get_zabbix_url(astute):
+    return 'http://{0}/zabbix'.format(astute['public_vip'])
+
+
+def get_zabbix_credentials(astute):
+    return astute['zabbix']['username'], astute['zabbix']['password']
 
 
 def get_astute_yaml(env):
     node = next(get_controllers(env))
-    data, _ = ssh.call(['cat', '/etc/astute.yaml'], stdout=ssh.PIPE, node=node)
+    with ssh.sftp(node).open('/etc/astute.yaml') as f:
+        data = f.read()
     return yaml.load(data)
 
 
-def get_zabbix_credentials(env):
-    astute = get_astute_yaml(env)
-    return astute['zabbix']['username'], astute['zabbix']['password']
-
-
-def zabbix_monitoring_settings(env):
-    astute = get_astute_yaml(env)
+def zabbix_monitoring_settings(astute):
     return {'username': {'value': astute['zabbix']['username']},
             'password': {'value': astute['zabbix']['password']},
             'db_password': {'value': astute['zabbix']['db_password']},
             'metadata': {'enabled': astute['zabbix']['enabled']}}
 
 
-def emc_vnx_settings(env):
-    astute = get_astute_yaml(env)
+def emc_vnx_settings(astute):
     return {'emc_sp_a_ip': {'value': astute['storage']['emc_sp_a_ip']},
             'emc_sp_b_ip': {'value': astute['storage']['emc_sp_b_ip']},
             'emc_password': {'value': astute['storage']['emc_password']},
@@ -74,39 +69,42 @@ def emc_vnx_settings(env):
             'metadata': {'enabled': astute['storage']['volumes_emc']}}
 
 
-def zabbix_snmptrapd_settings(env):
-    # go to controller and parse /etc/snmp/snmptrapd.conf
-    # ACCESS CONTROL sections
-    node = next(get_controllers(env))
-    data, _ = ssh.call(['cat', '/etc/snmp/snmptrapd.conf'], stdout=ssh.PIPE, node=node)
+def zabbix_snmptrapd_settings(astute):
+    node = node.Node(astute['uid'])
+    with ssh.sftp(node).open('/etc/snmp/snmptrapd.conf') as f:
+        data = f.read()
     template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
     match = template.search(data)
     return {'community': {'value': match.group(1)},
             'metadata': {'enabled': True}}
 
 
-def zabbix_monitoring_emc_settings(env):
-    url = get_zabbix_url(env)
-    user, password = get_zabbix_credentials(env)
-    client = zabbix_client.ZabbixServerProxy(url)
-    client.user.login(user=user, password=password)
+def zabbix_monitoring_emc_settings(astute):
+    url = get_zabbix_url(astute)
+    user, password = get_zabbix_credentials(astute)
+    client = pyzabbix.ZabbixAPI(url)
+    client.login(user=user, password=password)
+
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
     settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+
     return {'hosts': {'value': settings},
             'metadata': {'enabled': True}}
 
 
-def zabbix_monitoring_extreme_networks_settings(env):
-    url = get_zabbix_url(env)
-    user, password = get_zabbix_credentials(env)
-    client = zabbix_client.ZabbixServerProxy(url)
-    client.user.login(user=user, password=password)
+def zabbix_monitoring_extreme_networks_settings(astute):
+    url = get_zabbix_url(astute)
+    user, password = get_zabbix_credentials(astute)
+    client = pyzabbix.ZabbixAPI(url)
+    client.login(user=user, password=password)
+
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
     settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+
     return {'hosts': {'value': settings},
             'metadata': {'enabled': True}}
 
@@ -114,12 +112,15 @@ def zabbix_monitoring_extreme_networks_settings(env):
 def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     orig_env = environment.Environment(orig_env_id)
     seed_env = environment.Environment(seed_env_id)
+#    astute = get_astute_yaml(orig_env)
     attrs = {}
+
     for plugin_name in plugins:
+        LOG.info("Fetching settings for plugin '%s'", plugin_name)
         plugin = plugin_name.replace('-', '_')
-        attrs[plugin] = PLUGINS[plugin_name](orig_env)
-        print(plugin)
-    seed_env.update_attributes({'editable': attrs})
+#        attrs[plugin] = PLUGINS[plugin_name](astute)
+
+#    seed_env.update_attributes({'editable': attrs})
 
 
 PLUGINS = {
@@ -131,12 +132,20 @@ PLUGINS = {
          zabbix_monitoring_extreme_networks_settings,
 }
 
+def plugin_names(s):
+    plugins = s.split(',')
+    for plugin in plugins:
+        if plugin not in PLUGINS:
+            raise argparse.ArgumentTypeError("Unknown plugin '{0}'"
+                                             .format(plugin))
+    return plugins
 
-class UpgradePluginsCommand(cmd.Command):
+
+class UpdatePluginSettingsCommand(cmd.Command):
     """Transfer settings for specified plugin from ORIG_ENV to SEED_ENV"""
 
     def get_parser(self, prog_name):
-        parser = super(UpgradePluginsCommand, self).get_parser(prog_name)
+        parser = super(UpdatePluginSettingsCommand, self).get_parser(prog_name)
         parser.add_argument(
             'orig_env',
             type=int,
@@ -148,11 +157,9 @@ class UpgradePluginsCommand(cmd.Command):
             metavar='SEED_ID',
             help="ID of seed environment")
         parser.add_argument(
-            'plugins',
-            metavar='PLUGIN',
-            choices=PLUGINS,
-            nargs="+",
-            help="Choose from {0}".format(PLUGINS.keys()))
+            '--plugins',
+            type=plugin_names,
+            help="Comma separated values: {0}".format(', '.join(PLUGINS)))
 
         return parser
 
