@@ -84,7 +84,6 @@ def delete_image(node, tenant, user, password, token, container, object_id):
         " --os-username {1} --os-password {2} --os-auth-token {3}"\
         " delete {4} {5}".format(tenant, user, password, token,
                                  container, object_id)
-    print ssh_line
     ssh.call(["sh", "-c", ssh_line], stdout=ssh.PIPE, node=node)
 
 
