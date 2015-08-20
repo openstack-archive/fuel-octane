@@ -78,12 +78,22 @@ def zabbix_snmptrapd_settings(astute):
     return {'community': {'value': match.group(1)},
             'metadata': {'enabled': True}}
 
-
-def zabbix_monitoring_emc_settings(astute):
+def get_zabbix_client(astute):
     url = get_zabbix_url(astute)
     user, password = get_zabbix_credentials(astute)
-    client = pyzabbix.ZabbixAPI(url)
+    session = requests.session.Session();
+    node_cidr = astute['network_scheme']['endpoints']['br-fw-admin']['IP'][0]
+    node_ip = node_cidr.split('/')[0]
+    session.proxies = {
+        'http': 'http://{0}:8888'.format(node_ip)
+    }
+    client = pyzabbix.ZabbixAPI(server=url, session=session)
     client.login(user=user, password=password)
+
+    return client
+
+def zabbix_monitoring_emc_settings(astute):
+    client = get_zabbix_client(astute)
 
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
     for host in hosts:
@@ -95,10 +105,7 @@ def zabbix_monitoring_emc_settings(astute):
 
 
 def zabbix_monitoring_extreme_networks_settings(astute):
-    url = get_zabbix_url(astute)
-    user, password = get_zabbix_credentials(astute)
-    client = pyzabbix.ZabbixAPI(url)
-    client.login(user=user, password=password)
+    client = get_zabbix_client(astute)
 
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
     for host in hosts:
