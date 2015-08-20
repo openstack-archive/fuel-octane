@@ -1,10 +1,13 @@
+import yaml
 from octane.commands.upgrade_db import get_controllers
 from fuelclient.objects import environment as environment_obj
 from octane.util import ssh
 
 
 def get_astute_yaml(node):
-    data, _ = ssh.call(['cat', '/etc/astute.yaml'], stdout=ssh.PIPE, node=node)
+    data = None
+    with ssh.sftp(node).open('/etc/astute.yaml') as f:
+        data = f.read()
     return yaml.load(data)
 
 
@@ -18,62 +21,65 @@ def get_glance_password(yaml_data):
     return yaml_data['glance']['user_password']
 
 
-def get_service_tenant_id(node):
-    tenant_id, _ = ssh.call(["bash", "-c", ". /root/openrc;",
-                             "keystone tenant-list | ",
-                             "awk '/services/{print $2}'"],
-                            stdout=ssh.PIPE,
-                            node=node)
-    return tenant_id
+def parse_keystone_get(output, field):
+    for line in output.splitlines()[3:-1]:
+        parts = line.split()
+        if parts[1] == field:
+            return parts[3]
+    raise Exception(
+        "Field {0} not found in output:\n{1}".format(field, output))
 
 
-def get_swift_objects(node, token, container):
-    objects_list, _ = ssh.call(["bash", "-c", ". /root/openrc;",
-                                "swift --os-auth-token %s" % token,
-                                "list", container],
+def get_tenant_id(node, tenant):
+    ssh_line = ". /root/openrc; keystone tenant-get {0}".format(tenant)
+    tenant_info, _ = ssh.call(["sh", "-c", ssh_line],
+                              stdout=ssh.PIPE,
+                              node=node)
+    return parse_keystone_get(tenant_info, 'id')
+
+
+def get_swift_objects(node, username, password, token, container, tenant):
+    ssh_line = ". /root/openrc; swift --os-username {0} --os-password {1}"\
+        " --os-auth-token {2} --os-project-name {3} list {4}".format(username,
+                                                                     password,
+                                                                     token,
+                                                                     tenant,
+                                                                     container)
+    objects_list, _ = ssh.call(["sh", "-c", ssh_line],
                                stdout=ssh.PIPE,
                                node=node)
-    return objects_list
+    return objects_list.split('\n')[:-1]
 
 
-# TODO
 def get_auth_token(node, tenant, username, password):
-    token, _ = ssh.call(["bash", "-c", ". /root/openrc;",
-                         "keystone tenant-list | ",
-                         "  awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ "],
-                        stdout=ssh.PIPE,
-                        node=node)
-    return tenant_id
-    # . openrc;
-    # keystone --os-username=${username} --os-password=${password} \
-    # --os-tenant-name=${tenant} token-get \
-    # | grep ' id ' | cut -d \| -f 3 | tr -d
+    ssh_line = ". /root/openrc; keystone --os-username={0} --os-password={1}"\
+        " --os-tenant-name={2} token-get".format(username, password, tenant)
+    token_info, _ = ssh.call(["sh", "-c", ssh_line],
+                             stdout=ssh.PIPE,
+                             node=node)
+    return parse_keystone_get(token_info, 'id')
 
 
-def download_glance_image(node, token, object_id):
-    ssh.call(["bash", "-c", ". /root/openrc;",
-              "swift --os-auth-token", token,
-              "download glance %s" % object_id],
-             stdout=ssh.PIPE,
-             node=source_node)
+def download_glance_image(node, container, token, object_id):
+    ssh_line = ". /root/openrc; swift --os-auth-token {0} download {1} {2}"\
+        .format(token, container, object_id)
+    ssh.call(["sh", "-c", ssh_line], stdout=ssh.PIPE, node=node)
 
 
-def delete_glance_image(node, token, object_id):
-    ssh.call(["bash", "-c", ". /root/openrc;",
-              "swift --os-auth-token", token,
-              "delete glance %s" % object_id],
-             stdout=ssh.PIPE,
-             node=source_node)
+def delete_glance_image(node, container, token, object_id):
+    ssh_line = ". /root/openrc; swift --os-auth-token {0} delete {1} {2}"\
+        .format(token, container, object_id)
+    ssh.call(["sh", "-c", ssh_line], stdout=ssh.PIPE, node=node)
 
 
 def transfer_glance_image(source_node, storage_ip, tenant_id,
                           dest_token, object_id):
-    ssh.call(["swift --os-auth-token", dest_token,
-              "--os-storage-url",
-              "http://{0}:8080/v1/AUTH_{1}".format(storage_ip, tenant_id),
-              "upload glance %s" % object_id],
-             stdout=ssh.PIPE,
-             node=source_node)
+    ssh_line = ". /root/openrc; swift --os-auth-token {0} --os-storage-url " +\
+        "http://{1}:8080/v1/AUTH_{2} upload glance {3}".format(dest_token,
+                                                               storage_ip,
+                                                               tenant_id,
+                                                               object_id)
+    ssh.call(["sh", "-c", ssh_line], stdout=ssh.PIPE, node=source_node)
 
 
 def sync_glance_images(source_env_id, seed_env_id):
@@ -83,7 +89,7 @@ def sync_glance_images(source_env_id, seed_env_id):
     tenant = "services"
     # should be specified by user or parsed from template?
     swift_ep = "bond-swift"
-    username = glance
+    username = "glance"
     # get clusters by id
     source_env = environment_obj.Environment(source_env_id)
     seed_env = environment_obj.Environment(seed_env_id)
@@ -101,13 +107,17 @@ def sync_glance_images(source_env_id, seed_env_id):
     # get service tenant id & lists of objects for source env
     source_token = get_auth_token(source_node, tenant, username,
                                   source_glance_pass)
-    source_swift_list = set(get_swift_objects(source_node, source_token,
-                                              container))
+    source_node, username, source_glance_pass, source_token, container, tenant
+    source_swift_list = set(get_swift_objects(source_node, username,
+                                              source_glance_pass, source_token,
+                                              container, tenant))
     # get service tenant id & lists of objects for seed env
     seed_token = get_auth_token(seed_node, tenant, username, seed_glance_pass)
-    seed_swift_list = set(get_swift_objects(seed_node, seed_token, container))
+    seed_swift_list = set(get_swift_objects(source_node, username,
+                                            seed_glance_pass, seed_token,
+                                            container, tenant))
     # get service tenant for seed env
-    seed_token = get_service_tenant_id(seed_node)
+    seed_token = get_tenant_id(seed_node, tenant)
     # migrate new images
     for image in source_swift_list - seed_swift_list:
         # download image on source's node local drive
