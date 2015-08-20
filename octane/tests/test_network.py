@@ -9,6 +9,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import subprocess
+
 from mock import call
 from octane.helpers import network
 
@@ -102,13 +104,22 @@ def test_create_overlay_network(mocker):
     }]
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
+    mock_ssh.side_effect = [subprocess.CalledProcessError, None,
+                            subprocess.CalledProcessError, None,
+                            None, None, None, None]
 
     expected_args = [
+        call(['sh', '-c',
+              'ovs-vsctl list-ports br-ex | grep -q br-ex--gre-10.10.10.2'],
+             node=node1),
         call(['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--gre-10.10.10.2',
               '--', 'set', 'Interface', 'br-ex--gre-10.10.10.2',
               'type=gre',
               'options:remote_ip=10.10.10.2',
               'options:key=2'],
+             node=node1),
+        call(['sh', '-c',
+              'ip link show dev gre3-3'],
              node=node1),
         call(['ip', 'link', 'add', 'gre3-3',
               'type', 'gretap',
