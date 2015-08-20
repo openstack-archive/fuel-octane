@@ -18,7 +18,7 @@ import yaml
 
 from cliff import command as cmd
 from fuelclient.objects import environment
-from fuelclient.objects import node
+from fuelclient.objects import node as node_obj
 
 from octane.commands.upgrade_db import get_controllers
 from octane.util import ssh
@@ -70,7 +70,7 @@ def emc_vnx_settings(astute):
 
 
 def zabbix_snmptrapd_settings(astute):
-    node = node.Node(astute['uid'])
+    node = node_obj.Node(astute['uid'])
     with ssh.sftp(node).open('/etc/snmp/snmptrapd.conf') as f:
         data = f.read()
     template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
