@@ -14,6 +14,7 @@ import argparse
 import logging
 import pyzabbix
 import re
+import requests
 import yaml
 
 from cliff import command as cmd
