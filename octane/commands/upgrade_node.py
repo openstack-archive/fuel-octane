@@ -38,8 +38,9 @@ class ControllerUpgrade(object):
             network.isolate(node, env, deployment_info)
         for info in deployment_info:
             if isolated:
+                gw = get_admin_gateway(env)
                 transformations.remove_physical_ports(info)
-                transformations.reset_gw_admin(info)
+                transformations.reset_gw_admin(info, gateway=gw)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
@@ -53,6 +54,12 @@ class ControllerUpgrade(object):
 role_upgrade_handlers = {
     'controller': ControllerUpgrade,
 }
+
+
+def get_admin_gateway(environment):
+    for net in environment.get_network_data()['networks']:
+        if net["name"] == "fuelweb_admin":
+            return net["gateway"]
 
 
 def get_role_upgrade_handlers(roles):
