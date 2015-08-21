@@ -71,8 +71,8 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         wait_for_node(node, "provisioned")
 
     for node in nodes:
-        ControllerUpgrade.predeploy(node, seed_env,
-                                    isolated=isolated)
+        # FIXME: properly call all handlers all over the place
+        ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
     seed_env.install_selected_nodes('deploy', nodes)
     for node in nodes:
         wait_for_node(node, "ready")
