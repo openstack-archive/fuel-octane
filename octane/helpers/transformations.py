@@ -1,7 +1,19 @@
-import yaml
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import argparse
 import os
 import re
-import argparse
+import yaml
 
 
 BRIDGES = ('br-ex', 'br-mgmt')
@@ -50,8 +62,8 @@ def dump_yaml_file(dict_obj, filename):
 def remove_patch_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
-        if (action['action'] == 'add-patch') and (bridge_name
-                in action['bridges']):
+        if (action['action'] == 'add-patch') and (
+                bridge_name in action['bridges']):
             transformations.remove(action)
     return host_config
 
@@ -59,8 +71,8 @@ def remove_patch_port(host_config, bridge_name):
 def remove_physical_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
-        if (action['action'] == 'add-port') and (bridge_name
-                in action['bridge']):
+        if (action['action'] == 'add-port') and (
+                bridge_name in action['bridge']):
             transformations.remove(action)
     return host_config
 
@@ -84,9 +96,10 @@ def remove_predefined_nets(host_config):
 
 def reset_gw_admin(host_config):
     gw = host_config["master_ip"]
-    if host_config["network_scheme"]["endpoints"]["br-ex"].get("gateway"):
-        host_config["network_scheme"]["endpoints"]["br-ex"]["gateway"] = 'none'
-        host_config["network_scheme"]["endpoints"]["br-fw-admin"]["gateway"] = gw
+    endpoints = host_config["network_scheme"]["endpoints"]
+    if endpoints["br-ex"].get("gateway"):
+        endpoints["br-ex"]["gateway"] = 'none'
+        endpoints["br-fw-admin"]["gateway"] = gw
     return host_config
 
 
