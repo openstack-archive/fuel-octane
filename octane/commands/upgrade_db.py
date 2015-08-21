@@ -17,40 +17,14 @@ import time
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
-from fuelclient.objects import node as node_obj
 
 from octane import magic_consts
+from octane.util import env as env_util
 from octane.util import ssh
 
 
-def get_controllers(env):
-    found = False
-    for node in node_obj.Node.get_all():
-        if node.data['cluster'] != env.data['id']:
-            continue
-        if 'controller' in node.data['roles']:
-            yield node
-            found = True
-    if not found:
-        raise Exception("Can't find controller node in env %s" %
-                        env.data['id'])
-
-
-def delete_fuel_resources(seed_env):
-    node = next(get_controllers(seed_env))
-    sftp = ssh.sftp(node)
-    sftp.put(
-        os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
-        "/tmp/delete_fuel_resources.py",
-    )
-    ssh.call(
-        ["sh", "-c", ". /root/openrc; python /tmp/delete_fuel_resources.py"],
-        node=node,
-    )
-
-
 def disable_apis(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     maintenance_line = 'backend maintenance'
     stats_socket_re = re.compile('stats\s+socket\s+/var/lib/haproxy/stats'
                                  '(?!.*level admin)')
@@ -92,7 +66,7 @@ def parse_crm_status(status_out, exclude=_default_exclude_services):
 
 
 def stop_corosync_services(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     for node in controllers:
         status_out, _ = ssh.call(['crm', 'status'], stdout=ssh.PIPE, node=node)
         for service in parse_crm_status(status_out):
@@ -100,7 +74,7 @@ def stop_corosync_services(env):
 
 
 def stop_upstart_services(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     service_re = re.compile("^((?:%s)[^\s]*).*start/running" %
                             ("|".join(magic_consts.OS_SERVICES),),
                             re.MULTILINE)
@@ -126,7 +100,7 @@ def stop_upstart_services(env):
 
 
 def mysqldump_from_env(env):
-    node = next(get_controllers(env))
+    node = next(env_util.get_controllers(env))
     local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
     with ssh.popen(['sh', '-c', 'mysqldump --add-drop-database'
                     ' --lock-all-tables --databases %s | gzip' %
@@ -143,7 +117,7 @@ def mysqldump_from_env(env):
 
 
 def mysqldump_restore_to_env(env, fname):
-    node = next(get_controllers(env))
+    node = next(env_util.get_controllers(env))
     with open(fname, 'rb') as local_file:
         with ssh.popen(['sh', '-c', 'zcat | mysql'],
                        stdin=ssh.PIPE, node=node) as proc:
@@ -151,7 +125,7 @@ def mysqldump_restore_to_env(env, fname):
 
 
 def db_sync(env):
-    node = next(get_controllers(env))
+    node = next(env_util.get_controllers(env))
     ssh.call(['keystone-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
@@ -164,7 +138,7 @@ def db_sync(env):
 def upgrade_db(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
-    delete_fuel_resources(seed_env)
+    env_util.delete_fuel_resources(seed_env)
     # Wait for Neutron to reconfigure networks
     time.sleep(7)  # FIXME: Use more deterministic way
     disable_apis(orig_env)

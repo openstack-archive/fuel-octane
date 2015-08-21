@@ -12,52 +12,19 @@
 
 import logging
 import os
-import time
 import yaml
-
-from octane.helpers import tasks as tasks_helpers
-from octane.helpers import transformations
-from octane import magic_consts
-from octane.util import ssh
-from octane.util import subprocess
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
+from octane.helpers import tasks as tasks_helpers
+from octane.helpers import transformations
+from octane import magic_consts
+from octane.util import env as env_util
+from octane.util import ssh
+
 LOG = logging.getLogger(__name__)
-
-
-def parse_tenant_get(output, field):
-    for line in output.splitlines()[3:-1]:
-        parts = line.split()
-        if parts[1] == field:
-            return parts[3]
-    raise Exception(
-        "Field {0} not found in output:\n{1}".format(field, output))
-
-
-def get_service_tenant_id(node):
-    fname = os.path.join(
-        magic_consts.FUEL_CACHE,
-        "env-{0}-service-tenant-id".format(node.data['cluster']),
-    )
-    if os.path.exists(fname):
-        with open(fname) as f:
-            return f.readline()
-
-    tenant_out, _ = ssh.call(
-        [
-            'sh', '-c',
-            '. /root/openrc; keystone tenant-get services',
-        ],
-        node=node,
-        stdout=ssh.PIPE,
-    )
-    tenant_id = parse_tenant_get(tenant_out, 'id')
-    with open(fname, 'w') as f:
-        f.write(tenant_id)
-    return tenant_id
 
 
 class UpgradeHandler(object):
@@ -86,7 +53,8 @@ class ControllerUpgrade(UpgradeHandler):
         self.gateway = None
 
     def preupgrade(self):
-        self.service_tenant_id = get_service_tenant_id(self.node)
+        self.service_tenant_id = env_util.get_service_tenant_id(
+            self.env, self.node)
 
     def predeploy(self):
         deployment_info = self.env.get_default_facts(
@@ -167,24 +135,6 @@ def call_role_upgrade_handlers(handlers, method):
                           method, type(handler).__name__)
 
 
-def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
-    node_id = node.data['id']
-    LOG.debug("Waiting for node %s to transition to status '%s'",
-              node_id, status)
-    started_at = time.time()  # TODO: use monotonic timer
-    while True:
-        data = node.get_fresh_data()
-        if data['status'] == 'error':
-            raise Exception("Node %s fell into error status" % (node_id,))
-        if data['online'] and data['status'] == status:
-            LOG.info("Node %s transitioned to status '%s'", node_id, status)
-            return
-        if time.time() - started_at >= timeout:
-            raise Exception("Timeout waiting for node %s to transition to "
-                            "status '%s'" % (node_id, status))
-        time.sleep(check_freq)
-
-
 def upgrade_node(env_id, node_ids, isolated=False):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
@@ -215,22 +165,10 @@ def upgrade_node(env_id, node_ids, isolated=False):
 
     call_role_upgrade_handlers(role_handlers, 'preupgrade')
     call_role_upgrade_handlers(role_handlers, 'prepare')
-
-    subprocess.call(
-        ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "discover")
-
-    env.install_selected_nodes('provision', nodes)
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "provisioned")
-
+    env_util.move_nodes(env, nodes)
+    env_util.provision_nodes(env, nodes)
     call_role_upgrade_handlers(role_handlers, 'predeploy')
-
-    env.install_selected_nodes('deploy', nodes)
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "ready")
-
+    env_util.deploy_nodes(env, nodes)
     call_role_upgrade_handlers(role_handlers, 'postdeploy')
 
 

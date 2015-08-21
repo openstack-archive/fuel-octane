@@ -12,15 +12,13 @@
 
 from __future__ import print_function
 
-import json
 import logging
-import uuid
-
-from octane.util import subprocess
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import release as release_obj
+
+from octane.util import env as env_util
 
 LOG = logging.getLogger(__name__)
 
@@ -44,22 +42,7 @@ def set_cobbler_provision(env_id):
 
 def upgrade_env(env_id):
     target_release = find_release("Ubuntu", "2014.2.2-6.1")
-    LOG.info("Cloning env %s for release %s",
-             env_id, target_release.data['name'])
-    res, _ = subprocess.call(
-        ["fuel2", "env", "clone", "-f", "json",
-         str(env_id), uuid.uuid4().hex, str(target_release.data['id'])],
-        stdout=subprocess.PIPE,
-    )
-    for kv in json.loads(res):
-        if kv['Field'] == 'id':
-            seed_id = kv['Value']
-            break
-    else:
-        raise Exception("Couldn't find new environment ID in fuel CLI output:"
-                        "\n%s" % res)
-
-    return seed_id
+    return env_util.clone_env(env_id, target_release)
 
 
 class UpgradeEnvCommand(cmd.Command):
