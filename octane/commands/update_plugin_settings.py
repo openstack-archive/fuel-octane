@@ -79,10 +79,11 @@ def zabbix_snmptrapd_settings(astute):
     return {'community': {'value': match.group(1)},
             'metadata': {'enabled': True}}
 
+
 def get_zabbix_client(astute):
     url = get_zabbix_url(astute)
     user, password = get_zabbix_credentials(astute)
-    session = requests.Session();
+    session = requests.Session()
     node_cidr = astute['network_scheme']['endpoints']['br-fw-admin']['IP'][0]
     node_ip = node_cidr.split('/')[0]
     session.proxies = {
@@ -92,6 +93,7 @@ def get_zabbix_client(astute):
     client.login(user=user, password=password)
 
     return client
+
 
 def zabbix_monitoring_emc_settings(astute):
     client = get_zabbix_client(astute)
@@ -136,9 +138,10 @@ PLUGINS = {
     'emc-vnx': emc_vnx_settings,
     'zabbix-snmptrapd': zabbix_snmptrapd_settings,
     'zabbix-monitoring-emc': zabbix_monitoring_emc_settings,
-    'zabbix-monitoring-extreme-networks': \
-         zabbix_monitoring_extreme_networks_settings,
+    'zabbix-monitoring-extreme-networks':
+        zabbix_monitoring_extreme_networks_settings,
 }
+
 
 def plugin_names(s):
     plugins = s.split(',')
