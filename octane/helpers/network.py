@@ -80,9 +80,11 @@ def create_tunnel_from_node_lnx(local, remote, bridge, key, admin_iface):
         else:
             return True
 
+    gre_port = 'gre%s-%s' % (remote.id, key)
+
     if check_tunnel(local, gre_port):
         return
-    gre_port = 'gre%s-%s' % (remote.id, key)
+    cmds = []
     cmds.append(['ip', 'link', 'add', gre_port,
                  'type', 'gretap',
                  'remote', remote.data['ip'],
