@@ -11,7 +11,7 @@
 # under the License.
 
 import logging
-import time
+import subprocess
 
 from octane import magic_consts
 from octane.util import ssh
@@ -23,18 +23,11 @@ LOG = logging.getLogger(__name__)
 
 
 def install_openvswitch(node):
-    ssh.call(['apt-get',
-              'install',
-              '-y',
-              'openvswitch-switch'],
-              node=node)
+    ssh.call(['apt-get', 'install', '-y', 'openvswitch-switch'], node=node)
 
 
 def set_bridge_mtu(node, bridge):
-    cmd = ['ip', 'link', 'set',
-           'dev', bridge,
-           'mtu', '1450']
-    ssh.call(cmd, node=node)
+    ssh.call(['ip', 'link', 'set', 'dev', bridge, 'mtu', '1450'], node=node)
 
 
 def create_ovs_bridge(node, bridge):
@@ -124,8 +117,9 @@ def create_bridges(node, env, deployment_info):
 
 
 def create_overlay_networks(node, remote, env, deployment_info, key=0):
-    """Create GRE tunnels between a node and another node in the environment
-    for all bridges listed in constant BRIDGES.
+    """Create GRE tunnels between a node and other nodes in the environment
+
+    Building tunnels for all bridges listed in constant BRIDGES.
 
     :param: node
     :param: remote
@@ -148,10 +142,12 @@ def create_overlay_networks(node, remote, env, deployment_info, key=0):
 
 
 def isolate(node, env, deployment_info):
-    """Isolate a given node in the environment from networks connected to
-    bridges from maigc_consts.BRIDGES list. Create bridges on the node and
-    create tunnels that constitute overlay network on top of the admin network.
-    It ensures that nodes are connected during the deployment, as required.
+    """Isolate a given node in the environment
+
+    from networks connected to bridges from maigc_consts.BRIDGES list. Create
+    bridges on the node and create tunnels that constitute overlay network on
+    top of the admin network.  It ensures that nodes are connected during the
+    deployment, as required.
 
     If there's only 1 controller node in the environment, there's no need to
     create any tunnels.
@@ -243,20 +239,12 @@ def create_port_ovs(bridge, port):
     if bridges:
         br_patch = "%s--%s" % (bridges[0], bridges[1])
         ph_patch = "%s--%s" % (bridges[1], bridges[0])
-        cmds.append(['ovs-vsctl', 'add-port',
-                    bridge, br_patch,
-                    tag[0], trunk,
-                    '--', 'set',
-                    'interface', br_patch,
-                    'type=patch',
-                    'options:peer=%s' % ph_patch])
-        cmds.append(['ovs-vsctl', 'add-port',
-                    bridge, ph_patch,
-                    tag[1], trunk,
-                    '--', 'set',
-                    'interface', ph_patch,
-                    'type=patch',
-                    'options:peer=%s' % br_patch])
+        cmds.append(['ovs-vsctl', 'add-port', bridge, br_patch, tag[0], trunk,
+                     '--', 'set', 'interface', br_patch, 'type=patch',
+                     'options:peer=%s' % ph_patch])
+        cmds.append(['ovs-vsctl', 'add-port', bridge, ph_patch, tag[1], trunk,
+                     '--', 'set', 'interface', ph_patch, 'type=patch',
+                     'options:peer=%s' % br_patch])
     return cmds
 
 
@@ -269,6 +257,10 @@ def create_port_lnx(bridge, port):
         ]
     else:
         raise Exception("No name for port: %s", port)
+
+
+def create_port_providers(provide):
+    raise NotImplementedError("create_port_providers")
 
 
 def create_patch_ports(node, host_config):
