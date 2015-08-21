@@ -72,23 +72,3 @@ neutron-db-manage --config-file=/etc/neutron/neutron.conf upgrade head;
 glance-manage db upgrade;
 cinder-manage db sync"
 }
-
-mysqldump_from_env() {
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    local node=$(list_nodes $1 controller | head -1)
-    local databases="keystone nova heat neutron glance cinder"
-    ssh root@$(get_host_ip_by_node_id ${node#node-}) "mysqldump \
-        --add-drop-database --lock-all-tables \
-        --databases $databases | gzip" > $FUEL_CACHE/dbs.original.sql.gz
-    cp $FUEL_CACHE/dbs.original.sql.gz \
-        $FUEL_CACHE/dbs.original.cluster_$1.sql.gz
-}
-
-mysqldump_restore_to_env() {
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    local cic="$(list_nodes $1 controller | head -1)"
-    [ -s $FUEL_CACHE/dbs.original.sql.gz ] &&
-    cat $FUEL_CACHE/dbs.original.sql.gz \
-        | ssh root@$(get_host_ip_by_node_id ${cic#node-}) "zcat | mysql"
-    db_sync ${cic#node-}
-}
