@@ -13,6 +13,7 @@
 import logging
 import os
 import time
+import yaml
 
 from octane.helpers import network
 from octane.helpers import tasks as tasks_helpers
@@ -93,13 +94,19 @@ class ControllerUpgrade(UpgradeHandler):
             'deployment', nodes=[self.node.data['id']])
         if self.isolated:
             # From backup_deployment_info
-            self.env.write_facts_to_dir('deployment', deployment_info,
-                                        directory=magic_consts.FUEL_CACHE)
             backup_path = os.path.join(
                 magic_consts.FUEL_CACHE,
-                "deployment_{0}".format(self.node.data['cluster']),
+                "deployment_{0}.orig".format(self.node.data['cluster']),
             )
-            os.rename(backup_path, backup_path + '.orig')
+            os.makedirs(backup_path)
+            # Roughly taken from Environment.write_facts_to_dir
+            for info in deployment_info:
+                fname = os.path.join(
+                    backup_path,
+                    "{0}_{1}.yaml".format(info['role'], info['uid']),
+                )
+                with open(fname, 'w') as f:
+                    yaml.dump(info, f, default_flow_style=False)
             network.isolate(self.node, self.env, deployment_info)
         for info in deployment_info:
             if self.isolated:
