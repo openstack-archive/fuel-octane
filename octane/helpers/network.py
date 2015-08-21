@@ -65,7 +65,7 @@ def create_tunnel_from_node_ovs(local, remote, bridge, key, admin_iface):
 def create_tunnel_from_node_lnx(local, remote, bridge, key, admin_iface):
     def check_tunnel(node, port):
         cmd = ['sh', '-c',
-               'ip link show dev %s' % (bridge, port)]
+               'ip link show dev %s' % (port,)]
         try:
             ssh.call(cmd, node=node)
         except subprocess.CalledProcessError:
