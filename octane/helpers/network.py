@@ -165,19 +165,16 @@ def isolate(node, env, deployment_info):
         create_bridges(node, env, deployment_info)
         ready_nodes = [n for n in nodes if 'controller' in n.data['roles']]
         ready_nodes.sort(key=lambda n: n.id)
-        pending_nodes = [n for n in nodes
-                         if 'controller' in n.data['pending_roles']]
-        for node in pending_nodes:
-            create_overlay_networks(ready_nodes[0],
-                                    node,
-                                    env,
-                                    deployment_info,
-                                    node.id)
-            create_overlay_networks(node,
-                                    ready_nodes[0],
-                                    env,
-                                    deployment_info,
-                                    node.id)
+        create_overlay_networks(ready_nodes[0],
+                                node,
+                                env,
+                                deployment_info,
+                                node.id)
+        create_overlay_networks(node,
+                                ready_nodes[0],
+                                env,
+                                deployment_info,
+                                node.id)
 
 
 def list_tunnels(node, bridge):
