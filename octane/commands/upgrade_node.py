@@ -98,7 +98,8 @@ class ControllerUpgrade(UpgradeHandler):
                 magic_consts.FUEL_CACHE,
                 "deployment_{0}.orig".format(self.node.data['cluster']),
             )
-            os.makedirs(backup_path)
+            if not os.path.exists(backup_path):
+                os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
             for info in deployment_info:
                 fname = os.path.join(
