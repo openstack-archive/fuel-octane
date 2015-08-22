@@ -15,7 +15,6 @@ import os
 import time
 import yaml
 
-from octane.helpers import network
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts

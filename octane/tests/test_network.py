@@ -59,8 +59,9 @@ def test_create_overlay_network(mocker):
     }]
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
-    mock_ssh.side_effect = [subprocess.CalledProcessError(), None,
-                            subprocess.CalledProcessError(), None]
+    mock_ssh.side_effect = [subprocess.CalledProcessError('', ''), None,
+                            subprocess.CalledProcessError('', ''), None,
+                            None, None, None, None]
 
     expected_args = [
         call(['sh', '-c',
@@ -85,6 +86,7 @@ def test_create_overlay_network(mocker):
              node=node1),
         call(['ip', 'link', 'set', 'mtu', '1450', 'dev', 'gre3-3', ],
              node=node1),
+        call(['ip', 'link', 'set', 'up', 'dev', 'br-mgmt'], node=node1),
         call(['brctl', 'addif', 'br-mgmt', 'gre3-3'],
              node=node1),
     ]

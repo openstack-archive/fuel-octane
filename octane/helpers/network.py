@@ -142,7 +142,9 @@ def create_overlay_networks(node, remote, env, deployment_info, key=0):
 
 
 def setup_isolation(hub, node, env, deployment_info):
-    """Isolate a given node in the environment from networks connected to
+    """Create bridges and overlay networks for the given node
+
+    Isolate a given node in the environment from networks connected to
     bridges from maigc_consts.BRIDGES list. Create bridges on the node and
     create tunnels that constitute overlay network on top of the admin network.
     It ensures that nodes are connected during the deployment, as required.
