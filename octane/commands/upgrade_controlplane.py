@@ -9,6 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import os
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -54,9 +55,12 @@ def disconnect_networks(env):
 
 def connect_to_networks(env):
     controllers = list(get_controllers(env))
+    backup_path = os.path.join(magic_consts.FUEL_CACHE,
+                               'deployment_{0}.orig'
+                               .format(env.id))
     for node in controllers:
         deployment_info = env.read_deployment_info('deployment',
-                                                   magic_consts.FUEL_CACHE)
+                                                   backup_path)
         for info in deployment_info:
             if info['role'] in ('primary-controller', 'controller'):
                 network.create_patch_ports(node, info)
