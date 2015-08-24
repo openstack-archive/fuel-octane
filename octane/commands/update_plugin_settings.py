@@ -101,7 +101,8 @@ def zabbix_monitoring_emc_settings(astute):
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
-    settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+    settings = ','.join('{0}:{1}'.format(host['name'], host['ip'])
+                        for host in hosts)
 
     return {'hosts': {'value': settings},
             'metadata': {'enabled': True}}
@@ -113,7 +114,8 @@ def zabbix_monitoring_extreme_networks_settings(astute):
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
     for host in hosts:
         host['ip'] = get_host_snmp_ip(client, host['hostid'])
-    settings = ','.join(':'.join((host['name'], host['ip'])) for host in hosts)
+    settings = ','.join('{0}:{1}'.format(host['name'], host['ip'])
+                        for host in hosts)
 
     return {'hosts': {'value': settings},
             'metadata': {'enabled': True}}
