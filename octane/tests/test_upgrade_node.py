@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from octane.commands import upgrade_node
+
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
@@ -17,3 +19,19 @@ def test_parser(mocker, octane_app):
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, [2, 3], isolated=True)
+
+
+def test_parse_tenant_get():
+    res = upgrade_node.parse_tenant_get(TENANT_GET_SAMPLE, 'id')
+    assert res == 'e26c8079d61f46c48f9a6d606631ee5e'
+
+TENANT_GET_SAMPLE = """
++-------------+-----------------------------------+
+|   Property  |               Value               |
++-------------+-----------------------------------+
+| description | Tenant for the openstack services |
+|   enabled   |                True               |
+|      id     |  e26c8079d61f46c48f9a6d606631ee5e |
+|     name    |              services             |
++-------------+-----------------------------------+
+"""[1:]

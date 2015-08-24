@@ -15,8 +15,10 @@ import logging
 from octane.commands.upgrade_db import get_controllers
 from octane.commands.upgrade_node import ControllerUpgrade
 from octane.commands.upgrade_node import wait_for_node
+from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
+from octane import magic_consts
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -25,15 +27,32 @@ from fuelclient.objects import node as node_obj
 LOG = logging.getLogger(__name__)
 
 
+def isolate(nodes, env):
+    nodes.sort(key=lambda node: node.id, reverse=True)
+    hub = nodes[0]
+    deployment_info = env.get_default_facts(
+        'deployment', nodes=[hub.data['id']])
+    network.create_bridges(hub, env, deployment_info)
+    for node in nodes[1:]:
+        deployment_info = env.get_default_facts(
+            'deployment', nodes=[node.data['id']])
+        network.setup_isolation(hub, node, env, deployment_info)
+
+
 def update_node_settings(node, disks_fixture, ifaces_fixture):
-    LOG.info("Updating node %s disk settings with fixture: %s",
-             str(node.id), disks_fixture)
-    disks = node.get_attribute('disks')
-    LOG.info("Original node %s disk settings: %s",
-             str(node.id), disks)
-    new_disks = list(copy_disks(disks_fixture, disks, 'by_name'))
-    LOG.info("New disk info generated: %s", new_disks)
-    node.upload_node_attribute('disks', new_disks)
+    if not magic_consts.DEFAULT_DISKS:
+        LOG.info("Updating node %s disk settings with fixture: %s",
+                 str(node.id), disks_fixture)
+        disks = node.get_attribute('disks')
+        LOG.info("Original node %s disk settings: %s",
+                 str(node.id), disks)
+        new_disks = list(copy_disks(disks_fixture, disks, 'by_name'))
+        LOG.info("New disk info generated: %s", new_disks)
+        node.upload_node_attribute('disks', new_disks)
+    else:
+        LOG.warn("Using default volumes for node %s", node)
+        LOG.warn("To keep custom volumes layout, change DEFAULT_DISKS const "
+                 "in magic_consts.py module")
 
     LOG.info("Updating node %s network settings with fixture: %s",
              str(node.id), ifaces_fixture)
@@ -65,9 +84,11 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         wait_for_node(node, "provisioned")
 
     for node in nodes:
-        ControllerUpgrade.predeploy(node, seed_env,
-                                    isolated=isolated)
-    seed_env.install_selected_nodes('deploy', nodes)
+        # FIXME: properly call all handlers all over the place
+        ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
+    if len(nodes) > 1:
+        isolate(nodes, seed_env)
+    seed_env.deploy_changes()
     for node in nodes:
         wait_for_node(node, "ready")
 

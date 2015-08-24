@@ -13,6 +13,23 @@ pycmd() {
     exit $?
 }
 
+get_service_tenant_id() {
+    [ -z "$1" ] && die "No node ID provided, exiting"
+    local env=$(get_env_by_node $1)
+    local filename="${FUEL_CACHE}/env-${env}-service-tenant-id"
+    if [ -f "$filename" ]; then
+        SERVICE_TENANT_ID=$(cat $filename)
+    else
+        SERVICE_TENANT_ID=$(ssh root@$(get_host_ip_by_node_id $1) ". openrc;
+keystone tenant-get services \
+| awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ ")
+    fi
+    [ -z "$SERVICE_TENANT_ID" ] &&
+    die "Cannot determine service tenant ID for node $1, exiting"
+    echo $SERVICE_TENANT_ID > $filename
+}
+
+
 get_deployment_info() {
     local cmd
 # Download deployment config from Fuel master for environment ENV to subdir in
@@ -36,6 +53,13 @@ upload_deployment_info() {
     [ -z "$1" ] && die "No environment ID provided, exiting"
     [ -d "$FUEL_CACHE" ] &&
     fuel deployment --env $1 --upload --dir $FUEL_CACHE
+}
+
+backup_deployment_tasks() {
+    [ -z "$1" ] && die "No environment ID provided, exiting"
+    [ -d "$FUEL_CACHE" ] &&
+    [ -d "${FUEL_CACHE}/cluster_$1" ] &&
+    cp -pR "${FUEL_CACHE}/cluster_$1" "${FUEL_CACHE}/cluster_$1.orig"
 }
 
 upload_deployment_tasks() {
@@ -385,6 +409,8 @@ cleanup_compute_upgrade() {
 prepare_controller_upgrade() {
     [ -z "$1" ] && die "No 6.0 env and node ID provided, exiting"
     [ -z "$2" ] && die "No node ID provided, exiting"
+    #Required for updating tenant ID in Neutron config on 6.1
+    get_service_tenant_id $2
 }
 
 upgrade_node_preprovision() {
@@ -471,9 +497,13 @@ upgrade_node_postdeploy() {
                     unset_osd_noout $1
                     ;;
                 controller)
+                    neutron_update_admin_tenant_id $1
                     ;;
             esac
         done
+    if [ "$3" == "isolated" ]; then
+        restore_default_gateway $2
+    fi
 }
 
 upgrade_node() {
@@ -497,7 +527,7 @@ upgrade_node() {
     done
     env_action $env deploy "$@"
     for n in $@; do
-        upgrade_node_postdeploy $env $n
+        upgrade_node_postdeploy $env $n $isolated
     done
 }
 
@@ -520,25 +550,7 @@ upgrade_cics() {
     do
         create_patch_ports $2 $br_name
     done
-    neutron_update_admin_tenant_id $2
     list_nodes $1 compute | xargs -I{} ${BINPATH}/upgrade-nova-compute.sh {}
-}
-
-upgrade_db() {
-    [ -z "$1" ] && die "No 5.1 and 6.0 env IDs provided, exiting"
-    [ -z "$2" ] && die "No 6.0 env ID provided, exiting"
-    local method=${3:-mysqldump}
-    delete_fuel_resources $2
-    sleep 7
-    set_pssh_hosts $1 && {
-        disable_apis
-    } && unset PSSH_RUN
-    set_pssh_hosts $2 && {
-        stop_corosync_services
-        stop_upstart_services
-    } && unset PSSH_RUN
-    ${method}_from_env $1
-    ${method}_restore_to_env $2
 }
 
 upgrade_ceph() {
@@ -555,14 +567,8 @@ neutron_update_admin_tenant_id() {
     local tenant_id=''
     [ -z "$1" ] && die "No env ID provided, exiting"
     cic_node=$(list_nodes $1 controller | head -1)
-    while [ -z "$tenant_id" ]; do
-        tenant_id=$(ssh root@$cic_node ". openrc;
-keystone tenant-get services \
-| awk -F\| '$2 ~ /id/{print $3}' | tr -d \ ")
-        sleep 3
-    done
     list_nodes $1 controller | xargs -I{} ssh root@{} \
-        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $tenant_id/' \
+        "sed -re 's/^(nova_admin_tenant_id )=.*/\1 = $SERVICE_TENANT_ID/' \
 -i /etc/neutron/neutron.conf;
 restart neutron-server"
 }
@@ -593,4 +599,8 @@ delete_fuel_resources() {
     local host=$(get_host_ip_by_node_id ${node#node-})
     scp $HELPER_PATH/delete_fuel_resources.py root@$host:/tmp
     ssh root@$host ". openrc; python /tmp/delete_fuel_resources.py"
+}
+
+cleanup_fuel() {
+   revert_prepare_fuel
 }

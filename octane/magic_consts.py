@@ -22,3 +22,4 @@ PUPPET_DIR = "/etc/puppet/2014.2.2-6.1/modules"
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
 BRIDGES = ['br-ex', 'br-mgmt']
+DEFAULT_DISKS = True

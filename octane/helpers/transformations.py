@@ -1,7 +1,20 @@
-import yaml
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import argparse
 import os
 import re
-import argparse
+import yaml
+
 from octane import magic_consts
 
 
@@ -52,8 +65,8 @@ def get_actions(host_config):
 def remove_patch_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
-        if (action['action'] == 'add-patch') and (bridge_name
-                in action['bridges']):
+        if (action['action'] == 'add-patch') and (
+                bridge_name in action['bridges']):
             transformations.remove(action)
     return host_config
 
@@ -61,8 +74,8 @@ def remove_patch_port(host_config, bridge_name):
 def remove_physical_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
-        if (action['action'] == 'add-port') and (bridge_name
-                in action['bridge']):
+        if (action['action'] == 'add-port') and (
+                bridge_name in action['bridge']):
             transformations.remove(action)
     return host_config
 
@@ -74,7 +87,7 @@ def remove_patch_ports(host_config):
 
 
 def remove_physical_ports(host_config):
-    for bridge_name in BRIDGES:
+    for bridge_name in magic_consts.BRIDGES:
         host_config = remove_physical_port(host_config, bridge_name)
     return host_config
 
@@ -84,11 +97,15 @@ def remove_predefined_nets(host_config):
     return host_config
 
 
-def reset_gw_admin(host_config):
-    gw = host_config["master_ip"]
-    if host_config["network_scheme"]["endpoints"]["br-ex"].get("gateway"):
-        host_config["network_scheme"]["endpoints"]["br-ex"]["gateway"] = 'none'
-        host_config["network_scheme"]["endpoints"]["br-fw-admin"]["gateway"] = gw
+def reset_gw_admin(host_config, gateway=None):
+    if gateway:
+        gw = gateway
+    else:
+        gw = host_config["master_ip"]
+    endpoints = host_config["network_scheme"]["endpoints"]
+    if endpoints["br-ex"].get("gateway"):
+        endpoints["br-ex"]["gateway"] = 'none'
+        endpoints["br-fw-admin"]["gateway"] = gw
     return host_config
 
 
@@ -106,12 +123,16 @@ def update_env_deployment_info(dirname, action):
 def get_bridge_provider(actions, bridge):
     add_br_actions = [action for action in actions
                       if action.get("action") == "add-br"]
-    providers = [action.get("provider") for action in add_br_actions
+    providers = [action.get("provider", "lnx") for action in add_br_actions
                  if action.get("name") == bridge]
     if len(providers):
         return providers[-1]
     else:
-        return None
+        return 'lnx'
+
+
+def get_admin_iface(actions):
+    return 'br-fw-admin'
 
 
 def get_patch_port_action(host_config, bridge):
@@ -140,15 +161,25 @@ def lnx_add_port(actions, bridge):
 def ovs_add_patch_ports(actions, bridge):
     for action in actions:
         if (action.get("action") == "add-patch" and
-                bridge in action.get("bridges")):
-            bridges = action.get("bridges")
+                bridge in action.get("bridges", [])):
+            bridges = action.get("bridges", [])
+            tags = action.get("tags", ["", ""])
+            trunks = action.get("trunks", [])
+    for tag in tags:
+        if tag:
+            tag = "tag={0}".format(str(tag))
+    trunk_str = ",".join(trunks)
+    if trunk_str:
+        trunk_param = "trunks=[{0}]".format(trunk_str)
     if bridges:
-        return ["ovs-vsctl add-port {0} {0}--{1} "
+        return ["ovs-vsctl add-port {0} {0}--{1} {3} {4}"
                 "-- set interface {0}--{1} type=patch "
-                "options:peer={1}--{0}".format(bridges[0], bridges[1]),
-                "ovs-vsctl add-port {1} {1}--{0} "
+                "options:peer={1}--{0}"
+                .format(bridges[0], bridges[1], tags[0], trunk_param),
+                "ovs-vsctl add-port {1} {1}--{0} {3} {4}"
                 "-- set interface {1}--{0} type=patch "
-                "options:peer={0}--{1}".format(bridges[0], bridges[1])]
+                "options:peer={0}--{1}"
+                .format(bridges[0], bridges[1], tags[1], trunk_param)]
 
 
 def main():
