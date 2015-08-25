@@ -10,6 +10,7 @@ export BINPATH="$CWD/bin"
 export LIBPATH="$CWD/lib"
 export HELPER_PATH="$CWD/helpers"
 export PATCH_DIR="$CWD/patches"
+export SERVICE_TENANT_ID=""
 
 . ${LIBPATH}/utils.sh
 . ${LIBPATH}/nailgundb.sh
@@ -18,3 +19,4 @@ export PATCH_DIR="$CWD/patches"
 . ${LIBPATH}/maintenance.sh
 . ${LIBPATH}/patch.sh
 . ${LIBPATH}/ceph.sh
+. ${LIBPATH}/revert.sh

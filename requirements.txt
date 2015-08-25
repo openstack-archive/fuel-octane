@@ -4,7 +4,7 @@
 pbr>=0.6,!=0.7,<1.0
 
 # Cap versions of libs pulled by python-keystoneclient
-stevedore>=1.1.0,<1.7.0
+stevedore<1.7.0,>=1.1.0
 oslo.config<2.0.0  # the last version with namespace package
 
 # python-fuelclient needs these versions, python-keystoneclient pulls newer ones

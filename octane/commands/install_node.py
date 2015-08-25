@@ -12,18 +12,30 @@
 
 import logging
 
-from octane.commands.upgrade_db import get_controllers
 from octane.commands.upgrade_node import ControllerUpgrade
-from octane.commands.upgrade_node import wait_for_node
+from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
 from octane import magic_consts
+from octane.util import env as env_util
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 LOG = logging.getLogger(__name__)
+
+
+def isolate(nodes, env):
+    nodes.sort(key=lambda node: node.id, reverse=True)
+    hub = nodes[0]
+    deployment_info = env.get_default_facts(
+        'deployment', nodes=[hub.data['id']])
+    network.create_bridges(hub, env, deployment_info)
+    for node in nodes[1:]:
+        deployment_info = env.get_default_facts(
+            'deployment', nodes=[node.data['id']])
+        network.setup_isolation(hub, node, env, deployment_info)
 
 
 def update_node_settings(node, disks_fixture, ifaces_fixture):
@@ -58,7 +70,7 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         raise Exception("Original and seed environments have the same ID: %s",
                         orig_id)
     orig_env = env(orig_id)
-    orig_node = next(get_controllers(orig_env))
+    orig_node = next(env_util.get_controllers(orig_env))
     seed_env = env(seed_id)
     seed_env.assign(nodes, orig_node.data['roles'])
     for node in nodes:
@@ -67,15 +79,15 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         update_node_settings(node, disk_info_fixture, nic_info_fixture)
 
     seed_env.install_selected_nodes('provision', nodes)
-    for node in nodes:
-        wait_for_node(node, "provisioned")
+    env_util.wait_for_nodes(nodes, "provisioned")
 
     for node in nodes:
-        ControllerUpgrade.predeploy(node, seed_env,
-                                    isolated=isolated)
-    seed_env.install_selected_nodes('deploy', nodes)
-    for node in nodes:
-        wait_for_node(node, "ready")
+        # FIXME: properly call all handlers all over the place
+        ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
+    if len(nodes) > 1:
+        isolate(nodes, seed_env)
+    seed_env.deploy_changes()
+    env_util.wait_for_node(nodes, "ready")
 
 
 class InstallNodeCommand(cmd.Command):

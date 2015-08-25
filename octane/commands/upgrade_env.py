@@ -12,18 +12,15 @@
 
 from __future__ import print_function
 
-import json
 import logging
-import uuid
-
-from octane.commands.upgrade_db import get_controllers
-from octane import magic_consts
-from octane.util import ssh
-from octane.util import subprocess
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import release as release_obj
+
+from octane import magic_consts
+from octane.util import env as env_util
+from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
 
@@ -57,27 +54,12 @@ def set_cobbler_provision(env_id):
 
 def upgrade_env(env_id):
     target_release = find_deployable_release("Ubuntu")
-    LOG.info("Cloning env %s for release %s",
-             env_id, target_release.data['name'])
-    res, _ = subprocess.call(
-        ["fuel2", "env", "clone", "-f", "json",
-         str(env_id), uuid.uuid4().hex, str(target_release.data['id'])],
-        stdout=subprocess.PIPE,
-    )
-    for kv in json.loads(res):
-        if kv['Field'] == 'id':
-            seed_id = kv['Value']
-            break
-    else:
-        raise Exception("Couldn't find new environment ID in fuel CLI output:"
-                        "\n%s" % res)
-
-    return seed_id
+    return env_util.clone_env(env_id, target_release)
 
 
 def write_service_tenant_id(env_id):
     env = environment_obj.Environment(env_id)
-    node = get_controllers(env).next()
+    node = env_util.get_controllers(env).next()
     tenant_id, _ = ssh.call(["bash", "-c", ". /root/openrc;",
                              "keystone tenant-list | ",
                              "awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ "],

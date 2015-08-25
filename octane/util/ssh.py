@@ -80,8 +80,11 @@ def _get_client(node):
 @_get_client.check
 def _check_client(node, client):
     t = client.get_transport()
-    if t and t.is_active():
-        return True
+    if t:
+        # Send normal keepalive packet, but wait for result to let socket die
+        t.global_request('keepalive@lag.net', wait=True)
+        if t.is_active():
+            return True
     LOG.info("SSH connection to node %s died, reconnecting", node.data['id'])
     return False
 
@@ -95,8 +98,8 @@ class ChannelStderrFile(io.IOBase, channel.ChannelStderrFile):
 
 
 class _LogPipe(subprocess._BaseLogPipe):
-    def __init__(self, level, pipe):
-        super(_LogPipe, self).__init__(level)
+    def __init__(self, level, pipe, parse_levels=False):
+        super(_LogPipe, self).__init__(level, parse_levels=parse_levels)
         self._pipe = pipe
 
     def pipe(self):
@@ -125,7 +128,10 @@ class SSHPopen(subprocess.BasePopen):
             self.stdout = stdout
         stderr = ChannelStderrFile(self._channel, 'rb')
         if 'stderr' not in self.popen_kwargs:
-            self._pipe_stderr = _LogPipe(logging.ERROR, stderr)
+            self._pipe_stderr = _LogPipe(
+                logging.ERROR, stderr,
+                parse_levels=popen_kwargs.get('parse_levels', False),
+            )
             self._pipe_stderr.start(self.name + " stderr")
         else:
             self._pipe_stderr = None

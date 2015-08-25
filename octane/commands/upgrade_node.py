@@ -11,43 +11,105 @@
 # under the License.
 
 import logging
-import time
-
-from octane.helpers import network
-from octane.helpers import tasks as tasks_helpers
-from octane.helpers import transformations
-from octane import magic_consts
-from octane.util import subprocess
+import os
+import yaml
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
+from octane.helpers import tasks as tasks_helpers
+from octane.helpers import transformations
+from octane import magic_consts
+from octane.util import env as env_util
+from octane.util import ssh
+
 LOG = logging.getLogger(__name__)
 
 
-class ControllerUpgrade(object):
-    @staticmethod
-    def predeploy(node, env, isolated):
-        deployment_info = env.get_default_facts(
-            'deployment', nodes=[node.data['id']])
-        if isolated:
+class UpgradeHandler(object):
+    def __init__(self, node, env, isolated):
+        self.node = node
+        self.env = env
+        self.isolated = isolated
+
+    def preupgrade(self):
+        raise NotImplementedError('preupgrade')
+
+    def prepare(self):
+        raise NotImplementedError('prepare')
+
+    def predeploy(self):
+        raise NotImplementedError('predeploy')
+
+    def postdeploy(self):
+        raise NotImplementedError('postdeploy')
+
+
+class ControllerUpgrade(UpgradeHandler):
+    def __init__(self, node, env, isolated):
+        super(ControllerUpgrade, self).__init__(node, env, isolated)
+        self.service_tenant_id = None
+        self.gateway = None
+
+    def preupgrade(self):
+        self.service_tenant_id = env_util.get_service_tenant_id(
+            self.env, self.node)
+
+    def predeploy(self):
+        deployment_info = self.env.get_default_facts('deployment')
+        if self.isolated:
             # From backup_deployment_info
-            env.write_facts_to_dir('deployment', deployment_info,
-                                   directory=magic_consts.FUEL_CACHE)
-            network.isolate(node, env, deployment_info)
+            backup_path = os.path.join(
+                magic_consts.FUEL_CACHE,
+                "deployment_{0}.orig".format(self.node.data['cluster']),
+            )
+            if not os.path.exists(backup_path):
+                os.makedirs(backup_path)
+            # Roughly taken from Environment.write_facts_to_dir
+            for info in deployment_info:
+                if info['uid'] != self.node.id:
+                    continue
+                fname = os.path.join(
+                    backup_path,
+                    "{0}_{1}.yaml".format(info['role'], info['uid']),
+                )
+                with open(fname, 'w') as f:
+                    yaml.dump(info, f, default_flow_style=False)
         for info in deployment_info:
-            if isolated:
+            if info['uid'] != self.node.id:
+                continue
+            if self.isolated:
+                gw = get_admin_gateway(self.env)
                 transformations.remove_physical_ports(info)
-                transformations.reset_gw_admin(info)
+                endpoints = deployment_info[0]["network_scheme"]["endpoints"]
+                self.gateway = endpoints["br-ex"]["gateway"]
+                transformations.reset_gw_admin(info, gateway=gw)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
-        env.upload_facts('deployment', deployment_info)
+        self.env.upload_facts('deployment', deployment_info)
 
-        tasks = env.get_deployment_tasks()
+        tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
-        env.update_deployment_tasks(tasks)
+        self.env.update_deployment_tasks(tasks)
+
+    def postdeploy(self):
+        # From neutron_update_admin_tenant_id
+        sftp = ssh.sftp(self.node)
+        with ssh.update_file(sftp, '/etc/neutron/neutron.conf') as (old, new):
+            for line in old:
+                if line.startswith('nova_admin_tenant_id'):
+                    new.write('nova_admin_tenant_id = {0}\n'.format(
+                        self.service_tenant_id))
+                else:
+                    new.write(line)
+        ssh.call(['restart', 'neutron-server'], node=self.node)
+        if self.isolated:
+            # From restore_default_gateway
+            ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
+            ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],
+                     node=self.node)
 
 # TODO: use stevedore for this
 role_upgrade_handlers = {
@@ -55,42 +117,32 @@ role_upgrade_handlers = {
 }
 
 
-def get_role_upgrade_handlers(roles):
+def get_admin_gateway(environment):
+    for net in environment.get_network_data()['networks']:
+        if net["name"] == "fuelweb_admin":
+            return net["gateway"]
+
+
+def get_role_upgrade_handlers(node, env, isolated):
     role_handlers = []
-    for role in roles:
+    for role in node.data['roles']:
         try:
-            role_handlers.append(role_upgrade_handlers[role])
+            cls = role_upgrade_handlers[role]
         except KeyError:
             LOG.warn("Role '%s' is not supported, skipping")
+        else:
+            role_handlers.append(cls(node, env, isolated))
     return role_handlers
 
 
-def call_role_upgrade_handlers(handlers, method, node, env, **kwargs):
-    for handler in handlers[node]:
-        try:
-            meth = getattr(handler, method)
-        except AttributeError:
-            LOG.debug("No '%s' method in handler %s", method, handler.__name__)
-        else:
-            meth(node, env, **kwargs)
-
-
-def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
-    node_id = node.data['id']
-    LOG.debug("Waiting for node %s to transition to status '%s'",
-              node_id, status)
-    started_at = time.time()  # TODO: use monotonic timer
-    while True:
-        data = node.get_fresh_data()
-        if data['status'] == 'error':
-            raise Exception("Node %s fell into error status" % (node_id,))
-        if data['online'] and data['status'] == status:
-            LOG.info("Node %s transitioned to status '%s'", node_id, status)
-            return
-        if time.time() - started_at >= timeout:
-            raise Exception("Timeout waiting for node %s to transition to "
-                            "status '%s'" % (node_id, status))
-        time.sleep(check_freq)
+def call_role_upgrade_handlers(handlers, method):
+    for node_handlers in handlers.values():
+        for handler in node_handlers:
+            try:
+                getattr(handler, method)()
+            except NotImplementedError:
+                LOG.debug("Method '%s' not implemented in handler %s",
+                          method, type(handler).__name__)
 
 
 def upgrade_node(env_id, node_ids, isolated=False):
@@ -119,29 +171,14 @@ def upgrade_node(env_id, node_ids, isolated=False):
 
     role_handlers = {}
     for node in nodes:
-        role_handlers[node] = get_role_upgrade_handlers(node.data['roles'])
+        role_handlers[node] = get_role_upgrade_handlers(node, env, isolated)
 
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'preupgrade', node, env)
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'prepare', node, env)
-
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        subprocess.call(
-            ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
-
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "provisioned")
-
-    for node in nodes:
-        call_role_upgrade_handlers(role_handlers, 'predeploy', node, env,
-                                   isolated=isolated)
-
-    env.install_selected_nodes('deploy', nodes)
-    for node in nodes:  # TODO: create wait_for_nodes method here
-        wait_for_node(node, "ready")
-
-    call_role_upgrade_handlers(role_handlers, 'cleanup', node, env)
+    call_role_upgrade_handlers(role_handlers, 'preupgrade')
+    call_role_upgrade_handlers(role_handlers, 'prepare')
+    env_util.move_nodes(env, nodes)
+    call_role_upgrade_handlers(role_handlers, 'predeploy')
+    env_util.deploy_nodes(env, nodes)
+    call_role_upgrade_handlers(role_handlers, 'postdeploy')
 
 
 class UpgradeNodeCommand(cmd.Command):
