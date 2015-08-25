@@ -1,9 +1,22 @@
-import logging
-import yaml
-from octane.commands.upgrade_db import get_controllers
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from fuelclient.objects import environment as environment_obj
+import logging
+from octane.util import env as env_util
 from octane.util import ssh
-from octane.util import subprocess
+import yaml
+
 
 LOG = logging.getLogger(__name__)
 
@@ -27,11 +40,11 @@ def get_glance_password(yaml_data):
     return yaml_data['glance']['user_password']
 
 
-def parse_keystone_get(output, field):
-    for line in output.splitlines()[3:-1]:
-        parts = line.split()
-        if parts[1] == field:
-            return parts[3]
+def parse_swift_out(output, field):
+    for line in output.splitlines()[1:-1]:
+        parts = line.split(': ')
+        if parts[0].strip() == field:
+            return parts[1]
     raise Exception(
         "Field {0} not found in output:\n{1}".format(field, output))
 
@@ -41,7 +54,7 @@ def get_tenant_id(node, tenant):
     tenant_info, _ = ssh.call(["sh", "-c", cmd],
                               stdout=ssh.PIPE,
                               node=node)
-    return parse_keystone_get(tenant_info, 'id')
+    return env_util.parse_tenant_get(tenant_info, 'id')
 
 
 def get_swift_objects(node, tenant, user, password, token, container):
@@ -57,6 +70,22 @@ def get_swift_objects(node, tenant, user, password, token, container):
     return objects_list.split('\n')[:-1]
 
 
+def get_object_property(node, tenant, user, password, token, container,
+                        object_id, prop):
+    cmd = ". /root/openrc; swift --os-project-name {0} --os-username {1}"\
+        " --os-password {2} --os-auth-token {3} stat {4} {5}"\
+        .format(tenant,
+                user,
+                password,
+                token,
+                container,
+                object_id)
+    object_data, _ = ssh.call(["sh", "-c", cmd],
+                              stdout=ssh.PIPE,
+                              node=node)
+    return parse_swift_out(object_data, prop)
+
+
 def get_auth_token(node, tenant, user, password):
     cmd = ". /root/openrc; keystone --os-tenant-name {0}"\
         " --os-username {1} --os-password {2} token-get".format(tenant,
@@ -65,7 +94,7 @@ def get_auth_token(node, tenant, user, password):
     token_info, _ = ssh.call(["sh", "-c", cmd],
                              stdout=ssh.PIPE,
                              node=node)
-    return parse_keystone_get(token_info, 'id')
+    return env_util.parse_tenant_get(token_info, 'id')
 
 
 def download_image(node, tenant, user, password, token, container, object_id):
@@ -124,8 +153,8 @@ def sync_glance_images(source_env_id, seed_env_id, source_glance_user,
     source_env = environment_obj.Environment(source_env_id)
     seed_env = environment_obj.Environment(seed_env_id)
     # gather cics admin IPs
-    source_node = next(get_controllers(source_env))
-    seed_node = next(get_controllers(seed_env))
+    source_node = next(env_util.get_controllers(source_env))
+    seed_node = next(env_util.get_controllers(seed_env))
     # get cics yaml files
     source_yaml = get_astute_yaml(source_node)
     seed_yaml = get_astute_yaml(seed_node)
@@ -154,6 +183,29 @@ def sync_glance_images(source_env_id, seed_env_id, source_glance_user,
                                             container))
     # get service tenant for seed env
     seed_tenant = get_tenant_id(seed_node, tenant)
+    # check consistency of matched images
+    for image in source_swift_list & seed_swift_list:
+        source_token = get_auth_token(source_node, tenant, source_glance_user,
+                                      source_glance_pass)
+        source_obj_id = get_object_property(source_node,
+                                            tenant,
+                                            source_glance_user,
+                                            source_glance_pass,
+                                            source_token,
+                                            container,
+                                            image,
+                                            'ETag')
+        seed_token = get_auth_token(seed_node, tenant, seed_glance_user,
+                                    seed_glance_pass)
+        seed_obj_id = get_object_property(seed_node, tenant, seed_glance_user,
+                                          seed_glance_pass, seed_token,
+                                          container, image, 'ETag')
+        if source_obj_id != seed_obj_id:
+            # image should be resynced
+            delete_image(seed_node, tenant, seed_glance_user, seed_glance_pass,
+                         seed_token, container, image)
+            LOG.info("Swift %s image should be resynced" % image)
+            seed_swift_list.remove(image)
     # migrate new images
     for image in source_swift_list - seed_swift_list:
         # download image on source's node local drive
