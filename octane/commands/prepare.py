@@ -20,14 +20,15 @@ from octane.util import docker
 from octane.util import subprocess
 
 
-def patch_puppet():
+def patch_puppet(revert=False):
+    direction = "-R" if revert else "-N"
     puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
         with open(os.path.join(d, "patch")) as patch:
-            subprocess.call(["patch", "-Np3"], stdin=patch,
+            subprocess.call(["patch", direction, "-p3"], stdin=patch,
                             cwd=magic_consts.PUPPET_DIR)
 
 
@@ -71,3 +72,4 @@ class RevertCommand(cmd.Command):
 
     def take_action(self, parsed_args):
         apply_patches(revert=True)
+        patch_puppet(revert=True)
