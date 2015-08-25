@@ -89,6 +89,10 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
 
     env_util.deploy_changes(seed_env, nodes)
 
+    for node in nodes:
+        controller_upgrade.ControllerUpgrade(
+            node, seed_env, isolated=isolated).postdeploy()
+
 
 class InstallNodeCommand(cmd.Command):
     """Install nodes to environment based on settings of orig environment"""
