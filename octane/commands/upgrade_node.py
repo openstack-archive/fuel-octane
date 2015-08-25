@@ -89,8 +89,7 @@ class ControllerUpgrade(UpgradeHandler):
         self.service_tenant_id = get_service_tenant_id(self.node)
 
     def predeploy(self):
-        deployment_info = self.env.get_default_facts(
-            'deployment', nodes=[self.node.data['id']])
+        deployment_info = self.env.get_default_facts('deployment')
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -101,6 +100,8 @@ class ControllerUpgrade(UpgradeHandler):
                 os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
             for info in deployment_info:
+                if info['uid'] != self.node.id:
+                    continue
                 fname = os.path.join(
                     backup_path,
                     "{0}_{1}.yaml".format(info['role'], info['uid']),
@@ -108,6 +109,8 @@ class ControllerUpgrade(UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.dump(info, f, default_flow_style=False)
         for info in deployment_info:
+            if info['uid'] != self.node.id:
+                continue
             if self.isolated:
                 gw = get_admin_gateway(self.env)
                 transformations.remove_physical_ports(info)
