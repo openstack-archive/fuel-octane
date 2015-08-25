@@ -53,9 +53,6 @@ def prepare():
         os.makedirs(magic_consts.FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
-    octane_fuelclient = os.path.join(magic_consts.CWD, '..',
-                                     'octane_fuelclient')
-    subprocess.call(["pip", "install", "-U", octane_fuelclient])
     patch_puppet()
     # From patch_all_containers
     apply_patches()
