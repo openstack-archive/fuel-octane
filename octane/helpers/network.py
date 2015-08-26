@@ -255,7 +255,7 @@ def create_port_providers(provide):
 
 def create_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
-        port, provider = ts.get_patch_port(host_config, bridge)
+        port, provider = ts.get_patch_port_action(host_config, bridge)
         create_port_cmd = create_port_providers(provider)
         cmds = create_port_cmd(bridge, port)
         for cmd in cmds:
