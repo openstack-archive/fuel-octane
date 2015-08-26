@@ -87,7 +87,7 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
     if len(nodes) > 1:
         isolate(nodes, seed_env)
     seed_env.deploy_changes()
-    env_util.wait_for_node(nodes, "ready")
+    env_util.wait_for_nodes(nodes, "ready")
 
 
 class InstallNodeCommand(cmd.Command):
