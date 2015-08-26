@@ -24,7 +24,7 @@ from octane.util import ssh
 
 
 def mysqldump_from_env(env):
-    node = next(env_util.get_controllers(env))
+    node = env_util.get_one_controller(env)
     local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
     with ssh.popen(['sh', '-c', 'mysqldump --add-drop-database'
                     ' --lock-all-tables --databases %s | gzip' %
@@ -41,7 +41,7 @@ def mysqldump_from_env(env):
 
 
 def mysqldump_restore_to_env(env, fname):
-    node = next(env_util.get_controllers(env))
+    node = env_util.get_one_controller(env)
     with open(fname, 'rb') as local_file:
         with ssh.popen(['sh', '-c', 'zcat | mysql'],
                        stdin=ssh.PIPE, node=node) as proc:
@@ -49,7 +49,7 @@ def mysqldump_restore_to_env(env, fname):
 
 
 def db_sync(env):
-    node = next(env_util.get_controllers(env))
+    node = env_util.get_one_controller(env)
     ssh.call(['keystone-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
