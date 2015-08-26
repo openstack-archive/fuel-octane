@@ -44,7 +44,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
             for info in deployment_info:
-                if info['uid'] != self.node.id:
+                if not info['uid'] == str(self.node.id):
                     continue
                 fname = os.path.join(
                     backup_path,
@@ -53,7 +53,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.dump(info, f, default_flow_style=False)
         for info in deployment_info:
-            if info['uid'] != self.node.id:
+            if not info['uid'] == str(self.node.id):
                 continue
             if self.isolated:
                 gw = get_admin_gateway(self.env)
