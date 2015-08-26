@@ -75,7 +75,8 @@ def remove_physical_port(host_config, bridge_name):
     transformations = host_config['network_scheme']['transformations']
     for action in transformations:
         if (action['action'] == 'add-port') and (
-                bridge_name in action['bridge']):
+                action.get('bridge')) and (
+                bridge_name in action.get(['bridge'], [])):
             transformations.remove(action)
     return host_config
 
