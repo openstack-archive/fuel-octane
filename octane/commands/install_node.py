@@ -12,7 +12,7 @@
 
 import logging
 
-from octane.commands.upgrade_node import ControllerUpgrade
+from octane.handlers.upgrade import controller as controller_upgrade
 from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
@@ -70,7 +70,7 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         raise Exception("Original and seed environments have the same ID: %s",
                         orig_id)
     orig_env = env(orig_id)
-    orig_node = next(env_util.get_controllers(orig_env))
+    orig_node = env_util.get_one_controller(orig_env)
     seed_env = env(seed_id)
     seed_env.assign(nodes, orig_node.data['roles'])
     for node in nodes:
@@ -78,16 +78,20 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         nic_info_fixture = orig_node.get_attribute('interfaces')
         update_node_settings(node, disk_info_fixture, nic_info_fixture)
 
-    seed_env.install_selected_nodes('provision', nodes)
-    env_util.wait_for_nodes(nodes, "provisioned")
+    env_util.provision_nodes(seed_env, nodes)
 
     for node in nodes:
         # FIXME: properly call all handlers all over the place
-        ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
+        controller_upgrade.ControllerUpgrade(
+            node, seed_env, isolated=isolated).predeploy()
     if len(nodes) > 1:
         isolate(nodes, seed_env)
-    seed_env.deploy_changes()
-    env_util.wait_for_node(nodes, "ready")
+
+    env_util.deploy_changes(seed_env, nodes)
+
+    for node in nodes:
+        controller_upgrade.ControllerUpgrade(
+            node, seed_env, isolated=isolated).postdeploy()
 
 
 class InstallNodeCommand(cmd.Command):
