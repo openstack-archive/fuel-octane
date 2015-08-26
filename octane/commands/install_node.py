@@ -78,16 +78,15 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         nic_info_fixture = orig_node.get_attribute('interfaces')
         update_node_settings(node, disk_info_fixture, nic_info_fixture)
 
-    seed_env.install_selected_nodes('provision', nodes)
-    env_util.wait_for_nodes(nodes, "provisioned")
+    env_util.provision_nodes(seed_env, nodes)
 
     for node in nodes:
         # FIXME: properly call all handlers all over the place
         ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
     if len(nodes) > 1:
         isolate(nodes, seed_env)
-    seed_env.deploy_changes()
-    env_util.wait_for_nodes(nodes, "ready")
+
+    env_util.deploy_changes(seed_env, nodes)
 
 
 class InstallNodeCommand(cmd.Command):
