@@ -59,7 +59,7 @@ def upgrade_env(env_id):
 
 def write_service_tenant_id(env_id):
     env = environment_obj.Environment(env_id)
-    node = env_util.get_controllers(env).next()
+    node = env_util.get_one_controller(env)
     tenant_id, _ = ssh.call(["bash", "-c", ". /root/openrc;",
                              "keystone tenant-list | ",
                              "awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ "],

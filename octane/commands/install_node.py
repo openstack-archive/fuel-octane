@@ -70,7 +70,7 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         raise Exception("Original and seed environments have the same ID: %s",
                         orig_id)
     orig_env = env(orig_id)
-    orig_node = next(env_util.get_controllers(orig_env))
+    orig_node = env_util.get_one_controller(orig_env)
     seed_env = env(seed_id)
     seed_env.assign(nodes, orig_node.data['roles'])
     for node in nodes:

@@ -39,6 +39,10 @@ def get_controllers(env):
                         env.data['id'])
 
 
+def get_one_controller(env):
+    return next(get_controllers(env))
+
+
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
     res, _ = subprocess.call(
@@ -58,7 +62,7 @@ def clone_env(env_id, release):
 
 
 def delete_fuel_resources(env):
-    node = next(get_controllers(env))
+    node = get_one_controller(env)
     sftp = ssh.sftp(node)
     sftp.put(
         os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
@@ -90,7 +94,7 @@ def get_service_tenant_id(env, node=None):
             return f.readline()
 
     if node is None:
-        node = next(get_controllers(env))
+        node = get_one_controller(env)
 
     tenant_out, _ = ssh.call(
         [
