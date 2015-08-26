@@ -11,11 +11,13 @@
 # under the License.
 
 
-from fuelclient.objects import environment as environment_obj
 import logging
+import yaml
+
+from fuelclient.objects import environment as environment_obj
+
 from octane.util import env as env_util
 from octane.util import ssh
-import yaml
 
 
 LOG = logging.getLogger(__name__)
@@ -29,9 +31,10 @@ def get_astute_yaml(node):
 
 
 def get_endpoint_ip(ep_name, yaml_data):
-    if ep_name not in yaml_data['network_scheme']['endpoints']:
+    endpoint = yaml_data['network_scheme']['endpoints'].get(ep_name)
+    if not endpoint:
         return None
-    net_data = yaml_data['network_scheme']['endpoints'][ep_name]["IP"][0]
+    net_data = endpoint["IP"][0]
     if net_data:
         return net_data.split('/')[0]
 
@@ -47,14 +50,6 @@ def parse_swift_out(output, field):
             return parts[1]
     raise Exception(
         "Field {0} not found in output:\n{1}".format(field, output))
-
-
-def get_tenant_id(node, tenant):
-    cmd = ". /root/openrc; keystone tenant-get {0}".format(tenant)
-    tenant_info, _ = ssh.call(["sh", "-c", cmd],
-                              stdout=ssh.PIPE,
-                              node=node)
-    return env_util.parse_tenant_get(tenant_info, 'id')
 
 
 def get_swift_objects(node, tenant, user, password, token, container):
@@ -130,21 +125,20 @@ def transfer_image(node, tenant, user, password, token, container, object_id,
     LOG.info("Swift %s image has been transferred" % object_id)
 
 
-def sync_glance_images(source_env_id, seed_env_id, source_glance_user,
-                       seed_glance_user, seed_swift_ep):
+def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
     """Sync glance images from original ENV to seed ENV
 
     Args:
         source_env_id (int): ID of original ENV.
         seed_env_id (int): ID of seed ENV.
-        source_glance_user (str): glance user of original ENV.
-        seed_glance_user (str): glance user of seed ENV.
         seed_swift_ep (str): endpoint's name where swift-proxy service is
                              listening on.
 
     Examples:
-        sync_glance_images(2, 3, 'glance', 'glance', 'br-mgmt')
+        sync_glance_images(2, 3, 'br-mgmt')
     """
+    # set glance username
+    glance_user = "glance"
     # set swift container value
     container = "glance"
     # choose tenant
@@ -164,69 +158,69 @@ def sync_glance_images(source_env_id, seed_env_id, source_glance_user,
     # get seed node swift ip
     seed_swift_ip = get_endpoint_ip(seed_swift_ep, seed_yaml)
     # get service tenant id & lists of objects for source env
-    source_token = get_auth_token(source_node, tenant, source_glance_user,
+    source_token = get_auth_token(source_node, tenant, glance_user,
                                   source_glance_pass)
     source_swift_list = set(get_swift_objects(source_node,
                                               tenant,
-                                              source_glance_user,
+                                              glance_user,
                                               source_glance_pass,
                                               source_token,
                                               container))
     # get service tenant id & lists of objects for seed env
-    seed_token = get_auth_token(seed_node, tenant, seed_glance_user,
+    seed_token = get_auth_token(seed_node, tenant, glance_user,
                                 seed_glance_pass)
     seed_swift_list = set(get_swift_objects(seed_node,
                                             tenant,
-                                            seed_glance_user,
+                                            glance_user,
                                             seed_glance_pass,
                                             seed_token,
                                             container))
     # get service tenant for seed env
-    seed_tenant = get_tenant_id(seed_node, tenant)
+    seed_tenant = env_util.get_service_tenant_id(seed_env)
     # check consistency of matched images
+    source_token = get_auth_token(source_node, tenant, glance_user,
+                                  source_glance_pass)
+    seed_token = get_auth_token(seed_node, tenant, glance_user,
+                                seed_glance_pass)
     for image in source_swift_list & seed_swift_list:
-        source_token = get_auth_token(source_node, tenant, source_glance_user,
-                                      source_glance_pass)
-        source_obj_id = get_object_property(source_node,
-                                            tenant,
-                                            source_glance_user,
-                                            source_glance_pass,
-                                            source_token,
-                                            container,
-                                            image,
+        source_obj_etag = get_object_property(source_node,
+                                              tenant,
+                                              glance_user,
+                                              source_glance_pass,
+                                              source_token,
+                                              container,
+                                              image,
+                                              'ETag')
+        seed_obj_etag = get_object_property(seed_node, tenant,
+                                            glance_user, seed_glance_pass,
+                                            seed_token, container, image,
                                             'ETag')
-        seed_token = get_auth_token(seed_node, tenant, seed_glance_user,
-                                    seed_glance_pass)
-        seed_obj_id = get_object_property(seed_node, tenant, seed_glance_user,
-                                          seed_glance_pass, seed_token,
-                                          container, image, 'ETag')
-        if source_obj_id != seed_obj_id:
+        if source_obj_etag != seed_obj_etag:
             # image should be resynced
-            delete_image(seed_node, tenant, seed_glance_user, seed_glance_pass,
+            delete_image(seed_node, tenant, glance_user, seed_glance_pass,
                          seed_token, container, image)
             LOG.info("Swift %s image should be resynced" % image)
             seed_swift_list.remove(image)
     # migrate new images
     for image in source_swift_list - seed_swift_list:
         # download image on source's node local drive
-        source_token = get_auth_token(source_node, tenant, source_glance_user,
+        source_token = get_auth_token(source_node, tenant, glance_user,
                                       source_glance_pass)
-        download_image(source_node, tenant, source_glance_user,
-                       source_glance_pass, source_token, container, image)
+        download_image(source_node, tenant, glance_user, source_glance_pass,
+                       source_token, container, image)
         # transfer image
         source_token = get_auth_token(source_node, tenant,
-                                      source_glance_user,
-                                      source_glance_pass)
-        seed_token = get_auth_token(seed_node, tenant, seed_glance_user,
+                                      glance_user, source_glance_pass)
+        seed_token = get_auth_token(seed_node, tenant, glance_user,
                                     seed_glance_pass)
-        transfer_image(source_node, tenant, seed_glance_user, seed_glance_pass,
+        transfer_image(source_node, tenant, glance_user, seed_glance_pass,
                        seed_token, container, image, seed_swift_ip,
                        seed_tenant)
         # remove transferred image
         ssh.sftp(source_node).remove(image)
     # delete outdated images
     for image in seed_swift_list - source_swift_list:
-        token = get_auth_token(seed_node, tenant, seed_glance_user,
+        token = get_auth_token(seed_node, tenant, glance_user,
                                seed_glance_pass)
-        delete_image(seed_node, tenant, seed_glance_user, seed_glance_pass,
+        delete_image(seed_node, tenant, glance_user, seed_glance_pass,
                      token, container, image)

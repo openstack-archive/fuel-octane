@@ -26,17 +26,10 @@ class SyncImagesCommand(cmd.Command):
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
         parser.add_argument(
-            'orig_glance_user', type=str,
-            help="Glance username of orig environment")
-        parser.add_argument(
-            'seed_glance_user', type=str,
-            help="Glance username of seed environment")
-        parser.add_argument(
             'swift_ep', type=str,
             help="Endpoint's name where swift-proxy service is listening on")
         return parser
 
     def take_action(self, parsed_args):
         sync_glance_images(parsed_args.orig_id, parsed_args.seed_id,
-                           parsed_args.orig_glance_user,
-                           parsed_args.seed_glance_user, parsed_args.swift_ep)
+                           parsed_args.swift_ep)
