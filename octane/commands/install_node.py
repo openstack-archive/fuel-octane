@@ -12,7 +12,7 @@
 
 import logging
 
-from octane.commands.upgrade_node import ControllerUpgrade
+from octane.handlers.upgrade import controller as controller_upgrade
 from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
@@ -82,7 +82,8 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
 
     for node in nodes:
         # FIXME: properly call all handlers all over the place
-        ControllerUpgrade(node, seed_env, isolated=isolated).predeploy()
+        controller_upgrade.ControllerUpgrade(
+            node, seed_env, isolated=isolated).predeploy()
     if len(nodes) > 1:
         isolate(nodes, seed_env)
 
