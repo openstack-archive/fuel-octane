@@ -105,6 +105,9 @@ def get_service_tenant_id(env, node=None):
         stdout=ssh.PIPE,
     )
     tenant_id = parse_tenant_get(tenant_out, 'id')
+    dname = os.path.dirname(fname)
+    if not os.path.exists(dname):
+        os.makedirs(dname)
     with open(fname, 'w') as f:
         f.write(tenant_id)
     return tenant_id
