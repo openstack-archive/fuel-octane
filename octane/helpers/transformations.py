@@ -77,7 +77,7 @@ def remove_physical_port(host_config, bridge_name):
         if (action['action'] == 'add-port') and (
                 action.get('bridge')) and (
                 bridge_name == action['bridge']):
-            transformations.remove(action)
+            action.pop('bridge')
     return host_config
 
 
@@ -181,6 +181,16 @@ def ovs_add_patch_ports(actions, bridge):
                 "-- set interface {1}--{0} type=patch "
                 "options:peer={0}--{1}"
                 .format(bridges[0], bridges[1], tags[1], trunk_param)]
+
+
+def remove_ports(host_config):
+    actions = host_config['network_scheme']['transformations']
+    for bridge_name in magic_consts.BRIDGES:
+        provider = get_bridge_provider(actions, bridge_name)
+        if provider == 'ovs':
+            remove_patch_port(host_config, bridge_name)
+        else:
+            remove_physical_port(host_config, bridge_name)
 
 
 def main():

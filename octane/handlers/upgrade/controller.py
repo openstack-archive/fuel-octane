@@ -57,7 +57,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 continue
             if self.isolated:
                 gw = get_admin_gateway(self.env)
-                transformations.remove_physical_ports(info)
+                transformations.remove_ports(info)
                 endpoints = deployment_info[0]["network_scheme"]["endpoints"]
                 self.gateway = endpoints["br-ex"]["gateway"]
                 transformations.reset_gw_admin(info, gateway=gw)
