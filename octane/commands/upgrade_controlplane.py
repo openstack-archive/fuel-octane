@@ -9,27 +9,28 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import os
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
-from octane.commands.upgrade_db import get_controllers
-from octane.commands.upgrade_db import parse_crm_status
 from octane.helpers import network
 from octane import magic_consts
+from octane.util import env as env_util
+from octane.util import maintenance
 from octane.util import ssh
 
 
 def start_corosync_services(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     for node in controllers:
         status_out, _ = ssh.call(['crm', 'status'], stdout=ssh.PIPE, node=node)
-        for service in parse_crm_status(status_out):
+        for service in maintenance.parse_crm_status(status_out):
             ssh.call(['crm', 'resource', 'start', service], node=node)
 
 
 def start_upstart_services(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     for node in controllers:
         sftp = ssh.sftp(node)
         try:
@@ -44,7 +45,7 @@ def start_upstart_services(env):
 
 
 def disconnect_networks(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     for node in controllers:
         deployment_info = env.get_default_facts('deployment',
                                                 nodes=[node.data['id']])
@@ -53,17 +54,20 @@ def disconnect_networks(env):
 
 
 def connect_to_networks(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
+    backup_path = os.path.join(magic_consts.FUEL_CACHE,
+                               'deployment_{0}.orig'
+                               .format(env.id))
     for node in controllers:
         deployment_info = env.read_deployment_info('deployment',
-                                                   magic_consts.FUEL_CACHE)
+                                                   backup_path)
         for info in deployment_info:
             if info['role'] in ('primary-controller', 'controller'):
                 network.create_patch_ports(node, info)
 
 
 def update_neutron_config(env):
-    controllers = list(get_controllers(env))
+    controllers = list(env_util.get_controllers(env))
     tenant_file = '%s/env-%s-service-tenant-id' % (magic_consts.FUEL_CACHE,
                                                    str(env.id))
     with open(tenant_file) as f:

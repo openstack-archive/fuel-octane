@@ -19,14 +19,15 @@ from octane.util import docker
 from octane.util import subprocess
 
 
-def patch_puppet():
+def patch_puppet(revert=False):
+    direction = "-R" if revert else "-N"
     puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
         with open(os.path.join(d, "patch")) as patch:
-            subprocess.call(["patch", "-Np3"], stdin=patch,
+            subprocess.call(["patch", direction, "-p3"], stdin=patch,
                             cwd=magic_consts.PUPPET_DIR)
 
 
@@ -42,9 +43,6 @@ def prepare():
         os.makedirs(magic_consts.FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
-    octane_fuelclient = os.path.join(magic_consts.CWD, '..',
-                                     'octane_fuelclient')
-    subprocess.call(["pip", "install", "-U", octane_fuelclient])
     # From patch_all_containers
     apply_patches()
 

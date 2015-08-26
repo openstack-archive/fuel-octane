@@ -3,7 +3,7 @@
 pycmd() {
     if ! python -c 'import octane'; then
         yum install -y python-paramiko
-        pip install -e "$CWD/.."
+        pip install --no-index -e "$CWD/.."
     fi
     local opts=""
     if shopt -qo xtrace; then

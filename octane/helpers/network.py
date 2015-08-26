@@ -16,8 +16,8 @@ import subprocess
 from octane import magic_consts
 from octane.util import ssh
 
-from octane.commands.upgrade_db import get_controllers
 from octane.helpers import transformations as ts
+from octane.util import env as env_util
 
 LOG = logging.getLogger(__name__)
 
@@ -185,7 +185,7 @@ def delete_tunnels_from_node(node, bridge):
 
 
 def delete_overlay_network(env, bridge):
-    nodes = list(get_controllers(env))
+    nodes = list(env_util.get_controllers(env))
     for node in nodes:
         delete_tunnels_from_node(node, bridge)
 
