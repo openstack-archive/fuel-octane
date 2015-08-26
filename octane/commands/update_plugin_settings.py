@@ -21,7 +21,7 @@ from cliff import command as cmd
 from fuelclient.objects import environment
 from fuelclient.objects import node as node_obj
 
-from octane.commands.upgrade_db import get_controllers
+from octane.util import env as env_util
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def get_zabbix_credentials(astute):
 
 
 def get_astute_yaml(env):
-    node = next(get_controllers(env))
+    node = env_util.get_one_controller(env)
     with ssh.sftp(node).open('/etc/astute.yaml') as f:
         data = f.read()
     return yaml.load(data)
@@ -127,20 +127,19 @@ def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     astute = get_astute_yaml(orig_env)
     attrs = {}
 
-    for plugin_name in plugins:
-        LOG.info("Fetching settings for plugin '%s'", plugin_name)
-        plugin = plugin_name.replace('-', '_')
-        attrs[plugin] = PLUGINS[plugin_name](astute)
+    for plugin in plugins:
+        LOG.info("Fetching settings for plugin '%s'", plugin)
+        attrs[plugin] = PLUGINS[plugin](astute)
 
     seed_env.update_attributes({'editable': attrs})
 
 
 PLUGINS = {
-    'zabbix-monitoring': zabbix_monitoring_settings,
-    'emc-vnx': emc_vnx_settings,
-    'zabbix-snmptrapd': zabbix_snmptrapd_settings,
-    'zabbix-monitoring-emc': zabbix_monitoring_emc_settings,
-    'zabbix-monitoring-extreme-networks':
+    'zabbix_monitoring': zabbix_monitoring_settings,
+    'emc_vnx': emc_vnx_settings,
+    'zabbix_snmptrapd': zabbix_snmptrapd_settings,
+    'zabbix_monitoring_emc': zabbix_monitoring_emc_settings,
+    'zabbix_monitoring_extreme_networks':
         zabbix_monitoring_extreme_networks_settings,
 }
 
