@@ -29,6 +29,7 @@ Project is aimed to validate if more or less simple upgrade of MOS 5.1+
 %setup -cq -n %{name}-%{version}
 
 %build
+export OSLO_PACKAGE_VERSION=1 # XXX workaround hack
 cd %{_builddir}/%{name}-%{version} && python setup.py build
 
 %install
