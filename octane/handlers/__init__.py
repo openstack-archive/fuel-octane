@@ -19,12 +19,10 @@ LOG = logging.getLogger(__name__)
 
 
 class _GetNodesHandlersFactory(object):
-    _extension_manager = None
-
     def __init__(self, name):
         self.name = name
 
-    def on_load_failure_callback(self, endpoint, exc):
+    def on_load_failure_callback(self, manager, endpoint, exc):
         LOG.error('Failed to load %s: %s', endpoint.name, exc)
         raise  # Avoid unexpectedly skipped steps
 
