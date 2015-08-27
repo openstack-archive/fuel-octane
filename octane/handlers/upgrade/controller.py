@@ -50,7 +50,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                     "{0}_{1}.yaml".format(info['role'], info['uid']),
                 )
                 with open(fname, 'w') as f:
-                    yaml.dump(info, f, default_flow_style=False)
+                    yaml.safe_dump(info, f, default_flow_style=False)
         for info in deployment_info:
             if self.isolated:
                 transformations.remove_physical_ports(info)
