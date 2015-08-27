@@ -1,4 +1,4 @@
-%define name octane
+%define name fuel-octane
 %{!?version: %define version 1}
 %{!?release: %define release 1}
 
@@ -19,7 +19,6 @@ BuildArch: noarch
 
 Requires:    python
 Requires:    patch
-Requires:    pip
 Requires:    tar
 Requires:    pssh
 
@@ -30,12 +29,13 @@ Project is aimed to validate if more or less simple upgrade of MOS 5.1+
 %setup -cq -n %{name}-%{version}
 
 %build
+export OSLO_PACKAGE_VERSION=1 # XXX version workaround
 cd %{_builddir}/%{name}-%{version} && python setup.py build
 
 %install
 cd %{_builddir}/%{name}-%{version} 
 # stub
-install -d -m 755 %{buildroot}%{_sysconfdir}/octane
+install -d -m 755 %{buildroot}%{_sysconfdir}/%{name} 
 
 %clean
 rm -rf $RPM_BUILD_ROOT
