@@ -23,13 +23,13 @@ LOG = logging.getLogger(__name__)
 ADMIN_NETWORK_NAME = 'fuelweb_admin'
 
 
-def get_original_networks(env_id):
+def get_env_networks(env_id):
     env = objects.Environment(env_id)
     network_data = env.get_network_data()
     return network_data['networks']
 
 
-def update_seed_networks(env_id, networks):
+def update_env_networks(env_id, networks):
     fields_to_update = ['meta', 'ip_ranges']
     env = objects.Environment(env_id)
     release_id = env.get_fresh_data()['release_id']
@@ -50,7 +50,7 @@ def update_seed_networks(env_id, networks):
         if ng['name'] == ADMIN_NETWORK_NAME:
             continue
         try:
-            new_group = objects.NetworkGroup.create(
+            objects.NetworkGroup.create(
                 ng['name'],
                 release_id,
                 ng['vlan_start'],
@@ -58,13 +58,13 @@ def update_seed_networks(env_id, networks):
                 ng['gateway'],
                 node_group_id
             )
-            data = {}
         except HTTPError:
             LOG.error("Cannot sync network '{0}'".format(ng['name']))
             continue
-        data_to_update[ng['name']] = data
+        data = {}
         for key in fields_to_update:
             data[key] = ng[key]
+        data_to_update[ng['name']] = data
 
     # now we need to update new networks with
     # correct ip_ranges and meta
@@ -90,5 +90,5 @@ class SyncNetworksCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        networks = get_original_networks(parsed_args.original_env)
-        update_seed_networks(parsed_args.seed_env, networks)
+        networks = get_env_networks(parsed_args.original_env)
+        update_env_networks(parsed_args.seed_env, networks)
