@@ -219,3 +219,13 @@ def update_file(sftp, filename):
     sftp.rename(filename, bak_filename)
     sftp.rename(temp_filename, filename)
     sftp.unlink(bak_filename)
+
+
+@contextlib.contextmanager
+def tempdir(node):
+    out, _ = call(['mktemp', '-d'], node=node, stdout=PIPE)
+    dirname = out[:-1]
+    try:
+        yield dirname
+    finally:
+        call(['rm', '-rf', dirname], node=node)
