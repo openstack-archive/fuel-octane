@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import fuelclient
 import json
 import logging
 import os.path
@@ -158,3 +159,17 @@ def deploy_nodes(env, nodes):
 def deploy_changes(env, nodes):
     env.deploy_changes()
     wait_for_nodes(nodes, "ready")
+
+
+def merge_deployment_info(env):
+    default_info = env.get_default_facts('deployment')
+    try:
+        deployment_info = env.get_facts('deployment')
+    except fuelclient.cli.error.ServerDataException:
+        LOG.warn('Deployment info is unchanged for env: %s',
+                 env.id)
+        deployment_info = []
+    for info in default_info:
+        if not info['uid'] in [i['uid'] for i in deployment_info]:
+            deployment_info.append(info)
+    return deployment_info
