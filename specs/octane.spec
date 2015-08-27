@@ -19,7 +19,6 @@ BuildArch: noarch
 
 Requires:    python
 Requires:    patch
-Requires:    pip
 Requires:    tar
 Requires:    pssh
 
