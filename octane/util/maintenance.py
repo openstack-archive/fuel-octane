@@ -62,7 +62,7 @@ def parse_crm_status(status_out, exclude=_default_exclude_services):
 def stop_corosync_services(env):
     controllers = list(env_util.get_controllers(env))
     for node in controllers:
-        status_out, _ = ssh.call(['crm', 'status'], stdout=ssh.PIPE, node=node)
+        status_out = ssh.call_output(['crm', 'status'], node=node)
         for service in parse_crm_status(status_out):
             ssh.call(['crm', 'resource', 'stop', service], node=node)
 
@@ -78,8 +78,7 @@ def stop_upstart_services(env):
             svc_file = sftp.open('/root/services_list')
         except IOError:
             with sftp.open('/root/services_list.tmp', 'w') as svc_file:
-                initctl_out, _ = ssh.call(['initctl', 'list'],
-                                          stdout=ssh.PIPE, node=node)
+                initctl_out = ssh.call_output(['initctl', 'list'], node=node)
                 to_stop = []
                 for match in service_re.finditer(initctl_out):
                     service = match.group(1)

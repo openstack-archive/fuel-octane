@@ -197,3 +197,7 @@ def popen(cmd, **kwargs):
 def call(cmd, **kwargs):
     with popen(cmd, **kwargs) as proc:
         return proc.communicate()
+
+
+def call_output(cmd, **kwargs):
+    return call(cmd, stdout=PIPE, **kwargs)[0]
