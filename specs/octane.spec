@@ -1,4 +1,4 @@
-%define name octane
+%define name fuel-octane
 %{!?version: %define version 1}
 %{!?release: %define release 1}
 
