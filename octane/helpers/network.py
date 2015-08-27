@@ -31,8 +31,12 @@ def set_bridge_mtu(node, bridge):
 
 
 def create_ovs_bridge(node, bridge):
-    cmd = ['ovs-vsctl', 'add-br', bridge]
-    ssh.call(cmd, node=node)
+    cmds = []
+    cmds.append(['ovs-vsctl', 'add-br', bridge])
+    cmds.append(['ip', 'link', 'set', 'up', 'dev', bridge])
+    cmds.append(['ip', 'link', 'set', 'mtu', '1450', 'dev', bridge])
+    for cmd in cmds:
+        ssh.call(cmd, node=node)
 
 
 def create_lnx_bridge(node, bridge):
