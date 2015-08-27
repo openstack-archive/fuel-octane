@@ -196,8 +196,8 @@ def delete_overlay_network(env, bridge):
 
 def delete_port_ovs(bridge, port):
     bridges = port['bridges']
-    port_name = "%s--%s" % (bridges[0], bridge[1])
-    return ['ovs-vsctl', 'del-port', bridge, port_name]
+    port_name = "%s--%s" % (bridges[0], bridges[1])
+    return ['ovs-vsctl', 'del-port', bridges[0], port_name]
 
 
 def delete_port_lnx(bridge, port):
