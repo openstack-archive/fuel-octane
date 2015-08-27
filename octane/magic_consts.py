@@ -27,3 +27,7 @@ PUPPET_DIR = "/etc/puppet/2014.2.2-6.1/modules"
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
+
+MCOLLECTIVE_PATCH = os.path.join(CWD, "patches/pman/erase_node.rb.patch")
+MCOLLECTIVE_PATCH_TARGET = \
+    "/usr/share/mcollective/plugins/mcollective/agent/erase_node.rb"
