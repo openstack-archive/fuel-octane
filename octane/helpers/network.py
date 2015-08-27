@@ -212,8 +212,7 @@ delete_port_providers = {
 
 def delete_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
-        port = ts.get_patch_port_action(host_config, bridge)
-        provider = port.get('provider', 'lnx')
+        port, provider = ts.get_patch_port_action(host_config, bridge)
         delete_port_cmd = delete_port_providers[provider]
         cmd = delete_port_cmd(bridge, port)
         ssh.call(cmd, node=node)
