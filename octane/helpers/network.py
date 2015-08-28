@@ -18,7 +18,6 @@ from octane import magic_consts
 from octane.util import ssh
 
 from octane.helpers import transformations as ts
-from octane.util import env as env_util
 
 LOG = logging.getLogger(__name__)
 
@@ -178,8 +177,8 @@ def setup_isolation(hub, node, env, deployment_info):
 def list_tunnels_ovs(node, bridge):
     tunnels = []
     stdout, _ = ssh.call(['ovs-vsctl', 'list-ports', bridge],
-                          stdout=ssh.PIPE,
-                          node=node)
+                         stdout=ssh.PIPE,
+                         node=node)
     for match in re.finditer("[\S]+\n", stdout):
         tunnels.append(match[:-1])
     return tunnels
@@ -212,13 +211,16 @@ def delete_tunnels_lnx(node, bridge):
 
 delete_tunnels = {
     'lnx': delete_tunnels_lnx,
-    'ovs': delete_tunnel_ovs
+    'ovs': delete_tunnels_ovs
 }
 
 
-def delete_overlay_networks(node):
+def delete_overlay_networks(node, host_config):
     for bridge in magic_consts.BRIDGES:
-        delete_tunnels_from_node(node, bridge)
+        actions = ts.get_actions(host_config)
+        provider = ts.get_bridge_provider(actions, bridge)
+        delete_tunnels_cmd = delete_tunnels[provider]
+        delete_tunnels_cmd(node, bridge)
 
 
 def delete_port_ovs(bridge, port):
