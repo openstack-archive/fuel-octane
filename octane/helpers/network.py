@@ -11,6 +11,7 @@
 # under the License.
 
 import logging
+import re
 import subprocess
 
 from octane import magic_consts
@@ -174,23 +175,49 @@ def setup_isolation(hub, node, env, deployment_info):
                             node.id)
 
 
-def list_tunnels(node, bridge):
-    tunnels, _ = ssh.call(['ovs-vsctl', 'list-ports', bridge],
+def list_tunnels_ovs(node, bridge):
+    tunnels = []
+    stdout, _ = ssh.call(['ovs-vsctl', 'list-ports', bridge],
                           stdout=ssh.PIPE,
                           node=node)
+    for match in re.finditer("[\S]+\n", stdout):
+        tunnels.append(match[:-1])
     return tunnels
 
 
-def delete_tunnels_from_node(node, bridge):
-    tunnels = list_tunnels(node, bridge)
+def delete_tunnels_ovs(node, bridge):
+    tunnels = list_tunnels_ovs(node, bridge)
     for tun in tunnels:
         ssh.call(['ovs-vsctl', 'del-port', bridge, tun],
                  node=node)
 
 
-def delete_overlay_network(env, bridge):
-    nodes = list(env_util.get_controllers(env))
-    for node in nodes:
+def list_tunnels_lnx(node, bridge):
+    tunnels = []
+    gre_port_re = "gre[0-9]+-[0-9]+".format(node.id)
+    stdout, _ = ssh.call(['ip', 'link', 'show'],
+                         stdout=ssh.PIPE,
+                         node=node)
+    for match in re.finditer(gre_port_re, stdout):
+        tunnels.append(match.group(0))
+    return tunnels
+
+
+def delete_tunnels_lnx(node, bridge):
+    tunnels = list_tunnels_lnx(node, bridge)
+    for tun in tunnels:
+        ssh.call(['brctl', 'delif', bridge, tun], node=node)
+        ssh.call(['ip', 'link', 'delete', tun], node=node)
+
+
+delete_tunnels = {
+    'lnx': delete_tunnels_lnx,
+    'ovs': delete_tunnel_ovs
+}
+
+
+def delete_overlay_networks(node):
+    for bridge in magic_consts.BRIDGES:
         delete_tunnels_from_node(node, bridge)
 
 
