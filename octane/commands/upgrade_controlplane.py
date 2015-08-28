@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
+import subprocess
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -27,8 +28,14 @@ def start_corosync_services(env):
                              stdout=ssh.PIPE,
                              node=node)
     for service in maintenance.parse_crm_status(status_out):
-        ssh.call(['crm', 'resource', 'start', service],
-                 node=node)
+        while True:
+            try:
+                ssh.call(['crm', 'resource', 'start', service],
+                         node=node)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                break
 
 
 def start_upstart_services(env):
