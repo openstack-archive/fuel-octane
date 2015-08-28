@@ -11,6 +11,7 @@
 # under the License.
 import os
 import subprocess
+import yaml
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -63,13 +64,17 @@ def disconnect_networks(env):
 
 
 def connect_to_networks(env):
+    deployment_info = []
     controllers = list(env_util.get_controllers(env))
     backup_path = os.path.join(magic_consts.FUEL_CACHE,
                                'deployment_{0}.orig'
                                .format(env.id))
+    for filename in os.listdir(backup_path):
+        filepath = os.path.join(backup_path, filename)
+        with open(filepath) as info_file:
+            info = yaml.safe_load(info_file)
+            deployment_info.append(info)
     for node in controllers:
-        deployment_info = env.read_deployment_info('deployment',
-                                                   backup_path)
         for info in deployment_info:
             if info['role'] in ('primary-controller', 'controller'):
                 network.create_patch_ports(node, info)
