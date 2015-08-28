@@ -194,7 +194,7 @@ def delete_tunnels_ovs(node, bridge):
 def list_tunnels_lnx(node, bridge):
     tunnels = []
     gre_port_re = "gre[0-9]+-[0-9]+".format(node.id)
-    stdout, _ = ssh.call(['ip', 'link', 'show'],
+    stdout, _ = ssh.call(['brctl', 'show', bridge],
                          stdout=ssh.PIPE,
                          node=node)
     for match in re.finditer(gre_port_re, stdout):
