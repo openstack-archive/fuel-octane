@@ -56,13 +56,13 @@ We will refer to it as <SEED_ID> later on.
 
 ### Upgrade controller #1
 
-Choose a controller node from the list of nodes in 5.1.1 environment:
+Choose added controller nodes from the list of unallocated nodes:
 
 ```
-[root@fuel bin]# fuel node --env <ORIG_ID>
+[root@fuel bin]# fuel node | grep discover
 ```
 
-Remember the ID of the node and run the following command replacing <NODE_ID>
+Remember the IDs of the nodes and run the following command replacing <NODE_ID>
 with that number:
 
 ```
