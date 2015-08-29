@@ -46,10 +46,9 @@ def get_one_controller(env):
 
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
-    res, _ = subprocess.call(
+    res = subprocess.call_output(
         ["fuel2", "env", "clone", "-f", "json",
          str(env_id), uuid.uuid4().hex, str(release.data['id'])],
-        stdout=subprocess.PIPE,
     )
     for kv in json.loads(res):
         if kv['Field'] == 'id':
@@ -97,13 +96,12 @@ def get_service_tenant_id(env, node=None):
     if node is None:
         node = get_one_controller(env)
 
-    tenant_out, _ = ssh.call(
+    tenant_out = ssh.call_output(
         [
             'sh', '-c',
             '. /root/openrc; keystone tenant-get services',
         ],
         node=node,
-        stdout=ssh.PIPE,
     )
     tenant_id = parse_tenant_get(tenant_out, 'id')
     dname = os.path.dirname(fname)

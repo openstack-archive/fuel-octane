@@ -174,6 +174,10 @@ def call(cmd, **kwargs):
     return subprocess.call(cmd, popen_class=SSHPopen, **kwargs)
 
 
+def call_output(cmd, **kwargs):
+    return subprocess.call_output(cmd, popen_class=SSHPopen, **kwargs)
+
+
 @_cache
 def _get_sftp(node):
     transport = _get_client(node).get_transport()
@@ -223,7 +227,7 @@ def update_file(sftp, filename):
 
 @contextlib.contextmanager
 def tempdir(node):
-    out, _ = call(['mktemp', '-d'], node=node, stdout=PIPE)
+    out = call_output(['mktemp', '-d'], node=node)
     dirname = out[:-1]
     try:
         yield dirname
