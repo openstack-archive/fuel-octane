@@ -294,3 +294,8 @@ def create_patch_ports(node, host_config):
         cmds = create_port_cmd(bridge, port)
         for cmd in cmds:
             ssh.call(cmd, node=node)
+
+
+def flush_arp(node):
+    cmd = ['ip', 'neigh', 'flush', 'all']
+    ssh.call(cmd, node=node)

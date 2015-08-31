@@ -37,7 +37,7 @@ def isolate(nodes, env):
             'deployment', nodes=[node.data['id']])
         network.setup_isolation(hub, node, env, deployment_info)
     for node in nodes:
-        ssh.call(['ip', 'neigh', 'flush', 'all'], node=node)
+        network.flush_arp(node)
 
 
 def update_node_settings(node, disks_fixture, ifaces_fixture):
