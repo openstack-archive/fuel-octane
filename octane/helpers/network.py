@@ -22,8 +22,19 @@ from octane.helpers import transformations as ts
 LOG = logging.getLogger(__name__)
 
 
-def install_openvswitch(node):
-    ssh.call(['apt-get', 'install', '-y', 'openvswitch-switch'], node=node)
+def install_openvswitch(node, master_ip):
+    cmds = []
+    cmds.append(
+        ['sh', '-c',
+         'echo'
+         ' "deb http://{0}:8080/2015.1.0-7.0/ubuntu/x86_64 mos7.0'
+         ' main restricted" >> /etc/apt/sources.list'.format(master_ip)])
+    cmds.append(['apt-get', 'update'])
+    cmds.append(
+        ['apt-get', 'install', '-y', '--force-yes', 'openvswitch-switch'])
+    cmds.append(['sh', '-c', 'sed -i 1,2d /etc/apt/sources.list'])
+    for cmd in cmds:
+        ssh.call(cmd, node=node)
 
 
 def set_bridge_mtu(node, bridge):
@@ -110,12 +121,13 @@ def create_bridges(node, env, deployment_info):
         actions = ts.get_actions(info)
         LOG.info("Network scheme actions for node %s: %s",
                  node.id, actions)
+        master_ip = info["master_ip"]
     for bridge in magic_consts.BRIDGES:
         provider = ts.get_bridge_provider(actions, bridge)
         LOG.info("Found provider for bridge %s: %s", bridge, provider)
         if provider == 'ovs' and bridge == magic_consts.BRIDGES[0]:
             LOG.info("Installing openvswitch to node %s", node.id)
-            install_openvswitch(node)
+            install_openvswitch(node, master_ip)
         create_bridge = create_bridge_providers[provider]
         create_bridge(node, bridge)
 
