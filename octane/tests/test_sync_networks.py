@@ -14,10 +14,10 @@
 def test_parser(mocker, octane_app):
     networks = [{'key': 'value'}]
 
-    m1 = mocker.patch('octane.commands.sync_networks.get_original_networks')
+    m1 = mocker.patch('octane.commands.sync_networks.get_env_networks')
     m1.return_value = networks
 
-    m2 = mocker.patch('octane.commands.sync_networks.update_seed_networks')
+    m2 = mocker.patch('octane.commands.sync_networks.update_env_networks')
     octane_app.run(["sync-networks", "1", "2"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
