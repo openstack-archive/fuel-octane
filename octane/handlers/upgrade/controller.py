@@ -56,11 +56,10 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             if not info['uid'] == str(self.node.id):
                 continue
             if self.isolated:
-                gw = get_admin_gateway(self.env)
                 transformations.remove_ports(info)
                 endpoints = deployment_info[0]["network_scheme"]["endpoints"]
                 self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info, gateway=gw)
+                transformations.reset_gw_admin(info)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
