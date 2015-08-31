@@ -53,14 +53,17 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.warn("To keep custom volumes layout, change DEFAULT_DISKS const "
                  "in magic_consts.py module")
 
-    LOG.info("Updating node %s network settings with fixture: %s",
-             str(node.id), ifaces_fixture)
-    ifaces = node.get_attribute('interfaces')
-    LOG.info("Original node %s network settings: %s",
-             str(node.id), ifaces)
-    new_ifaces = list(copy_ifaces(ifaces_fixture, ifaces))
-    LOG.info("New interfaces info generated: %s", new_ifaces)
-    node.upload_node_attribute('interfaces', new_ifaces)
+    if not magic_consts.DEFAULT_NETS:
+        LOG.info("Updating node %s network settings with fixture: %s",
+                 str(node.id), ifaces_fixture)
+        ifaces = node.get_attribute('interfaces')
+        LOG.info("Original node %s network settings: %s",
+                 str(node.id), ifaces)
+        new_ifaces = list(copy_ifaces(ifaces_fixture, ifaces))
+        LOG.info("New interfaces info generated: %s", new_ifaces)
+        node.upload_node_attribute('interfaces', new_ifaces)
+    else:
+        LOG.warn("Using default networks for node %s", node)
 
 
 def install_node(orig_id, seed_id, node_ids, isolated=False):
