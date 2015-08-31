@@ -12,6 +12,7 @@
 
 from octane.handlers import upgrade
 from octane.util import ceph
+from octane.util import node as node_util
 
 
 class CephOsdUpgrade(upgrade.UpgradeHandler):
@@ -20,7 +21,12 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
 
     def prepare(self):
         ceph.patch_mcollective(self.node)
+        self.preserve_partition()
         ceph.set_osd_noout(self.env)
 
     def postdeploy(self):
         ceph.unset_osd_noout(self.env)
+
+    def preserve_partition(self):
+        partition = 'ceph'
+        node_util.preserve_partition(self.node, partition)
