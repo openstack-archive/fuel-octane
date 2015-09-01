@@ -12,10 +12,13 @@
 
 
 def preserve_partition(node, partition):
-    disks = node.get_attribute('disk')
+    disks = node.get_attribute('disks')
     for disk in disks:
         for vol in disk['volumes']:
             if vol['name'] == partition:
-                vol.update({'keep_data': True})
+                vol.update({
+                    'keep': True,
+                    'keep_data': True,
+                })
 
-    node.upload_attribute('disk', disks)
+    node.upload_node_attribute('disks', disks)
