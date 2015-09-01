@@ -56,7 +56,8 @@ def update_env_networks(env_id, networks):
                 ng['vlan_start'],
                 ng['cidr'],
                 ng['gateway'],
-                node_group_id
+                node_group_id,
+                ng['meta']
             )
         except HTTPError:
             LOG.error("Cannot sync network '{0}'".format(ng['name']))
