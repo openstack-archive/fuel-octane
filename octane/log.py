@@ -34,7 +34,7 @@ class ColorFormatter(logging.Formatter):
 def set_console_formatter(**formatter_kwargs):
     formatter_kwargs.setdefault(
         'fmt', '%(asctime)s %(levelname)-8s %(name)-15s %(message)s')
-    formatter_kwargs.setdefault('datefmt', '%Y-%m-%d')
+    formatter_kwargs.setdefault('datefmt', '%Y-%m-%d %H:%M:%S')
     root_logger = logging.getLogger('')
     for handler in root_logger.handlers:
         if isinstance(handler, logging.StreamHandler):
