@@ -16,11 +16,25 @@ import stat
 from octane.handlers import upgrade
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import node as node_util
 from octane.util import ssh
 
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
+        self.evacuate_host()
+        self.preserve_partition()
+
+    def postdeploy(self):
+        controller = env_util.get_one_controller(self.env)
+        ssh.call(
+            ["sh", "-c", ". /root/openrc; "
+             "nova service-enable node-{0} nova-compute".format(
+                 self.node.data['id'])],
+            node=controller,
+        )
+
+    def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
         with ssh.tempdir(controller) as tempdir:
             local_path = os.path.join(
@@ -34,11 +48,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 node=controller,
             )
 
-    def postdeploy(self):
-        controller = env_util.get_one_controller(self.env)
-        ssh.call(
-            ["sh", "-c", ". /root/openrc; "
-             "nova service-enable node-{0} nova-compute".format(
-                 self.node.data['id'])],
-            node=controller,
-        )
+    # TODO(ogelbukh): move this action to base handler and set a list of
+    # partitions to preserve as an attribute of a role.
+    def preserve_partition(self):
+        partition = 'vm'
+        node_util.preserve_partition(self.node, partition)

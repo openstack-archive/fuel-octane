@@ -33,8 +33,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             self.env, self.node)
 
     def predeploy(self):
-        deployment_info = self.env.get_default_facts(
-            'deployment', nodes=[self.node.data['id']])
+        deployment_info = env_util.merge_deployment_info(self.env)
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -45,6 +44,8 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
             for info in deployment_info:
+                if not info['uid'] == str(self.node.id):
+                    continue
                 fname = os.path.join(
                     backup_path,
                     "{0}_{1}.yaml".format(info['role'], info['uid']),
@@ -52,14 +53,16 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
         for info in deployment_info:
+            if not info['uid'] == str(self.node.id):
+                continue
             if self.isolated:
-                transformations.remove_physical_ports(info)
+                transformations.remove_ports(info)
                 endpoints = deployment_info[0]["network_scheme"]["endpoints"]
                 self.gateway = endpoints["br-ex"]["gateway"]
+                transformations.reset_gw_admin(info)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
-            transformations.reset_gw_admin(info)
         self.env.upload_facts('deployment', deployment_info)
 
         tasks = self.env.get_deployment_tasks()
@@ -82,3 +85,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
             ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],
                      node=self.node)
+
+
+def get_admin_gateway(environment):
+    for net in environment.get_network_data()['networks']:
+        if net["name"] == "fuelweb_admin":
+            return net["gateway"]

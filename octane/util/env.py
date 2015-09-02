@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import fuelclient
 import json
 import logging
 import os.path
@@ -103,6 +104,9 @@ def get_service_tenant_id(env, node=None):
         node=node,
     )
     tenant_id = parse_tenant_get(tenant_out, 'id')
+    dname = os.path.dirname(fname)
+    if not os.path.exists(dname):
+        os.makedirs(dname)
     with open(fname, 'w') as f:
         f.write(tenant_id)
     return tenant_id
@@ -137,7 +141,7 @@ def move_nodes(env, nodes):
         node_id = node.data['id']
         subprocess.call(
             ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
-    wait_for_nodes(nodes, "discover")
+    wait_for_nodes(nodes, "provisioned")
 
 
 def provision_nodes(env, nodes):
@@ -148,3 +152,22 @@ def provision_nodes(env, nodes):
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
     wait_for_nodes(nodes, "ready")
+
+
+def deploy_changes(env, nodes):
+    env.deploy_changes()
+    wait_for_nodes(nodes, "ready")
+
+
+def merge_deployment_info(env):
+    default_info = env.get_default_facts('deployment')
+    try:
+        deployment_info = env.get_facts('deployment')
+    except fuelclient.cli.error.ServerDataException:
+        LOG.warn('Deployment info is unchanged for env: %s',
+                 env.id)
+        deployment_info = []
+    for info in default_info:
+        if not info['uid'] in [i['uid'] for i in deployment_info]:
+            deployment_info.append(info)
+    return deployment_info

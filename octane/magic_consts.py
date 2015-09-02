@@ -13,13 +13,7 @@
 import os.path
 
 PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
-PATCHES = [
-    ("cobbler", "/usr/lib/python2.6/site-packages/cobbler",
-     "docker/cobbler/resources/pmanager.py.patch"),
-    ("nailgun", "/usr/lib/python2.6/site-packages/nailgun/volumes",
-     "docker/nailgun/resources/manager.py.patch"),
-    ("nailgun", "/", "../octane_nailgun/tools/urls.py.patch"),
-]
+PATCHES = []
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
 FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
@@ -27,7 +21,6 @@ PUPPET_DIR = "/etc/puppet/2014.2.2-6.1/modules"
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
-
-MCOLLECTIVE_PATCH = os.path.join(CWD, "patches/pman/erase_node.rb.patch")
-MCOLLECTIVE_PATCH_TARGET = \
-    "/usr/share/mcollective/plugins/mcollective/agent/erase_node.rb"
+BRIDGES = ['br-ex', 'br-mgmt']
+DEFAULT_DISKS = True
+DEFAULT_NETS = True

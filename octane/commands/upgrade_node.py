@@ -50,7 +50,6 @@ def upgrade_node(env_id, node_ids, isolated=False):
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
-    env_util.provision_nodes(env, nodes)
     call_handlers('predeploy')
     env_util.deploy_nodes(env, nodes)
     call_handlers('postdeploy')
