@@ -170,9 +170,11 @@ def merge_deployment_info(env):
                  env.id)
         deployment_info = []
     for info in default_info:
-        if not info['uid'] in [i['uid'] for i in deployment_info]:
+        if not (info['uid'], info['role'] in [(i['uid'], i['role'])
+                for i in deployment_info]):
             deployment_info.append(info)
     return deployment_info
+
 
 def get_admin_password(env, node=None):
     if node is None:
@@ -182,6 +184,6 @@ def get_admin_password(env, node=None):
                        'f = open(\'/etc/astute.yaml\');'
                        'data = yaml.safe_load(f);'
                        'print(data[\'access\'][\'password\']'],
-                       stdout=ssh.PIPE,
-                       node=node)
+                      stdout=ssh.PIPE,
+                      node=node)
     return out[:-1]
