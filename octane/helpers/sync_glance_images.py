@@ -12,7 +12,6 @@
 
 
 import logging
-import yaml
 
 from fuelclient.objects import environment as environment_obj
 
@@ -21,13 +20,6 @@ from octane.util import ssh
 
 
 LOG = logging.getLogger(__name__)
-
-
-def get_astute_yaml(node):
-    data = None
-    with ssh.sftp(node).open('/etc/astute.yaml') as f:
-        data = f.read()
-    return yaml.load(data)
 
 
 def get_endpoint_ip(ep_name, yaml_data):
@@ -150,8 +142,8 @@ def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
     source_node = next(env_util.get_controllers(source_env))
     seed_node = next(env_util.get_controllers(seed_env))
     # get cics yaml files
-    source_yaml = get_astute_yaml(source_node)
-    seed_yaml = get_astute_yaml(seed_node)
+    source_yaml = env_util.get_astute_yaml(source_node)
+    seed_yaml = env_util.get_astute_yaml(seed_node)
     # get glance passwords
     source_glance_pass = get_glance_password(source_yaml)
     seed_glance_pass = get_glance_password(seed_yaml)
