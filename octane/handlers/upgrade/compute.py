@@ -53,3 +53,14 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def preserve_partition(self):
         partition = 'vm'
         node_util.preserve_partition(self.node, partition)
+
+    def shutoff_vms(self):
+        password = env_util.get_admin_password(self.env)
+        cmd = ['. /root/openrc;',
+               'nova list --os-password {0} --host {1}'
+               .format(password, self.node.data['hostname']),
+               '|',
+               'awk -F\| \'$4~/ACTIVE/{print($2)}',
+               '|',
+               'xargs -I% nova stop %']
+        out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
