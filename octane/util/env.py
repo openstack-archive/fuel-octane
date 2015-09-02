@@ -170,8 +170,8 @@ def merge_deployment_info(env):
                  env.id)
         deployment_info = []
     for info in default_info:
-        if not (info['uid'], info['role'] in [(i['uid'], i['role'])
-                for i in deployment_info]):
+        if not (info['uid'], info['role']) in [(i['uid'], i['role'])
+                for i in deployment_info]:
             deployment_info.append(info)
     return deployment_info
 
