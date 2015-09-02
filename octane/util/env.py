@@ -156,7 +156,7 @@ def deploy_nodes(env, nodes):
 
 def deploy_changes(env, nodes):
     env.deploy_changes()
-    wait_for_nodes(nodes, "ready")
+    wait_for_nodes(nodes, "ready", timeout=180 * 60)
 
 
 def merge_deployment_info(env):
