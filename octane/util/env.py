@@ -96,10 +96,12 @@ def get_service_tenant_id(env, node=None):
     if node is None:
         node = get_one_controller(env)
 
+    password = get_admin_password(env, node)
     tenant_out = ssh.call_output(
         [
             'sh', '-c',
-            '. /root/openrc; keystone tenant-get services',
+            '. /root/openrc; keystone --os-password={0} tenant-get services'
+            .format(password),
         ],
         node=node,
     )
@@ -171,3 +173,15 @@ def merge_deployment_info(env):
         if not info['uid'] in [i['uid'] for i in deployment_info]:
             deployment_info.append(info)
     return deployment_info
+
+def get_admin_password(env, node=None):
+    if node is None:
+        node = get_one_controller(env)
+    out, _ = ssh.call(['python', '-c',
+                       'import yaml;'
+                       'f = open(\'/etc/astute.yaml\');'
+                       'data = yaml.safe_load(f);'
+                       'print(data[\'access\'][\'password\']'],
+                       stdout=ssh.PIPE,
+                       node=node)
+    return out[:-1]
