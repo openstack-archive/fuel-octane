@@ -10,7 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import os
+import subprocess
 
 import yaml
 
@@ -20,6 +22,8 @@ from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
+
+LOG = logging.getLogger(__name__)
 
 
 class ControllerUpgrade(upgrade.UpgradeHandler):
@@ -80,9 +84,17 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 else:
                     new.write(line)
         ssh.call(['restart', 'neutron-server'], node=self.node)
-        if self.isolated:
+        if self.isolated and self.gateway:
             # From restore_default_gateway
-            ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
+            LOG.info("Deleting default route at node %s",
+                     self.node.id)
+            try:
+                ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
+            except subprocess.CalledProcessError as exc:
+                LOG.warn("Cannot delete default route at node %s: %s",
+                         self.node.id, exc.args[0])
+            LOG.info("Set default route at node %s: %s",
+                     self.node.id, self.gateway)
             ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],
                      node=self.node)
 
