@@ -50,9 +50,7 @@ case $1 in
         upgrade_ceph $2 $3
         ;;
     upgrade-node)
-        [ -z "$2" ] && die "$(usage)"
-        [ -z "$3" ] && die "$(usage)"
-        shift && upgrade_node "$@"
+        pycmd "$@"
         ;;
     upgrade-nova-compute)
     # TODO(ogelbukh) delete as obsoleted by upgrade-cics command.

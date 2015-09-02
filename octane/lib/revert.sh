@@ -16,21 +16,6 @@ revert_deployment_tasks() {
     cp -pR "${FUEL_CACHE}/cluster_$1.orig" "${FUEL_CACHE}/cluster_$1"
 }
 
-restore_default_gateway() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    local env_id=$(get_env_by_node $1)
-    local nodefile=$(ls ${FUEL_CACHE}/deployment_${env_id}.orig/*_$1.yaml | head -1)
-    local gw_ip=$(python -c "import yaml;
-with open('"${nodefile}"') as f:
-  config = yaml.safe_load(f)
-  ints = config['network_scheme']['endpoints']
-  print ints['br-ex']['gateway']")
-    [ -z "$gw_ip" ] && return
-    [[ "$gw_ip" =~ none ]] && return
-    ssh root@node-$1 "ip route delete default;
-        ip route add default via $gw_ip"
-}
-
 revert_patch_fuel_components() {
     local cmp
     [ -z "$1" ] && die "No component name provided, exiting"
