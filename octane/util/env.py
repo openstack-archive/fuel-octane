@@ -16,6 +16,7 @@ import logging
 import os.path
 import time
 import uuid
+import yaml
 
 from fuelclient.objects import node as node_obj
 
@@ -171,19 +172,18 @@ def merge_deployment_info(env):
         deployment_info = []
     for info in default_info:
         if not (info['uid'], info['role']) in [(i['uid'], i['role'])
-                for i in deployment_info]:
+           for i in deployment_info]:
             deployment_info.append(info)
     return deployment_info
 
 
-def get_admin_password(env, node=None):
-    if node is None:
+def get_astute_yaml(env, node=None):
+    if not node:
         node = get_one_controller(env)
-    out, _ = ssh.call(['python', '-c',
-                       'import yaml;'
-                       'f = open(\'/etc/astute.yaml\');'
-                       'data = yaml.safe_load(f);'
-                       'print(data[\'access\'][\'password\']'],
-                      stdout=ssh.PIPE,
-                      node=node)
-    return out[:-1]
+    with ssh.sftp(node).open('/etc/astute.yaml') as f:
+        data = f.read()
+    return yaml.load(data)
+
+
+def get_admin_password(env, node=None):
+    return get_astute_yaml(env, node)['access']['password']

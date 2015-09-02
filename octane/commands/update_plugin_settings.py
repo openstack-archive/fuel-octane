@@ -15,7 +15,6 @@ import logging
 import pyzabbix
 import re
 import requests
-import yaml
 
 from cliff import command as cmd
 from fuelclient.objects import environment
@@ -45,13 +44,6 @@ def get_zabbix_url(astute):
 
 def get_zabbix_credentials(astute):
     return astute['zabbix']['username'], astute['zabbix']['password']
-
-
-def get_astute_yaml(env):
-    node = env_util.get_one_controller(env)
-    with ssh.sftp(node).open('/etc/astute.yaml') as f:
-        data = f.read()
-    return yaml.load(data)
 
 
 def zabbix_monitoring_settings(astute):
@@ -124,7 +116,7 @@ def zabbix_monitoring_extreme_networks_settings(astute):
 def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     orig_env = environment.Environment(orig_env_id)
     seed_env = environment.Environment(seed_env_id)
-    astute = get_astute_yaml(orig_env)
+    astute = env_util.get_astute_yaml(orig_env)
     attrs = {}
 
     for plugin in plugins:
