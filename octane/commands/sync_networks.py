@@ -20,7 +20,7 @@ from requests import HTTPError
 
 LOG = logging.getLogger(__name__)
 
-ADMIN_NETWORK_NAME = 'fuelweb_admin'
+KEEP_NETWORK_NAMES = ['fuelweb_admin', 'management', 'public']
 
 
 def get_env_networks(env_id):
@@ -37,7 +37,7 @@ def update_env_networks(env_id, networks):
     node_group_id = None
 
     for ng in network_data['networks']:
-        if ng['name'] == ADMIN_NETWORK_NAME:
+        if ng['name'] in KEEP_NETWORK_NAMES:
             continue
         if node_group_id is None:
             # for now we'll have only one node group
@@ -47,7 +47,7 @@ def update_env_networks(env_id, networks):
 
     data_to_update = {}
     for ng in networks:
-        if ng['name'] == ADMIN_NETWORK_NAME:
+        if ng['name'] in KEEP_NETWORK_NAMES:
             continue
         try:
             objects.NetworkGroup.create(
