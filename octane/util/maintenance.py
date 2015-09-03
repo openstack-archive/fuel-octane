@@ -11,6 +11,7 @@
 # under the License.
 
 import re
+import time
 
 from octane import magic_consts
 from octane.util import env as env_util
@@ -60,11 +61,11 @@ def parse_crm_status(status_out, exclude=_default_exclude_services):
 
 
 def stop_corosync_services(env):
-    controllers = list(env_util.get_controllers(env))
-    for node in controllers:
-        status_out = ssh.call_output(['crm', 'status'], node=node)
-        for service in parse_crm_status(status_out):
-            ssh.call(['crm', 'resource', 'stop', service], node=node)
+    node = env_util.get_one_controller(env)
+    status_out = ssh.call_output(['crm', 'status'], node=node)
+    for service in parse_crm_status(status_out):
+        ssh.call(['crm', 'resource', 'stop', service], node=node)
+    time.sleep(15)
 
 
 def stop_upstart_services(env):
