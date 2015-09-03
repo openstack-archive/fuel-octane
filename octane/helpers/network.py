@@ -261,12 +261,23 @@ def delete_patch_ports(node, host_config):
 
 
 def create_port_ovs(bridge, port):
+    def build_cmd(bridge, port, tag, trunk, peer):
+        cmd = ['ovs-vsctl', 'add-port', bridge, port]
+        if tag:
+            cmd.append(tag)
+        if trunk:
+            cmd.append(trunk)
+        cmd.extend(['--', 'set', 'interface',
+                    port, 'type=patch',
+                    "options:peer={0}".format(peer)])
+        return cmd
+
     cmds = []
     tags = port.get('tags', ['', ''])
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
-    bridges.remove(bridge)
-    ph_bridge = bridges[0]
+    bridge_index = bridges.index(bridge)
+    ph_bridge = bridges[bridge_index - 1]
     for tag in tags:
         tag = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
@@ -276,14 +287,12 @@ def create_port_ovs(bridge, port):
     if bridges:
         br_patch = "%s--%s" % (bridge, ph_bridge)
         ph_patch = "%s--%s" % (ph_bridge, bridge)
-        cmds.append(['ovs-vsctl', 'add-port', bridge, br_patch,
-                     '{0} {1} --'.format(tags[0], trunk),
-                     'set', 'interface', br_patch, 'type=patch',
-                     'options:peer=%s' % ph_patch])
-        cmds.append(['ovs-vsctl', 'add-port', ph_bridge, ph_patch,
-                     '{0} {1} --'.format(tags[1], trunk),
-                     'set', 'interface', ph_patch, 'type=patch',
-                     'options:peer=%s' % br_patch])
+        cmds.append(build_cmd(bridge, br_patch,
+                              tags[bridge_index],
+                              trunk, ph_patch))
+        cmds.append(build_cmd(ph_bridge, ph_patch,
+                              tags[bridge_index - 1],
+                              trunk, br_patch))
     return cmds
 
 
