@@ -273,7 +273,7 @@ def create_port_ovs(bridge, port):
         return cmd
 
     cmds = []
-    tags = port.get('tags', ['', ''])
+    tags = port.get('vlan_ids', ['', ''])
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
     bridge_index = bridges.index(bridge)
