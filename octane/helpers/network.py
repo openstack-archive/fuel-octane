@@ -191,7 +191,7 @@ def list_tunnels_ovs(node, bridge):
     stdout, _ = ssh.call(['ovs-vsctl', 'list-ports', bridge],
                          stdout=ssh.PIPE,
                          node=node)
-    for match in re.finditer("[\S]+\n", stdout):
+    for match in re.finditer("[\S]+--gre-[\S]*\n", stdout):
         tun = match.group(0)
         tunnels.append(tun[:-1])
     return tunnels
