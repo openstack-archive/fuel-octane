@@ -26,10 +26,14 @@ from octane.util import ssh
 def mysqldump_from_env(env):
     node = env_util.get_one_controller(env)
     local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
-    with ssh.popen(['sh', '-c', 'mysqldump --add-drop-database'
-                    ' --lock-all-tables --databases %s | gzip' %
-                    (' '.join(magic_consts.OS_SERVICES),)],
-                   stdout=ssh.PIPE, node=node) as proc:
+    cmd = [
+        'bash', '-c',
+        'set -o pipefail; ' +  # We want to fail if mysqldump fails
+        'mysqldump --add-drop-database --lock-all-tables '
+        '--databases {0}'.format(' '.join(magic_consts.OS_SERVICES)) +
+        ' | gzip',
+    ]
+    with ssh.popen(cmd, stdout=ssh.PIPE, node=node) as proc:
         with open(local_fname, 'wb') as local_file:
             shutil.copyfileobj(proc.stdout, local_file)
     local_fname2 = os.path.join(
