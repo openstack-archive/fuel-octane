@@ -95,11 +95,11 @@ def update_neutron_config(env):
 def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
+    update_neutron_config(seed_env)
     start_corosync_services(seed_env)
     start_upstart_services(seed_env)
     disconnect_networks(orig_env)
     connect_to_networks(seed_env)
-    update_neutron_config(seed_env)
 
 
 class UpgradeControlPlaneCommand(cmd.Command):
