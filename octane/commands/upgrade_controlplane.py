@@ -58,8 +58,7 @@ def disconnect_networks(env):
     controllers = list(env_util.get_controllers(env))
     for node in controllers:
         deployment_info = env_util.get_astute_yaml(env, node)
-        for info in deployment_info:
-            network.delete_patch_ports(node, info)
+        network.delete_patch_ports(node, deployment_info)
 
 
 def connect_to_networks(env):
