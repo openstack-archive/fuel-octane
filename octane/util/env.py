@@ -46,13 +46,9 @@ def get_one_controller(env):
     return next(get_controllers(env))
 
 
-def change_env_settings(env_id):
+def change_env_settings(env_id, master_ip=''):
     # workaround for bugs related to DNS, NTP and TLS
     env = environment_obj.Environment(env_id)
-    master_ip = ''
-    with open('/etc/fuel/astute.yaml') as f:
-        data = yaml.load(f)
-        master_ip = data['ADMIN_NETWORK']['ipaddress']
 
     attrs = env.get_attributes()
     attrs['editable']['public_ssl']['horizon']['value'] = False
