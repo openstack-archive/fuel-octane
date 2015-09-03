@@ -86,7 +86,7 @@ def update_neutron_config(env):
     with open(tenant_file) as f:
         tenant_id = f.read()
 
-    sed_script = 's/^(nova_admin_tenant_id )=.*/\1 =%s' % (tenant_id,)
+    sed_script = 's/^(nova_admin_tenant_id )=.*/\\1 = %s/' % (tenant_id,)
     for node in controllers:
         ssh.call(['sed', '-re', sed_script, '-i', '/etc/neutron/neutron.conf'],
                  node=node)
