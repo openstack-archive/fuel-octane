@@ -1,0 +1,58 @@
+#!/usr/bin/python
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+from neutronclient.v2_0 import client as neutron_client
+from novaclient.v2 import client as nova_client
+from oslo_serialization import jsonutils
+import sys
+
+
+def cleanup_nova_services(access_data, hosts):
+    client = nova_client.Client(
+        access_data['user'],
+        access_data['password'],
+        access_data['tenant'],
+        access_data['auth_url']
+    )
+    services = client.services.list()
+    for service in services:
+        if service.host not in hosts:
+            client.services.delete(service.id)
+
+
+def cleanup_neutron_agents(access_data, hosts):
+    client = neutron_client.Client(
+        username=access_data['user'],
+        password=access_data['password'],
+        tenant_name=access_data['tenant'],
+        auth_url=access_data['auth_url']
+    )
+    agents = client.list_agents()
+    for agent in agents['agents']:
+        if agent['host'] not in hosts:
+            client.delete_agent(agent['id'])
+
+
+def main():
+    data_file = sys.argv[1]
+
+    with open(data_file) as f:
+        cleaning_data = f.read()
+
+    cleaning_data = jsonutils.loads(cleaning_data)
+    cleanup_nova_services(cleaning_data['access'], cleaning_data['hosts'])
+    cleanup_neutron_agents(cleaning_data['access'], cleaning_data['hosts'])
+
+
+if __name__ == '__main__':
+    main()

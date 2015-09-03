@@ -28,18 +28,22 @@ from octane.util import subprocess
 LOG = logging.getLogger(__name__)
 
 
-def get_controllers(env):
-    found = False
+def get_nodes(env, roles):
     for node in node_obj.Node.get_all():
         if node.data['cluster'] != env.data['id']:
             continue
-        if ('controller' in node.data['roles'] or
-                'controller' in node.data['pending_roles']):
-            yield node
-            found = True
-    if not found:
+        for role in roles:
+            if (role in node.data['roles'] or
+                    role in node.data['pending_roles']):
+                yield node
+
+
+def get_controllers(env):
+    controllers = get_nodes(env, ['controller'])
+    if not controllers:
         raise Exception("Can't find controller node in env %s" %
                         env.data['id'])
+    return controllers
 
 
 def get_one_controller(env):
