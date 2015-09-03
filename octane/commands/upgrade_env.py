@@ -53,11 +53,10 @@ def set_cobbler_provision(env_id):
 
 
 def upgrade_env(env_id):
-    env = environment.obj.Environment(env_id)
     target_release = find_deployable_release("Ubuntu")
     seed_id = env_util.clone_env(env_id, target_release)
 
-    master_ip = env_util.get_astute_yaml(environment.obj.Environment(env_id))[
+    master_ip = env_util.get_astute_yaml(environment_obj.Environment(env_id))[
         'master_ip']
     env_util.change_env_settings(seed_id, master_ip)
     return seed_id
