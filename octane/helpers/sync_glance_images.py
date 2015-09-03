@@ -142,8 +142,8 @@ def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
     source_node = next(env_util.get_controllers(source_env))
     seed_node = next(env_util.get_controllers(seed_env))
     # get cics yaml files
-    source_yaml = env_util.get_astute_yaml(source_node)
-    seed_yaml = env_util.get_astute_yaml(seed_node)
+    source_yaml = env_util.get_astute_yaml(source_env, source_node)
+    seed_yaml = env_util.get_astute_yaml(seed_env, seed_node)
     # get glance passwords
     source_glance_pass = get_glance_password(source_yaml)
     seed_glance_pass = get_glance_password(seed_yaml)
