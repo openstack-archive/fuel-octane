@@ -74,7 +74,8 @@ def connect_to_networks(env):
             deployment_info.append(info)
     for node in controllers:
         for info in deployment_info:
-            if info['role'] in ('primary-controller', 'controller'):
+            if (info['role'] in ('primary-controller', 'controller')
+                    and info['uid'] == str(node.id)):
                 network.delete_overlay_networks(node, info)
                 network.create_patch_ports(node, info)
 
