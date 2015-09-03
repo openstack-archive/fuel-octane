@@ -70,7 +70,7 @@ def update_env_networks(env_id, networks):
     # now we need to update new networks with
     # correct ip_ranges and meta
     network_data = env.get_network_data()
-    network_data['netowrks'] = [ng for ng in network_data['networks']
+    network_data['networks'] = [ng for ng in network_data['networks']
                                 if ng['name'] not in KEEP_NETWORK_NAMES]
     for ng in network_data['networks']:
         if ng['name'] in data_to_update:
