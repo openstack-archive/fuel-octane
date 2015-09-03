@@ -265,6 +265,8 @@ def create_port_ovs(bridge, port):
     tags = port.get('tags', ['', ''])
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
+    bridges.remove(bridge)
+    ph_bridge = bridges[0]
     for tag in tags:
         tag = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
@@ -272,13 +274,13 @@ def create_port_ovs(bridge, port):
     if trunk_str:
         trunk = 'trunks=[%s]' % (trunk_str,)
     if bridges:
-        br_patch = "%s--%s" % (bridges[0], bridges[1])
-        ph_patch = "%s--%s" % (bridges[1], bridges[0])
-        cmds.append(['ovs-vsctl', 'add-port', bridge, br_patch, tags[0], trunk,
-                     '--', 'set', 'interface', br_patch, 'type=patch',
+        br_patch = "%s--%s" % (bridge, ph_bridge)
+        ph_patch = "%s--%s" % (ph_bridge, bridge)
+        cmds.append(['ovs-vsctl', 'add-port', bridge, br_patch, tags[0],
+                     trunk, '--', 'set', 'interface', br_patch, 'type=patch',
                      'options:peer=%s' % ph_patch])
-        cmds.append(['ovs-vsctl', 'add-port', bridge, ph_patch, tags[1], trunk,
-                     '--', 'set', 'interface', ph_patch, 'type=patch',
+        cmds.append(['ovs-vsctl', 'add-port', ph_bridge, ph_patch, tags[1],
+                     trunk, '--', 'set', 'interface', ph_patch, 'type=patch',
                      'options:peer=%s' % br_patch])
     return cmds
 
