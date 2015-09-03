@@ -57,10 +57,8 @@ def start_upstart_services(env):
 def disconnect_networks(env):
     controllers = list(env_util.get_controllers(env))
     for node in controllers:
-        deployment_info = env.get_default_facts('deployment',
-                                                nodes=[node.data['id']])
-        for info in deployment_info:
-            network.delete_patch_ports(node, info)
+        deployment_info = env_util.get_astute_yaml(env, node)
+        network.delete_patch_ports(node, deployment_info)
 
 
 def connect_to_networks(env):
