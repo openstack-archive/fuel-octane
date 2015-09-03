@@ -18,6 +18,7 @@ import time
 import uuid
 import yaml
 
+from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 from octane import magic_consts
@@ -45,6 +46,19 @@ def get_one_controller(env):
     return next(get_controllers(env))
 
 
+def change_env_settings(env_id, master_ip=''):
+    # workaround for bugs related to DNS, NTP and TLS
+    env = environment_obj.Environment(env_id)
+
+    attrs = env.get_attributes()
+    attrs['editable']['public_ssl']['horizon']['value'] = False
+    attrs['editable']['public_ssl']['services']['value'] = False
+    attrs['editable']['external_ntp']['ntp_list']['value'] = master_ip
+    attrs['editable']['external_dns']['dns_list']['value'] = master_ip
+
+    env.update_attributes(attrs)
+
+
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
     res = subprocess.call_output(
@@ -58,7 +72,6 @@ def clone_env(env_id, release):
     else:
         raise Exception("Couldn't find new environment ID in fuel CLI output:"
                         "\n%s" % res)
-
     return seed_id
 
 
