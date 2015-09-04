@@ -64,8 +64,15 @@ def stop_corosync_services(env):
     node = env_util.get_one_controller(env)
     status_out = ssh.call_output(['crm', 'status'], node=node)
     for service in parse_crm_status(status_out):
-        ssh.call(['crm', 'resource', 'stop', service], node=node)
-    time.sleep(15)
+        while True:
+            try:
+                ssh.call(['crm', 'resource', 'stop', service],
+                         node=node)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                break
+    time.sleep(60)
 
 
 def stop_upstart_services(env):
