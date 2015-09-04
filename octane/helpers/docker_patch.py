@@ -1,13 +1,24 @@
-from docker import Client
-from docker import errors
-from os import makedirs, path
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
 
-import re
-import tempfile
-from shutil import copyfileobj
-import tarfile
 import io
+import os.path
+import re
+import shlex
 import subprocess
+import tarfile
+import tempfile
+
+from docker import Client
 
 
 class IllegalArgumentError(ValueError):
@@ -32,7 +43,7 @@ l = re.compile('[ \t]')
 def extractFilesFromPatch(filePath):
     files = []
 
-    if (filePath is None or not path.isfile(filePath)):
+    if (filePath is None or not os.path.isfile(filePath)):
         raise InvalidPatch
 
     try:
@@ -53,7 +64,7 @@ def extractFilesFromPatch(filePath):
     return files
 
 
-class DockerPatch():
+class DockerPatch(object):
     dockerClient = None
     containerId = None
     patches = {}
@@ -84,7 +95,7 @@ class DockerPatch():
         reply = self.dockerClient.copy(self.containerId, src)
         filelike = io.BytesIO(reply.read())
         tar = tarfile.open(fileobj=filelike)
-        file = tar.extractfile(path.basename(src))
+        file = tar.extractfile(os.path.basename(src))
         with open(dest, 'wb') as f:
             f.write(file.read())
 
@@ -95,10 +106,10 @@ class DockerPatch():
         for p in self.patches.values():
             for f in p['files']:
                 filePath = tempdir + '/' + f
-                fileDir = path.dirname(filePath)
+                fileDir = os.path.dirname(filePath)
 
-                if not path.exists(fileDir):
-                    makedirs(fileDir)
+                if not os.path.exists(fileDir):
+                    os.makedirs(fileDir)
 
                 self.copy_from_docker(p['prefix'] + '/' + f, filePath)
 
@@ -106,5 +117,4 @@ class DockerPatch():
 
     def patchIt(self, patchFile, tempdir):
         with open(patchFile, "r") as f:
-            outputStream = subprocess.Popen(
-                shlex.split('patch -p0 -d ' + tempdir), stdin=f)
+            subprocess.Popen(shlex.split('patch -p0 -d ' + tempdir), stdin=f)

@@ -20,6 +20,8 @@ from octane import log
 
 
 class OctaneApp(app.App):
+    DEFAULT_VERBOSE_LEVEL = 2  # Enable DEBUG logging
+
     def __init__(self, **kwargs):
         super(OctaneApp, self).__init__(
             description='Octane - upgrade your Fuel',
@@ -28,14 +30,16 @@ class OctaneApp(app.App):
             **kwargs
         )
 
+    def build_option_parser(self, description, version, argparse_kwargs=None):
+        parser = super(OctaneApp, self).build_option_parser(
+            description, version, argparse_kwargs)
+        parser.set_defaults(debug=True)
+        return parser
+
     def configure_logging(self):
         super(OctaneApp, self).configure_logging()
-        if self.options.verbose_level > 1:
-            log.set_console_formatter(
-                fmt='%(asctime)s %(levelname)-8s %(name)-15s %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-            )
-            log.silence_iso8601()
+        log.set_console_formatter()
+        log.silence_iso8601()
 
 
 def main(argv=None):
