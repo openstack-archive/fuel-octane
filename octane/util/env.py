@@ -36,13 +36,11 @@ def get_nodes(env, roles):
             if (role in node.data['roles'] or
                     role in node.data['pending_roles']):
                 yield node
+                break
 
 
 def get_controllers(env):
     controllers = get_nodes(env, ['controller'])
-    if not controllers:
-        raise Exception("Can't find controller node in env %s" %
-                        env.data['id'])
     return controllers
 
 

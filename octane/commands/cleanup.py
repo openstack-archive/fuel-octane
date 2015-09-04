@@ -59,14 +59,14 @@ def cleanup_environment(env_id):
         os.path.join(magic_consts.CWD, "helpers/{0}".format(script_filename)),
         script_dst_filename,
     )
-    data_file = sftp.open(data_filename, 'w')
-    data_file.write(jsonutils.dumps(cleaning_data))
-    data_file.close()
-    print(ssh.call_output(['python', script_dst_filename,
-                           data_filename], node=controller))
+    with sftp.open(data_filename, 'w') as data_file:
+        data_file.write(jsonutils.dumps(cleaning_data))
 
-    print(ssh.call_output(['rm', '-f', script_dst_filename], node=controller))
-    print(ssh.call_output(['rm', '-f', data_filename], node=controller))
+    ssh.call(['python', script_dst_filename,
+              data_filename], node=controller)
+
+    ssh.call(['rm', '-f', script_dst_filename], node=controller)
+    ssh.call(['rm', '-f', data_filename], node=controller)
 
 
 class CleanupCommand(cmd.Command):
