@@ -16,7 +16,7 @@ import os
 from octane.helpers import transformations
 
 
-SKIP_TASKS = ["upload_cirros", "ceph_ready_check"]
+SKIP_TASKS = ["ceph_ready_check"]
 
 
 def get_parser():
