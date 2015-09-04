@@ -22,7 +22,6 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        self.evacuate_host()
         self.preserve_partition()
 
     def postdeploy(self):
