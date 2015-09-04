@@ -278,11 +278,9 @@ def create_port_ovs(bridge, port):
     bridges = port.get('bridges', [])
     bridge_index = bridges.index(bridge)
     ph_bridge = bridges[bridge_index - 1]
-    for tag in tags:
-        if tag:
-            tag = "tag={0}".format(str(tag))
-        else:
-            tag = ''
+    for index in xrange(len(tags)):
+        tag = tags[index]
+        tags[index] = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
     trunk_str = ','.join(trunks)
     if trunk_str:
