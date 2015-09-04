@@ -10,11 +10,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import os
+import sys
 
 from neutronclient.v2_0 import client as neutron_client
 from novaclient.v2 import client as nova_client
-from oslo_serialization import jsonutils
-import sys
 
 
 def cleanup_nova_services(access_data, hosts):
@@ -44,14 +44,16 @@ def cleanup_neutron_agents(access_data, hosts):
 
 
 def main():
-    data_file = sys.argv[1]
+    hosts = sys.stdin.readlines()
+    access_data = {
+        'user': os.environ['OS_USERNAME'],
+        'password': os.environ['OS_PASSWORD'],
+        'tenant': os.environ['OS_TENANT_NAME'],
+        'auth_url': os.environ['OS_AUTH_URL'],
+    }
 
-    with open(data_file) as f:
-        cleaning_data = f.read()
-
-    cleaning_data = jsonutils.loads(cleaning_data)
-    cleanup_nova_services(cleaning_data['access'], cleaning_data['hosts'])
-    cleanup_neutron_agents(cleaning_data['access'], cleaning_data['hosts'])
+    cleanup_nova_services(access_data, hosts)
+    cleanup_neutron_agents(access_data, hosts)
 
 
 if __name__ == '__main__':
