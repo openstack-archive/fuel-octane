@@ -16,14 +16,11 @@ from nailgun.db.sqlalchemy import models
 releases = db().query(models.Release)
 for rel in releases:
     meta = rel.volumes_metadata
-    volumes = meta['volumes']
-    for v_id in xrange(len(volumes)):
-        volume = volumes[v_id]
+    for volume in meta['volumes']:
         if volume['min_size']['generator'] == 'calc_min_log_size':
-            volumes[v_id]['min_size']['generator'] = 'calc_gb_to_mb'
-            volumes[v_id]['min_size']['generator_args'] = [2]
+            volume['min_size']['generator'] = 'calc_gb_to_mb'
+            volume['min_size']['generator_args'] = [2]
     db().query(models.Release).filter_by(id=rel.id).update(
         {"volumes_metadata": meta})
 
 db().commit()
-db().flush()

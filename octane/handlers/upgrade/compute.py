@@ -15,6 +15,7 @@ import stat
 
 from octane.handlers import upgrade
 from octane import magic_consts
+from octane.util import docker
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -22,6 +23,7 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
+        self.update_partition_generator()
         self.preserve_partition()
 
     def postdeploy(self):
@@ -63,3 +65,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                '|',
                'xargs -I% nova stop %']
         out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
+
+    def update_partition_generator(self):
+        fname = 'update_release_partition_info.py'
+        dest_folder = '/tmp'
+        folder = os.path.join(magic_consts.CWD, 'patches')
+        docker.put_files_to_docker('nailgun', dest_folder, folder)
+        command = 'python {0}'.format(os.path.join(dest_folder, fname))
+        docker.run_in_container('nailgun', [command])
