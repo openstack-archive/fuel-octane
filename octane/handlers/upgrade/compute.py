@@ -71,5 +71,5 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         dest_folder = '/tmp'
         folder = os.path.join(magic_consts.CWD, 'patches')
         docker.put_files_to_docker('nailgun', dest_folder, folder)
-        command = 'python {0}'.format(os.path.join(dest_folder, fname))
-        docker.run_in_container('nailgun', [command])
+        command = ['python', os.path.join(dest_folder, fname)]
+        docker.run_in_container('nailgun', command)
