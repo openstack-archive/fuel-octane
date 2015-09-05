@@ -22,7 +22,7 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False):
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     if env.data['status'] != 'new':
@@ -51,6 +51,8 @@ def upgrade_node(env_id, node_ids, isolated=False):
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
     call_handlers('predeploy')
+    if network_template:
+        env_util.set_network_template(env, network_template)
     env_util.deploy_nodes(env, nodes)
     call_handlers('postdeploy')
 
@@ -64,6 +66,9 @@ class UpgradeNodeCommand(cmd.Command):
             '--isolated', action='store_true',
             help="Isolate node's network from original cluster")
         parser.add_argument(
+            '--template', type=str, metavar='TEMPLATE_FILE',
+            help="Use network template from file")
+        parser.add_argument(
             'env_id', type=int, metavar='ENV_ID',
             help="ID of target environment")
         parser.add_argument(
@@ -73,4 +78,5 @@ class UpgradeNodeCommand(cmd.Command):
 
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
-                     isolated=parsed_args.isolated)
+                     isolated=parsed_args.isolated,
+                     template=parsed_args.template)
