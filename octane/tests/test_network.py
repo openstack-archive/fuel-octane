@@ -15,14 +15,6 @@ from mock import call
 from octane.helpers import network
 
 
-def test_parser(mocker, octane_app):
-    m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True)
-
-
 def test_create_overlay_network(mocker):
     node1 = mocker.MagicMock()
     node1.id = 2

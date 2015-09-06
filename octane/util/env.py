@@ -200,3 +200,9 @@ def get_astute_yaml(env, node=None):
 
 def get_admin_password(env, node=None):
     return get_astute_yaml(env, node)['access']['password']
+
+
+def set_network_template(env, filename):
+    with open(filename, 'r') as f:
+        data = f.read()
+        env.set_network_template_data(yaml.load(data))

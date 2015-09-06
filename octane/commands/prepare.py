@@ -38,6 +38,29 @@ def apply_patches(revert=False):
                              revert=revert)
 
 
+def patch_initramfs():
+    bootstrap = '/var/www/nailgun/bootstrap'
+    initramfs = os.path.join(bootstrap, 'initramfs.img')
+    backup = os.path.join(initramfs, 'bkup')
+    chroot = os.path.join(magic_consts.FUEL_CACHE, 'initramfs')
+    os.rename(initramfs, backup)
+    os.makedirs(chroot)
+    subprocess.call(["gunzip -c {1} | cpio -idv"
+                     .format(chroot, backup)], cwd=chroot)
+    patch_fuel_agent(chroot)
+    subprocess.call(["find | grep -v '^\.$' | "
+                     "cpio --format newc -o | gzip -c"],
+                    stdout=initramfs, cwd=chroot)
+
+
+def patch_fuel_agent(chroot, revert=False):
+    direction = "-R" if revert else "-N"
+    patch_dir = os.path.join(magic_consts.CWD, "patches", "fuel_agent")
+    with open(os.path.join(patch_dir, "patch")) as patch:
+        subprocess.call(["patch", direction, "-p1"], stdin=patch,
+                        cwd=chroot)
+
+
 def prepare():
     if not os.path.isdir(magic_consts.FUEL_CACHE):
         os.makedirs(magic_consts.FUEL_CACHE)
