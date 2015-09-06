@@ -13,7 +13,6 @@ import os.path
 
 from fuelclient.objects import node as node_obj
 
-from octane import magic_consts
 from octane.util import docker
 from octane.util import ssh
 
@@ -42,10 +41,13 @@ def create_partition(disk_name, size, node):
              node=node)
 
 
-def update_partition_generator(self):
+def update_partition_generator():
     fname = 'update_release_partition_info.py'
-    dest_folder = '/tmp'
-    folder = os.path.join(magic_consts.CWD, 'patches')
-    docker.put_files_to_docker('nailgun', dest_folder, folder)
-    command = ['python', os.path.join(dest_folder, fname)]
+    command = ['python', os.path.join('/tmp', fname)]
+    docker.run_in_container('nailgun', command)
+
+
+def update_node_partition_info(node_id):
+    fname = 'update_node_partition_info.py'
+    command = ['python', os.path.join('/tmp', fname), str(node_id)]
     docker.run_in_container('nailgun', command)

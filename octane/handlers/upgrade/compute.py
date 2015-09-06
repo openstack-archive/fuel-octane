@@ -25,6 +25,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         self.create_extra_partition()
         self.preserve_partition()
+        disk.update_node_partition_info(self.node.id)
 
     def postdeploy(self):
         controller = env_util.get_one_controller(self.env)
