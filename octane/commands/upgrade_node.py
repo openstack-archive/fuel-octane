@@ -19,7 +19,6 @@ from fuelclient.objects import node as node_obj
 from octane.handlers import upgrade as upgrade_handlers
 from octane.helpers import disk
 from octane.util import env as env_util
-from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
 
@@ -52,9 +51,6 @@ def upgrade_node(env_id, node_ids, isolated=False):
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
-    # re-upload template to make it accessible for new node
-    subprocess.call(["fuel", "--env", str(env_id), "network-template", "-u",
-                     "--dir", "/root"])
     call_handlers('predeploy')
     env_util.deploy_nodes(env, nodes)
     call_handlers('postdeploy')
