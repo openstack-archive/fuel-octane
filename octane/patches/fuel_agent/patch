@@ -1,7 +1,7 @@
 diff --git a/fuel_agent/drivers/nailgun.py b/fuel_agent/drivers/nailgun.py
 index 8f5f630..f5209b5 100644
---- a/fuel_agent/drivers/nailgun.py
-+++ b/fuel_agent/drivers/nailgun.py
+--- usr/lib/python2.6/site-packages/fuel_agent/drivers/nailgun.py
++++ usr/lib/python2.6/site-packages/fuel_agent/drivers/nailgun.py
 @@ -258,9 +258,9 @@ class Nailgun(BaseDataDriver):
                        disk['name'])
              parted.add_partition(size=24, flags=['bios_grub'])

@@ -68,6 +68,7 @@ def prepare():
     subprocess.call(["pip", "install", "wheel"])
     # From patch_all_containers
     apply_patches()
+    patch_initramfs()
 
 
 class PrepareCommand(cmd.Command):
