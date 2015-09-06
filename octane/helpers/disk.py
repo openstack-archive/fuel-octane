@@ -34,6 +34,6 @@ def create_partition(disk_name, size, node):
                       node=node)
     start = parse_last_partition_end(out) + 1
     end = start + size
-    ssh.call(['parted', '/dev/', disk_name, 'unit', 'MB', 'mkpart', 'custom',
+    ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart', 'custom',
               'ext4', start, end],
              node=node)
