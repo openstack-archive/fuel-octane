@@ -17,6 +17,7 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 from octane.handlers import upgrade as upgrade_handlers
+from octane.helpers import disk
 from octane.util import env as env_util
 from octane.util import subprocess
 
@@ -47,7 +48,7 @@ def upgrade_node(env_id, node_ids, isolated=False):
                 )
             one_orig_id = orig_id
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
-
+    disk.update_partition_generator()
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)

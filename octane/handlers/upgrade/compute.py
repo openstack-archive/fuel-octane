@@ -16,7 +16,6 @@ import stat
 from octane.handlers import upgrade
 from octane.helpers import disk
 from octane import magic_consts
-from octane.util import docker
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -24,8 +23,7 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        self.prepare_extra_partition()
-        self.update_partition_generator()
+        self.create_extra_partition()
         self.preserve_partition()
 
     def postdeploy(self):
@@ -68,7 +66,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                'xargs -I% nova stop %']
         out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
 
-    def prepare_extra_partition(self):
+    def create_extra_partition(self):
         disks = disk.get_node_disks(self.node)
         if not disks:
             raise Exception("No disks info was found "
@@ -76,11 +74,3 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         # it was agreed that 10MB is enough for config drive partition
         size = 10
         disk.create_partition(disks[0]['name'], size, self.node)
-
-    def update_partition_generator(self):
-        fname = 'update_release_partition_info.py'
-        dest_folder = '/tmp'
-        folder = os.path.join(magic_consts.CWD, 'patches')
-        docker.put_files_to_docker('nailgun', dest_folder, folder)
-        command = ['python', os.path.join(dest_folder, fname)]
-        docker.run_in_container('nailgun', command)
