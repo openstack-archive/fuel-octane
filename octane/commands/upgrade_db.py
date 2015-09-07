@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import os.path
 import shutil
 import time
@@ -22,15 +23,31 @@ from octane.util import env as env_util
 from octane.util import maintenance
 from octane.util import ssh
 
+LOG = logging.getLogger(__name__)
 
-def mysqldump_from_env(env):
+
+def get_databases(env):
+    node = env_util.get_one_controller(env)
+    with ssh.popen(
+            ['mysql', '--batch', '--skip-column-names'],
+            stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
+        proc.stdin.write('SHOW DATABASES')
+        out = proc.communicate()[0]
+    return out.splitlines()
+
+
+def mysqldump_from_env(env, dbs):
+    existing_dbs = get_databases(env)
+    dbs = set(existing_dbs) & set(dbs)
+    LOG.info('Will dump tables: %s', ', '.join(dbs))
+
     node = env_util.get_one_controller(env)
     local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
     cmd = [
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
         'mysqldump --add-drop-database --lock-all-tables '
-        '--databases {0}'.format(' '.join(magic_consts.OS_SERVICES)) +
+        '--databases {0}'.format(' '.join(dbs)) +
         ' | gzip',
     ]
     with ssh.popen(cmd, stdout=ssh.PIPE, node=node) as proc:
@@ -72,7 +89,7 @@ def upgrade_db(orig_id, seed_id):
     maintenance.disable_apis(orig_env)
     maintenance.stop_corosync_services(seed_env)
     maintenance.stop_upstart_services(seed_env)
-    fname = mysqldump_from_env(orig_env)
+    fname = mysqldump_from_env(orig_env, magic_consts.OS_SERVICES)
     mysqldump_restore_to_env(seed_env, fname)
     db_sync(seed_env)
 
