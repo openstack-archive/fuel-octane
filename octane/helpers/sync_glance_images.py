@@ -65,7 +65,7 @@ def get_object_property(node, tenant, user, password, token, container,
                 token,
                 container,
                 object_id)
-    object_data = ssh.call(["sh", "-c", cmd], node=node)
+    object_data = ssh.call_output(["sh", "-c", cmd], node=node)
     return parse_swift_out(object_data, prop)
 
 
@@ -74,7 +74,7 @@ def get_auth_token(node, tenant, user, password):
         " --os-username {1} --os-password {2} token-get".format(tenant,
                                                                 user,
                                                                 password)
-    token_info = ssh.call(["sh", "-c", cmd], node=node)
+    token_info = ssh.call_output(["sh", "-c", cmd], node=node)
     return env_util.parse_tenant_get(token_info, 'id')
 
 
