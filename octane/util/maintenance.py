@@ -16,6 +16,7 @@ import time
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
+from octane.util import subprocess
 
 
 def disable_apis(env):
