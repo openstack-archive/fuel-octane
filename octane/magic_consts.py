@@ -18,6 +18,7 @@ PATCHES = []
 CWD = os.path.dirname(__file__)  # FIXME
 FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/2014.2.2-6.1/modules"
+BOOTSTRAP_DIR = "/var/www/nailgun/bootstrap"
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
