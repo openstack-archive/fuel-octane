@@ -163,6 +163,7 @@ class UpdatePluginSettingsCommand(cmd.Command):
         parser.add_argument(
             '--plugins',
             type=plugin_names,
+            required=True,
             help="Comma separated values: {0}".format(', '.join(PLUGINS)))
 
         return parser
