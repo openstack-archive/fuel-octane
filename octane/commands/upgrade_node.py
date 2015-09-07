@@ -25,8 +25,6 @@ LOG = logging.getLogger(__name__)
 def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
-    if env.data['status'] != 'new':
-        raise Exception("Environment must be in 'new' status")
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
     # Sanity check
