@@ -19,15 +19,18 @@ from nailgun.extensions.volume_manager.models.node_volumes import NodeVolumes
 node_id = int(sys.argv[1])
 nv = db().query(NodeVolumes).filter(NodeVolumes.node_id == node_id).first()
 
-os_vg = next(disk for disk in nv.volumes if 'id' in disk and
-                                            disk['id'] == 'os')
-nv.volumes = [disk for disk in nv.volumes if 'id' not in disk or
-                                             disk['id'] != 'os']
+if not nv:
+    raise Exception("No volumes info was found for node {0}".format(node_id))
 
-for disk in nv.volumes:
-    volumes = disk['volumes']
+volumes = nv.volumes
+
+os_vg = next(disk for disk in volumes if 'id' in disk and disk['id'] == 'os')
+volumes = [disk for disk in volumes if 'id' not in disk or disk['id'] != 'os']
+
+for disk in volumes:
+    disk_volumes = disk['volumes']
     disk['volumes'] = []
-    for v in volumes:
+    for v in disk_volumes:
         if v['type'] == 'pv' and v['vg'] == 'os' and v['size'] > 0:
             for vv in os_vg['volumes']:
                 partition = {'name': vv['name'],
@@ -40,9 +43,7 @@ for disk in nv.volumes:
             if v['type'] == 'lvm_meta_pool' or v['type'] == 'boot':
                 v['size'] = 0
             disk['volumes'].append(v)
-nv.volumes.append({})
-db.flush()
-db.commit()
-nv.volumes = nv.volumes[:-1]
-db.flush()
+
+db().query(NodeVolumes).filter(NodeVolumes.node_id == node_id).update(
+    {"volumes": volumes})
 db.commit()
