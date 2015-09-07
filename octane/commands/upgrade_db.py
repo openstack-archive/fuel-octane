@@ -36,13 +36,12 @@ def get_databases(env):
     return out.splitlines()
 
 
-def mysqldump_from_env(env, dbs):
+def mysqldump_from_env(env, dbs, fname):
     existing_dbs = get_databases(env)
     dbs = set(existing_dbs) & set(dbs)
     LOG.info('Will dump tables: %s', ', '.join(dbs))
 
     node = env_util.get_one_controller(env)
-    local_fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
     cmd = [
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
@@ -51,14 +50,8 @@ def mysqldump_from_env(env, dbs):
         ' | gzip',
     ]
     with ssh.popen(cmd, stdout=ssh.PIPE, node=node) as proc:
-        with open(local_fname, 'wb') as local_file:
+        with open(fname, 'wb') as local_file:
             shutil.copyfileobj(proc.stdout, local_file)
-    local_fname2 = os.path.join(
-        magic_consts.FUEL_CACHE,
-        'dbs.original.cluster_%s.sql.gz' % (env.data['id'],),
-    )
-    shutil.copy(local_fname, local_fname2)
-    return local_fname
 
 
 def mysqldump_restore_to_env(env, fname):
@@ -89,7 +82,16 @@ def upgrade_db(orig_id, seed_id):
     maintenance.disable_apis(orig_env)
     maintenance.stop_corosync_services(seed_env)
     maintenance.stop_upstart_services(seed_env)
-    fname = mysqldump_from_env(orig_env, magic_consts.OS_SERVICES)
+
+    fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
+    mysqldump_from_env(orig_env, magic_consts.OS_SERVICES, fname)
+
+    fname2 = os.path.join(
+        magic_consts.FUEL_CACHE,
+        'dbs.original.cluster_%s.sql.gz' % (orig_env.data['id'],),
+    )
+    shutil.copy(fname, fname2)
+
     mysqldump_restore_to_env(seed_env, fname)
     db_sync(seed_env)
 
