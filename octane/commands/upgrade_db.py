@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os.path
 import shutil
 import time
@@ -19,58 +18,9 @@ from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
 from octane import magic_consts
+from octane.util import db
 from octane.util import env as env_util
 from octane.util import maintenance
-from octane.util import ssh
-
-LOG = logging.getLogger(__name__)
-
-
-def get_databases(env):
-    node = env_util.get_one_controller(env)
-    with ssh.popen(
-            ['mysql', '--batch', '--skip-column-names'],
-            stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
-        proc.stdin.write('SHOW DATABASES')
-        out = proc.communicate()[0]
-    return out.splitlines()
-
-
-def mysqldump_from_env(env, dbs, fname):
-    existing_dbs = get_databases(env)
-    dbs = set(existing_dbs) & set(dbs)
-    LOG.info('Will dump tables: %s', ', '.join(dbs))
-
-    node = env_util.get_one_controller(env)
-    cmd = [
-        'bash', '-c',
-        'set -o pipefail; ' +  # We want to fail if mysqldump fails
-        'mysqldump --add-drop-database --lock-all-tables '
-        '--databases {0}'.format(' '.join(dbs)) +
-        ' | gzip',
-    ]
-    with ssh.popen(cmd, stdout=ssh.PIPE, node=node) as proc:
-        with open(fname, 'wb') as local_file:
-            shutil.copyfileobj(proc.stdout, local_file)
-
-
-def mysqldump_restore_to_env(env, fname):
-    node = env_util.get_one_controller(env)
-    with open(fname, 'rb') as local_file:
-        with ssh.popen(['sh', '-c', 'zcat | mysql'],
-                       stdin=ssh.PIPE, node=node) as proc:
-            shutil.copyfileobj(local_file, proc.stdin)
-
-
-def db_sync(env):
-    node = env_util.get_one_controller(env)
-    ssh.call(['keystone-manage', 'db_sync'], node=node, parse_levels=True)
-    ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
-    ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
-    ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
-    ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
-              'upgrade', 'head'], node=node, parse_levels='^(?P<level>[A-Z]+)')
-    ssh.call(['cinder-manage', 'db', 'sync'], node=node, parse_levels=True)
 
 
 def upgrade_db(orig_id, seed_id):
@@ -84,7 +34,7 @@ def upgrade_db(orig_id, seed_id):
     maintenance.stop_upstart_services(seed_env)
 
     fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
-    mysqldump_from_env(orig_env, magic_consts.OS_SERVICES, fname)
+    db.mysqldump_from_env(orig_env, magic_consts.OS_SERVICES, fname)
 
     fname2 = os.path.join(
         magic_consts.FUEL_CACHE,
@@ -92,8 +42,8 @@ def upgrade_db(orig_id, seed_id):
     )
     shutil.copy(fname, fname2)
 
-    mysqldump_restore_to_env(seed_env, fname)
-    db_sync(seed_env)
+    db.mysqldump_restore_to_env(seed_env, fname)
+    db.db_sync(seed_env)
 
 
 class UpgradeDBCommand(cmd.Command):
