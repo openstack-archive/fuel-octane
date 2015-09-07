@@ -14,6 +14,7 @@ import os.path
 import stat
 
 from octane.handlers import upgrade
+from octane.helpers import disk
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
@@ -22,7 +23,9 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
+        self.create_configdrive_partition()
         self.preserve_partition()
+        disk.update_node_partition_info(self.node.id)
 
     def postdeploy(self):
         controller = env_util.get_one_controller(self.env)
@@ -63,3 +66,12 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                '|',
                'xargs -I% nova stop %']
         out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
+
+    def create_configdrive_partition(self):
+        disks = disk.get_node_disks(self.node)
+        if not disks:
+            raise Exception("No disks info was found "
+                            "for node {0}".format(self.node["id"]))
+        # it was agreed that 10MB is enough for config drive partition
+        size = 10
+        disk.create_partition(disks[0]['name'], size, self.node)
