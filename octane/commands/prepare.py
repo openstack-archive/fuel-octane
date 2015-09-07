@@ -45,7 +45,7 @@ def patch_initramfs():
     chroot = os.path.join(bootstrap, 'initramfs')
     os.rename(initramfs, backup)
     os.makedirs(chroot)
-    subprocess.call("gunzip -c {0} | cpio -idv".format(backup),
+    subprocess.call("gunzip -c {0} | cpio -id".format(backup),
                     shell=True, cwd=chroot)
     patch_fuel_agent(chroot)
     with open(initramfs, "wb") as f:
