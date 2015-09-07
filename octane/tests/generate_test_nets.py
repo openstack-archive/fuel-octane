@@ -1,3 +1,6 @@
+import random
+import time
+
 import neutronclient.neutron.client
 import keystoneclient.v2_0.client as ksclient
 from novaclient import client as nova
@@ -103,19 +106,44 @@ class TestResourcesGenerator(object):
         flavor = self.nova.flavors.create(name="testflav", ram=128, disk=5,
                                           vcpus=1)
         image_id = self.nova.images.list()[0].id
-        print flavor.id, image_id
+
+        for network in self.neutron.list_networks()["networks"]:
+            if network.get("router:external"):
+                external_network = network
+        needed_ips = networks_count*vms_per_net - len(
+            self.neutron.list_floatingips()['floatingips'])
+        if needed_ips > 0:
+            for i in xrange(needed_ips):
+                self.neutron.create_floatingip(
+                    {
+                        'floatingip': {
+                            'floating_network_id': external_network["id"]
+                        }
+                    }
+                )
+        floatingip_list = self.neutron.list_floatingips()['floatingips']
+
         for net in xrange(networks_count):
-            router = self._create_router("testrouter{0}".format(net))
-            network = self._create_network("testnet{0}".format(net))
+            name = random.randint(0x000000, 0xffffff)
+            router = self._create_router("testrouter{0}".format(name))
+            network = self._create_network("testnet{0}".format(name))
             subnet = self._create_subnet(network, "12.0.{0}.0/24".format(net))
             self._uplink_subnet_to_router(router, subnet)
             for vm in xrange(vms_per_net):
-                server = self._create_server("testserver{0}{1}".format(net,
+                server = self._create_server("testserver{0}-{1}".format(name,
                                                                        vm),
                                              image_id,
                                              flavor.id,
                                              "default",
                                              network["id"])
+
+                while self.nova.servers.get(server.id).status != 'ACTIVE':
+                    time.sleep(1)
+
+                port_id = server.interface_list()[0].port_id
+                self.neutron.update_floatingip(floatingip_list.pop()['id'],
+                                               {'floatingip': {
+                                                   'port_id': port_id}})
 
 
 if __name__ == '__main__':
@@ -129,9 +157,13 @@ if __name__ == '__main__':
                         help='admin tenant')
     parser.add_argument('keystone_url', metavar='<keystone_url>', type=str,
                         help='Keystone url')
+    parser.add_argument('--num-routers', type=int, default=3,
+                        help='Number of routers')
+    parser.add_argument('--num-servers', type=int, default=5,
+                        help='Number of servers')
     args = parser.parse_args()
 
     generator = TestResourcesGenerator(args.username, args.password,
                                        args.tenant_name,
                                        args.keystone_url)
-    generator.infra_generator(3, 5)
+    generator.infra_generator(args.num_routers, args.num_servers)
