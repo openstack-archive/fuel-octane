@@ -1,0 +1,17 @@
+diff --git a/fuel_agent/drivers/nailgun.py b/fuel_agent/drivers/nailgun.py
+index 8f5f630..f5209b5 100644
+--- usr/lib/python2.6/site-packages/fuel_agent/drivers/nailgun.py
++++ usr/lib/python2.6/site-packages/fuel_agent/drivers/nailgun.py
+@@ -258,9 +258,9 @@ class Nailgun(BaseDataDriver):
+                       disk['name'])
+             parted.add_partition(size=24, flags=['bios_grub'])
+             # uefi partition (for future use)
+-            LOG.debug('Adding UEFI partition on disk %s: size=200' %
+-                      disk['name'])
+-            parted.add_partition(size=200)
++            #LOG.debug('Adding UEFI partition on disk %s: size=200' %
++            #          disk['name'])
++            #parted.add_partition(size=200)
+ 
+             LOG.debug('Looping over all volumes on disk %s' % disk['name'])
+             for volume in disk['volumes']:
