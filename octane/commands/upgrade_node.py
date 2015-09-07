@@ -79,4 +79,4 @@ class UpgradeNodeCommand(cmd.Command):
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     template=parsed_args.template)
+                     network_template=parsed_args.template)
