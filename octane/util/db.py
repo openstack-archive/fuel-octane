@@ -10,13 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import shutil
 
 from octane.util import env as env_util
 from octane.util import ssh
-
-LOG = logging.getLogger(__name__)
 
 
 def get_databases(env):
@@ -30,10 +27,6 @@ def get_databases(env):
 
 
 def mysqldump_from_env(env, dbs, fname):
-    existing_dbs = get_databases(env)
-    dbs = set(existing_dbs) & set(dbs)
-    LOG.info('Will dump tables: %s', ', '.join(dbs))
-
     node = env_util.get_one_controller(env)
     cmd = [
         'bash', '-c',
