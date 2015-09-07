@@ -11,6 +11,7 @@
 # under the License.
 
 import logging
+import string
 
 
 class ColorFormatter(logging.Formatter):
@@ -22,12 +23,18 @@ class ColorFormatter(logging.Formatter):
         logging.CRITICAL: '\033[01;31m',  # BOLD RED
     }
 
-    def format(self, record):
-        res = logging.Formatter.format(self, record)  # old-style class on 2.6
+    def format(self, record, string=string, Formatter=logging.Formatter):
+        # Hack to get last log line instead of exception on 2.6
+        if string.find is None:
+            string.find = str.find
+        res = Formatter.format(self, record)  # old-style class on 2.6
         return self.LEVEL_COLORS[record.levelno] + res + '\033[m'
 
 
 def set_console_formatter(**formatter_kwargs):
+    formatter_kwargs.setdefault(
+        'fmt', '%(asctime)s %(levelname)-8s %(name)-15s %(message)s')
+    formatter_kwargs.setdefault('datefmt', '%Y-%m-%d %H:%M:%S')
     root_logger = logging.getLogger('')
     for handler in root_logger.handlers:
         if isinstance(handler, logging.StreamHandler):

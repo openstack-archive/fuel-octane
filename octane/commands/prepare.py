@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import glob
 import os.path
 
 from cliff import command as cmd
@@ -20,25 +19,16 @@ from octane.util import docker
 from octane.util import subprocess
 
 
-def patch_puppet():
+def patch_puppet(revert=False):
+    direction = "-R" if revert else "-N"
     puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
         with open(os.path.join(d, "patch")) as patch:
-            subprocess.call(["patch", "-Np3"], stdin=patch,
+            subprocess.call(["patch", direction, "-p3"], stdin=patch,
                             cwd=magic_consts.PUPPET_DIR)
-
-
-def install_octane_nailgun():
-    octane_nailgun = os.path.join(magic_consts.CWD, '..', 'octane_nailgun')
-    subprocess.call(["python", "setup.py", "bdist_wheel"], cwd=octane_nailgun)
-    wheel = glob.glob(os.path.join(octane_nailgun, 'dist', '*.whl'))[0]
-    subprocess.call(["dockerctl", "copy", wheel, "nailgun:/root/"])
-    docker.run_in_container("nailgun", ["pip", "install", "-U",
-                                        "/root/" + os.path.basename(wheel)])
-    docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
 
 
 def apply_patches(revert=False):
@@ -48,18 +38,37 @@ def apply_patches(revert=False):
                              revert=revert)
 
 
+def patch_initramfs():
+    bootstrap = '/var/www/nailgun/bootstrap'
+    initramfs = os.path.join(bootstrap, 'initramfs.img')
+    backup = initramfs + '.bkup'
+    chroot = os.path.join(bootstrap, 'initramfs')
+    os.rename(initramfs, backup)
+    os.makedirs(chroot)
+    subprocess.call("gunzip -c {0} | cpio -id".format(backup),
+                    shell=True, cwd=chroot)
+    patch_fuel_agent(chroot)
+    with open(initramfs, "wb") as f:
+        subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
+                        " | gzip -c", shell=True, stdout=f, cwd=chroot)
+
+
+def patch_fuel_agent(chroot, revert=False):
+    direction = "-R" if revert else "-N"
+    patch_dir = os.path.join(magic_consts.CWD, "patches", "fuel_agent")
+    with open(os.path.join(patch_dir, "patch")) as patch:
+        subprocess.call(["patch", direction, "-p0"], stdin=patch,
+                        cwd=chroot)
+
+
 def prepare():
     if not os.path.isdir(magic_consts.FUEL_CACHE):
         os.makedirs(magic_consts.FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
     subprocess.call(["pip", "install", "wheel"])
-    octane_fuelclient = os.path.join(magic_consts.CWD, '..',
-                                     'octane_fuelclient')
-    subprocess.call(["pip", "install", "-U", octane_fuelclient])
-    patch_puppet()
     # From patch_all_containers
     apply_patches()
-    install_octane_nailgun()
+    patch_initramfs()
 
 
 class PrepareCommand(cmd.Command):
