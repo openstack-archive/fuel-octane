@@ -23,7 +23,7 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        self.create_extra_partition()
+        self.create_configdrive_partition()
         self.preserve_partition()
         disk.update_node_partition_info(self.node.id)
 
@@ -67,7 +67,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                'xargs -I% nova stop %']
         out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
 
-    def create_extra_partition(self):
+    def create_configdrive_partition(self):
         disks = disk.get_node_disks(self.node)
         if not disks:
             raise Exception("No disks info was found "

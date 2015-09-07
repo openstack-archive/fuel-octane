@@ -11,14 +11,12 @@
 # under the License.
 import os.path
 
-from fuelclient.objects import node as node_obj
-
 from octane.util import docker
 from octane.util import ssh
 
 
 def get_node_disks(node):
-    return node_obj.get_attribute(node, 'disks')
+    return node.get_attribute('disks')
 
 
 def parse_last_partition_end(out):
@@ -37,7 +35,7 @@ def create_partition(disk_name, size, node):
     start = parse_last_partition_end(out) + 1
     end = start + size
     ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart',
-              'custom', 'ext4', start, end],
+              'custom', 'ext4', str(start), str(end)],
              node=node)
 
 
