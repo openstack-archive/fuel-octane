@@ -68,7 +68,7 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.warn("Using default networks for node %s", node)
 
 
-def install_node(orig_id, seed_id, node_ids, isolated=False):
+def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
     env = environment_obj.Environment
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
     if orig_id == seed_id:
@@ -82,6 +82,9 @@ def install_node(orig_id, seed_id, node_ids, isolated=False):
         disk_info_fixture = orig_node.get_attribute('disks')
         nic_info_fixture = orig_node.get_attribute('interfaces')
         update_node_settings(node, disk_info_fixture, nic_info_fixture)
+
+    if networks:
+        env_util.clone_ips(orig_id, networks)
 
     env_util.provision_nodes(seed_env, nodes)
 
@@ -116,8 +119,12 @@ class InstallNodeCommand(cmd.Command):
         parser.add_argument(
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
+        parser.add_argument(
+            '--networks', type=str, nargs='+',
+            help="Names of networks which IPs should be copied")
         return parser
 
     def take_action(self, parsed_args):
         install_node(parsed_args.orig_id, parsed_args.seed_id,
-                     parsed_args.node_ids, isolated=parsed_args.isolated)
+                     parsed_args.node_ids, isolated=parsed_args.isolated,
+                     networks=parsed_args.networks)

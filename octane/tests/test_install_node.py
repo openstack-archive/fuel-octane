@@ -13,7 +13,9 @@
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.install_node.install_node')
-    octane_app.run(["install-node", "--isolated", "1", "2", "3", "4"])
+    octane_app.run(["install-node", "--isolated", "1", "2", "3", "4",
+                    "--network", "public", "management"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, 2, [3, 4], isolated=True)
+    m.assert_called_once_with(1, 2, [3, 4], isolated=True,
+                              networks=["public", "management"])

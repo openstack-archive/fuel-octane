@@ -73,11 +73,13 @@ def prepare():
     subprocess.call(["pip", "install", "wheel"])
     # From patch_all_containers
     apply_patches()
+    docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
     patch_initramfs()
 
 
 def revert_prepare():
     apply_patches(revert=True)
+    docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
     revert_initramfs()
 
 

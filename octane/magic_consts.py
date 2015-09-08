@@ -13,7 +13,8 @@
 import os.path
 
 PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
-PATCHES = []
+PATCHES = [("nailgun", "/usr/lib/python2.6/site-packages/nailgun/extensions"
+            "/cluster_upgrade/", "patches/nailgun-clone-ips.patch")]
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
 FUEL_CACHE = "/tmp/octane/deployment"  # TODO: we shouldn't need this
