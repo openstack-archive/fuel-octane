@@ -11,6 +11,8 @@
 # under the License.
 
 import os.path
+import shutil
+import tempfile
 
 from cliff import command as cmd
 
@@ -38,27 +40,30 @@ def apply_patches(revert=False):
                              revert=revert)
 
 
+def revert_initramfs():
+    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
+    os.rename(backup, magic_consts.BOOTSTRAP_INITRAMFS)
+
+
 def patch_initramfs():
-    bootstrap = '/var/www/nailgun/bootstrap'
-    initramfs = os.path.join(bootstrap, 'initramfs.img')
-    backup = initramfs + '.bkup'
-    chroot = os.path.join(bootstrap, 'initramfs')
-    os.rename(initramfs, backup)
-    os.makedirs(chroot)
-    subprocess.call("gunzip -c {0} | cpio -id".format(backup),
-                    shell=True, cwd=chroot)
-    patch_fuel_agent(chroot)
-    with open(initramfs, "wb") as f:
-        subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
-                        " | gzip -c", shell=True, stdout=f, cwd=chroot)
+    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
+    chroot = tempfile.mkdtemp()
+    try:
+        os.rename(magic_consts.BOOTSTRAP_INITRAMFS, backup)
+        subprocess.call("gunzip -c {0} | cpio -id".format(backup),
+                        shell=True, cwd=chroot)
+        patch_fuel_agent(chroot)
+        with open(magic_consts.BOOTSTRAP_INITRAMFS, "wb") as f:
+            subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
+                            " | gzip -c", shell=True, stdout=f, cwd=chroot)
+    finally:
+        shutil.rmtree(chroot)
 
 
-def patch_fuel_agent(chroot, revert=False):
-    direction = "-R" if revert else "-N"
+def patch_fuel_agent(chroot):
     patch_dir = os.path.join(magic_consts.CWD, "patches", "fuel_agent")
     with open(os.path.join(patch_dir, "patch")) as patch:
-        subprocess.call(["patch", direction, "-p0"], stdin=patch,
-                        cwd=chroot)
+        subprocess.call(["patch", "-N", "-p0"], stdin=patch, cwd=chroot)
 
 
 def prepare():
@@ -69,6 +74,11 @@ def prepare():
     # From patch_all_containers
     apply_patches()
     patch_initramfs()
+
+
+def revert_prepare():
+    apply_patches(revert=True)
+    revert_initramfs()
 
 
 class PrepareCommand(cmd.Command):
@@ -82,4 +92,4 @@ class RevertCommand(cmd.Command):
     """Revert all patches applied by 'prepare' command"""
 
     def take_action(self, parsed_args):
-        apply_patches(revert=True)
+        revert_prepare()
