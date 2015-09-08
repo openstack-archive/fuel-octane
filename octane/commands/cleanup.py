@@ -30,22 +30,23 @@ def cleanup_environment(env_id):
     sftp = ssh.sftp(controller)
 
     script_filename = 'clean_env.py'
-    script_dst_filename = '/tmp/{0}'.format(script_filename)
 
-    sftp.put(
-        os.path.join(magic_consts.CWD, "helpers/{0}".format(script_filename)),
-        script_dst_filename,
-    )
+    with ssh.tempdir(controller) as tempdir:
+        script_src_filename = os.path.join(
+            magic_consts.CWD, "helpers", script_filename)
+        script_dst_filename = os.path.join(tempdir, script_filename)
 
-    command = ['sh', '-c', '. /root/openrc; export OS_PASSWORD=admin; python '
-               + script_dst_filename]
+        sftp.put(script_src_filename, script_dst_filename)
 
-    with ssh.popen(command, node=controller, stdin=ssh.PIPE) as proc:
-        roles = ["controller", "compute"]
-        for node in env_util.get_nodes(env, roles):
-            proc.stdin.write(node.data['fqdn']+"\n")
+        command = [
+            'sh', '-c', '. /root/openrc; export OS_PASSWORD=admin; '
+            'python ' + script_dst_filename,
+        ]
 
-    ssh.call(['rm', '-f', script_dst_filename], node=controller)
+        with ssh.popen(command, node=controller, stdin=ssh.PIPE) as proc:
+            roles = ["controller", "compute"]
+            for node in env_util.get_nodes(env, roles):
+                proc.stdin.write(node.data['fqdn'] + "\n")
 
 
 class CleanupCommand(cmd.Command):
