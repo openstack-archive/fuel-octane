@@ -8,11 +8,16 @@ DOWNLOAD_TORRENTS="$MAGNET_511_ISO $MAGNET_60_LRZ $MAGNET_61_LRZ"
 FUEL_ISO='MirantisOpenStack-5.1.1.iso'
 
 MYDIR="$(readlink -e "$(dirname "$BASH_SOURCE")")"
+
+sudo apt-get update
+
 # Use provided preseed.cfg to install everything
 
 # Install and start PolicyKit separately to avoid issues during install later
 sudo apt-get install -y policykit-1
 sudo service polkitd start
+
+sudo apt-get isntall -y dpkg-dev acl
 
 # Transmission
 sudo apt-get install -y transmission-cli transmission-daemon
