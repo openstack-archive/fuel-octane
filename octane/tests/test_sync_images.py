@@ -17,3 +17,11 @@ def test_parser(mocker, octane_app):
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2, 'br-mgmt')
+
+
+def test_prepare_parser(mocker, octane_app):
+    m = mocker.patch('octane.commands.sync_images.prepare')
+    octane_app.run(['sync-images-prepare', '1', '2'])
+    assert not octane_app.stdout.getvalue()
+    assert not octane_app.stderr.getvalue()
+    m.assert_called_once_with(1, 2)
