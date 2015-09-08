@@ -28,19 +28,18 @@ def cleanup_environment(env_id):
 
     controller = env_util.get_one_controller(env)
     sftp = ssh.sftp(controller)
-
+    admin_pass = env_util.get_admin_password(env, controller)
     script_filename = 'clean_env.py'
 
     with ssh.tempdir(controller) as tempdir:
         script_src_filename = os.path.join(
             magic_consts.CWD, "helpers", script_filename)
         script_dst_filename = os.path.join(tempdir, script_filename)
-
         sftp.put(script_src_filename, script_dst_filename)
 
         command = [
-            'sh', '-c', '. /root/openrc; export OS_PASSWORD=admin; '
-            'python ' + script_dst_filename,
+            'sh', '-c', '. /root/openrc; export OS_PASSWORD={0}; python {1}'
+            .format(admin_pass, script_dst_filename),
         ]
 
         with ssh.popen(command, node=controller, stdin=ssh.PIPE) as proc:
