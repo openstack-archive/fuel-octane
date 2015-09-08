@@ -35,43 +35,9 @@ get_host_ip_by_node_id() {
     echo $(fuel node | awk -F"|" '/^'$1' /{print($5)}' | tr -d ' ')
 }
 
-get_last_node() {
-    echo $(fuel node | awk -F\| '$1 ~ /[0-9]+[ ]+/{print($1)}' \
-           | sort -n | tail -1)
-}
-
 get_node_online() {
     [ -z "$1" ] && die "No node ID provided, exiting"
     fuel node --node "$1" | tail -1 | awk -F\| '{gsub(" ", "", $9);print($9)}'
-}
-
-wait_for_node() {
-    [ -z "$1" ] && die "No node ID provided, exiting"
-    [ -z "$2" ] && die "No expected status provided, exiting"
-    local counter=0
-    while :
-        do
-            [ $counter -gt 120 ] && die "Wait for node-$1 $2 timed out, exiting"
-            local status=$(fuel node --node $1 \
-                | awk -F\| '/^'$1'/ {gsub(" ", "", $2);print $2}')
-            local online=$(get_node_online $1)
-            [ "$status" == "$2" ] && [ "$online" == "True" ] && break
-            # Die in case of unexpected fall into 'error' state. Expected error
-            # will be caught in previous statement.
-            [ "$status" == "error" ] &&
-                die "Node $1 failed transition to $2 state, exiting"
-            counter=$(expr $counter + 1)
-            sleep 60
-        done
-}
-
-check_env_nodes() {
-    local node
-    [ -z "$1" ] && die "No env ID provided, exiting"
-    for node in  $(list_nodes $1 "(controller|compute|ceph-osd)")
-        do
-            ping -c1 $node || die "Node $node inaccessible, exiting"
-        done
 }
 
 list_nodes() {
