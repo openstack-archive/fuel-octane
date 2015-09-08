@@ -32,6 +32,8 @@ def prepare(orig_id, seed_id):
 
     ssh.call(['keystone-manage', 'db_sync'],
              node=controller, parse_levels=True)
+    for controller in env_util.get_controllers(seed_env):
+        ssh.call(['service', 'memcached', 'restart'], node=controller)
 
 
 class SyncImagesCommand(cmd.Command):
