@@ -41,21 +41,19 @@ def apply_patches(revert=False):
 
 
 def revert_initramfs():
-    initramfs = os.path.join(magic_consts.BOOTSTRAP_DIR, 'initramfs.img')
-    backup = initramfs + '.bkup'
-    os.rename(backup, initramfs)
+    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
+    os.rename(backup, magic_consts.BOOTSTRAP_INITRAMFS)
 
 
 def patch_initramfs():
-    initramfs = os.path.join(magic_consts.BOOTSTRAP_DIR, 'initramfs.img')
-    backup = initramfs + '.bkup'
+    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
     chroot = tempfile.mkdtemp()
     try:
-        os.rename(initramfs, backup)
+        os.rename(magic_consts.BOOTSTRAP_INITRAMFS, backup)
         subprocess.call("gunzip -c {0} | cpio -id".format(backup),
                         shell=True, cwd=chroot)
         patch_fuel_agent(chroot)
-        with open(initramfs, "wb") as f:
+        with open(magic_consts.BOOTSTRAP_INITRAMFS, "wb") as f:
             subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
                             " | gzip -c", shell=True, stdout=f, cwd=chroot)
     finally:
