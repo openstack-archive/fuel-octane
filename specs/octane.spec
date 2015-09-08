@@ -1,4 +1,4 @@
-%define name octane
+%define name fuel-octane
 %{!?version: %define version 1}
 %{!?release: %define release 1}
 
@@ -19,7 +19,7 @@ BuildArch: noarch
 
 Requires:    git
 Requires:    python
-Requires:    python-setuoptools
+Requires:    python-setuptools
 Requires:    python-paramiko
 Requires:    python-stevedore
 Requires:    python-fuelclient

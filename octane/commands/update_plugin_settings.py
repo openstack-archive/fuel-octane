@@ -46,30 +46,30 @@ def get_zabbix_credentials(astute):
     return astute['zabbix']['username'], astute['zabbix']['password']
 
 
-def zabbix_monitoring_settings(astute):
-    return {'username': {'value': astute['zabbix']['username']},
-            'password': {'value': astute['zabbix']['password']},
-            'db_password': {'value': astute['zabbix']['db_password']},
-            'metadata': {'enabled': astute['zabbix']['enabled']}}
+def zabbix_monitoring_settings(astute, attrs):
+    attrs['username']['value'] = astute['zabbix']['username']
+    attrs['password']['value'] = astute['zabbix']['password']
+    attrs['db_password']['value'] = astute['zabbix']['db_password']
+    attrs['metadata']['enabled'] = astute['zabbix']['enabled']
 
 
-def emc_vnx_settings(astute):
-    return {'emc_sp_a_ip': {'value': astute['storage']['emc_sp_a_ip']},
-            'emc_sp_b_ip': {'value': astute['storage']['emc_sp_b_ip']},
-            'emc_password': {'value': astute['storage']['emc_password']},
-            'emc_username': {'value': astute['storage']['emc_username']},
-            'emc_pool_name': {'value': astute['storage']['emc_pool_name']},
-            'metadata': {'enabled': astute['storage']['volumes_emc']}}
+def emc_vnx_settings(astute, attrs):
+    attrs['emc_sp_a_ip']['value'] = astute['storage']['emc_sp_a_ip']
+    attrs['emc_sp_b_ip']['value'] = astute['storage']['emc_sp_b_ip']
+    attrs['emc_password']['value'] = astute['storage']['emc_password']
+    attrs['emc_username']['value'] = astute['storage']['emc_username']
+    attrs['emc_pool_name']['value'] = astute['storage']['emc_pool_name']
+    attrs['metadata']['enabled'] = astute['storage']['volumes_emc']
 
 
-def zabbix_snmptrapd_settings(astute):
+def zabbix_snmptrapd_settings(astute, attrs):
     node = node_obj.Node(astute['uid'])
     with ssh.sftp(node).open('/etc/snmp/snmptrapd.conf') as f:
         data = f.read()
-    template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
-    match = template.search(data)
-    return {'community': {'value': match.group(1)},
-            'metadata': {'enabled': True}}
+        template = re.compile(r"authCommunity\s[a-z-,]+\s([a-z-]+)")
+        match = template.search(data)
+        attrs['community']['value'] = match.group(1)
+        attrs['metadata']['enabled'] = True
 
 
 def get_zabbix_client(astute):
@@ -87,7 +87,7 @@ def get_zabbix_client(astute):
     return client
 
 
-def zabbix_monitoring_emc_settings(astute):
+def zabbix_monitoring_emc_settings(astute, attrs):
     client = get_zabbix_client(astute)
 
     hosts = get_template_hosts_by_name(client, 'Template EMC VNX')
@@ -96,11 +96,11 @@ def zabbix_monitoring_emc_settings(astute):
     settings = ','.join('{0}:{1}'.format(host['name'], host['ip'])
                         for host in hosts)
 
-    return {'hosts': {'value': settings},
-            'metadata': {'enabled': True}}
+    attrs['hosts']['value'] = settings
+    attrs['metadata']['enabled'] = True
 
 
-def zabbix_monitoring_extreme_networks_settings(astute):
+def zabbix_monitoring_extreme_networks_settings(astute, attrs):
     client = get_zabbix_client(astute)
 
     hosts = get_template_hosts_by_name(client, 'Template Extreme Networks')
@@ -109,21 +109,21 @@ def zabbix_monitoring_extreme_networks_settings(astute):
     settings = ','.join('{0}:{1}'.format(host['name'], host['ip'])
                         for host in hosts)
 
-    return {'hosts': {'value': settings},
-            'metadata': {'enabled': True}}
+    attrs['hosts']['value'] = settings
+    attrs['metadata']['enabled'] = True
 
 
 def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     orig_env = environment.Environment(orig_env_id)
     seed_env = environment.Environment(seed_env_id)
     astute = env_util.get_astute_yaml(orig_env)
-    attrs = {}
+    attrs = seed_env.get_settings_data()
 
     for plugin in plugins:
         LOG.info("Fetching settings for plugin '%s'", plugin)
-        attrs[plugin] = PLUGINS[plugin](astute)
+        PLUGINS[plugin](astute, attrs['editable'][plugin])
 
-    seed_env.update_attributes({'editable': attrs})
+    seed_env.set_settings_data(attrs)
 
 
 PLUGINS = {
@@ -163,6 +163,7 @@ class UpdatePluginSettingsCommand(cmd.Command):
         parser.add_argument(
             '--plugins',
             type=plugin_names,
+            required=True,
             help="Comma separated values: {0}".format(', '.join(PLUGINS)))
 
         return parser

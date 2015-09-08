@@ -38,6 +38,29 @@ def apply_patches(revert=False):
                              revert=revert)
 
 
+def patch_initramfs():
+    bootstrap = '/var/www/nailgun/bootstrap'
+    initramfs = os.path.join(bootstrap, 'initramfs.img')
+    backup = initramfs + '.bkup'
+    chroot = os.path.join(bootstrap, 'initramfs')
+    os.rename(initramfs, backup)
+    os.makedirs(chroot)
+    subprocess.call("gunzip -c {0} | cpio -id".format(backup),
+                    shell=True, cwd=chroot)
+    patch_fuel_agent(chroot)
+    with open(initramfs, "wb") as f:
+        subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
+                        " | gzip -c", shell=True, stdout=f, cwd=chroot)
+
+
+def patch_fuel_agent(chroot, revert=False):
+    direction = "-R" if revert else "-N"
+    patch_dir = os.path.join(magic_consts.CWD, "patches", "fuel_agent")
+    with open(os.path.join(patch_dir, "patch")) as patch:
+        subprocess.call(["patch", direction, "-p0"], stdin=patch,
+                        cwd=chroot)
+
+
 def prepare():
     if not os.path.isdir(magic_consts.FUEL_CACHE):
         os.makedirs(magic_consts.FUEL_CACHE)
@@ -45,6 +68,7 @@ def prepare():
     subprocess.call(["pip", "install", "wheel"])
     # From patch_all_containers
     apply_patches()
+    patch_initramfs()
 
 
 class PrepareCommand(cmd.Command):

@@ -10,10 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from octane.handlers import upgrade
 
-def test_parser(mocker, octane_app):
-    m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None)
+
+class CinderUpgrade(upgrade.UpgradeHandler):
+    def prepare(self):
+        pass
+
+    def postdeploy(self):
+        pass

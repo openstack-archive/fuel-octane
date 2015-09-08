@@ -10,10 +10,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from nailgun.db import db
+from nailgun.db.sqlalchemy import models
 
-def test_parser(mocker, octane_app):
-    m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None)
+releases = db().query(models.Release)
+for rel in releases:
+    meta = rel.volumes_metadata
+    for volume in meta['volumes']:
+        if volume['min_size']['generator'] == 'calc_min_log_size':
+            volume['min_size']['generator'] = 'calc_gb_to_mb'
+            volume['min_size']['generator_args'] = [2]
+    db().query(models.Release).filter_by(id=rel.id).update(
+        {"volumes_metadata": meta})
+
+db().commit()

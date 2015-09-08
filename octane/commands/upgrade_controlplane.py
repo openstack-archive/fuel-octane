@@ -57,10 +57,8 @@ def start_upstart_services(env):
 def disconnect_networks(env):
     controllers = list(env_util.get_controllers(env))
     for node in controllers:
-        deployment_info = env.get_default_facts('deployment',
-                                                nodes=[node.data['id']])
-        for info in deployment_info:
-            network.delete_patch_ports(node, info)
+        deployment_info = env_util.get_astute_yaml(env, node)
+        network.delete_patch_ports(node, deployment_info)
 
 
 def connect_to_networks(env):
@@ -76,7 +74,8 @@ def connect_to_networks(env):
             deployment_info.append(info)
     for node in controllers:
         for info in deployment_info:
-            if info['role'] in ('primary-controller', 'controller'):
+            if (info['role'] in ('primary-controller', 'controller')
+                    and info['uid'] == str(node.id)):
                 network.delete_overlay_networks(node, info)
                 network.create_patch_ports(node, info)
 
@@ -88,7 +87,7 @@ def update_neutron_config(env):
     with open(tenant_file) as f:
         tenant_id = f.read()
 
-    sed_script = 's/^(nova_admin_tenant_id )=.*/\1 =%s' % (tenant_id,)
+    sed_script = 's/^(nova_admin_tenant_id )=.*/\\1 = %s/' % (tenant_id,)
     for node in controllers:
         ssh.call(['sed', '-re', sed_script, '-i', '/etc/neutron/neutron.conf'],
                  node=node)
@@ -97,11 +96,11 @@ def update_neutron_config(env):
 def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
+    update_neutron_config(seed_env)
     start_corosync_services(seed_env)
     start_upstart_services(seed_env)
     disconnect_networks(orig_env)
     connect_to_networks(seed_env)
-    update_neutron_config(seed_env)
 
 
 class UpgradeControlPlaneCommand(cmd.Command):

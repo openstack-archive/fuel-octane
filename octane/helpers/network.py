@@ -191,8 +191,9 @@ def list_tunnels_ovs(node, bridge):
     stdout, _ = ssh.call(['ovs-vsctl', 'list-ports', bridge],
                          stdout=ssh.PIPE,
                          node=node)
-    for match in re.finditer("[\S]+\n", stdout):
-        tunnels.append(match[:-1])
+    for match in re.finditer("[\S]+--gre-[\S]*\n", stdout):
+        tun = match.group(0)
+        tunnels.append(tun[:-1])
     return tunnels
 
 
@@ -260,25 +261,39 @@ def delete_patch_ports(node, host_config):
 
 
 def create_port_ovs(bridge, port):
+    def build_cmd(bridge, port, tag, trunk, peer):
+        cmd = ['ovs-vsctl', 'add-port', bridge, port]
+        if tag:
+            cmd.append(tag)
+        if trunk:
+            cmd.append(trunk)
+        cmd.extend(['--', 'set', 'interface',
+                    port, 'type=patch',
+                    "options:peer={0}".format(peer)])
+        return cmd
+
     cmds = []
-    tags = port.get('tags', ['', ''])
+    tags = port.get('vlan_ids', ['', ''])
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
-    for tag in tags:
-        tag = "tag=%s" % (str(tag),) if tag else ''
+    bridge_index = bridges.index(bridge)
+    ph_bridge = bridges[bridge_index - 1]
+    for index in xrange(len(tags)):
+        tag = tags[index]
+        tags[index] = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
     trunk_str = ','.join(trunks)
     if trunk_str:
         trunk = 'trunks=[%s]' % (trunk_str,)
     if bridges:
-        br_patch = "%s--%s" % (bridges[0], bridges[1])
-        ph_patch = "%s--%s" % (bridges[1], bridges[0])
-        cmds.append(['ovs-vsctl', 'add-port', bridge, br_patch, tag[0], trunk,
-                     '--', 'set', 'interface', br_patch, 'type=patch',
-                     'options:peer=%s' % ph_patch])
-        cmds.append(['ovs-vsctl', 'add-port', bridge, ph_patch, tag[1], trunk,
-                     '--', 'set', 'interface', ph_patch, 'type=patch',
-                     'options:peer=%s' % br_patch])
+        br_patch = "%s--%s" % (bridge, ph_bridge)
+        ph_patch = "%s--%s" % (ph_bridge, bridge)
+        cmds.append(build_cmd(bridge, br_patch,
+                              tags[bridge_index],
+                              trunk, ph_patch))
+        cmds.append(build_cmd(ph_bridge, ph_patch,
+                              tags[bridge_index - 1],
+                              trunk, br_patch))
     return cmds
 
 
