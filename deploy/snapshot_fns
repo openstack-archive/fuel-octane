@@ -113,3 +113,40 @@ discard_snapshots() {
     sudo rm -f "$STATE_PATH/$domain-$snapname"
   done
 }
+
+zfs_transfer() {
+  local volume=$1 snapname=$2 target=$3
+  local dataset="vms/$volume-$snapname@$snapname"
+  sudo zfs send "$dataset" | pv -cN $domain -s "$(sudo zfs list -Hp "$dataset" | cut -f4)" | ssh $target sudo zfs recv -vd vms
+}
+
+transfer_snapshots() {
+  local snapname=$1 target=$2 domain
+  shift; shift
+  if [ "$SNAP_METHOD" != "zfs" ]; then
+    echo "Can transfer only ZFS snapshots"
+    return 1
+  fi
+  if ! type pv > /dev/null 2>&1; then
+    sudo apt-get install -y pv
+  fi
+  if ! ssh -o KbdInteractiveAuthentication=no $target true; then
+    echo "Please set up passwordless SSH to node $target"
+    return 1
+  fi
+  if ! ssh $target sudo -nv 2> /dev/null; then
+    echo "Please set up passwordless sudo on node $target"
+    return 1
+  fi
+  ssh $target sudo mkdir -p "$STATE_PATH"
+  for domain; do
+    ${SNAP_METHOD}_transfer $domain $snapname $target
+    case $domain in
+    compute-* )
+      ${SNAP_METHOD}_transfer $domain-ceph $snapname $target
+      ;;
+    esac
+    local state_file="$STATE_PATH/$domain-$snapname"
+    sudo pv "$state_file" | ssh $target sudo "sh -c \"cat > \\\"$state_file\\\"\""
+  done
+}
