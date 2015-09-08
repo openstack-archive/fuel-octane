@@ -18,11 +18,13 @@ import io
 import logging
 import os
 import pipes
+import re
 import subprocess
 import threading
 
 LOG = logging.getLogger(__name__)
 PIPE = subprocess.PIPE
+CalledProcessError = subprocess.CalledProcessError
 
 
 def _close_stdin(chain_fn=None):
@@ -32,10 +34,22 @@ def _close_stdin(chain_fn=None):
 
 
 class _BaseLogPipe(threading.Thread):
-    def __init__(self, level):
+    try:
+        _levels = logging._nameToLevel
+    except AttributeError:
+        _levels = logging._levelNames
+
+    def __init__(self, level, parse_levels=False):
         super(_BaseLogPipe, self).__init__()
         self.log_name = None
         self.log_level = level
+        if not parse_levels:
+            self.levels_re = None
+        else:
+            if parse_levels is True:
+                # Date, time, PID, log level - default OpenStack log format
+                parse_levels = '^[0-9/-]+ [0-9:.,]+ [0-9]+ (?P<level>[A-Z]+)'
+            self.levels_re = re.compile(parse_levels)
 
     def start(self, name):
         self.log_name = name
@@ -47,7 +61,14 @@ class _BaseLogPipe(threading.Thread):
                 for line in pipe:
                     if line.endswith('\n'):
                         line = line[:-1]
-                    LOG.log(self.log_level, "%s: %s", self.log_name, line)
+                    log_level = None
+                    if self.levels_re is not None:
+                        match = self.levels_re.match(line)
+                        if match:
+                            log_level = self._levels.get(match.group('level'))
+                    if log_level is None:
+                        log_level = self.log_level
+                    LOG.log(log_level, "%s: %s", self.log_name, line)
         except Exception:
             LOG.exception("Exception in _LogPipe thread %s", self.log_name)
 
@@ -171,9 +192,13 @@ def popen(cmd, **kwargs):
         raise
     LOG.info("Process %s finished with return value %s", name, rv)
     if rv:
-        raise subprocess.CalledProcessError(rv, name)
+        raise CalledProcessError(rv, name)
 
 
 def call(cmd, **kwargs):
     with popen(cmd, **kwargs) as proc:
         return proc.communicate()
+
+
+def call_output(cmd, **kwargs):
+    return call(cmd, stdout=PIPE, **kwargs)[0]
