@@ -77,6 +77,13 @@ def clone_env(env_id, release):
     return seed_id
 
 
+def clone_ips(orig_id, networks):
+    call_args = ['fuel2', 'env', 'clone-ips', str(orig_id)]
+    if networks:
+        call_args += ['--networks'] + networks
+    subprocess.call(call_args)
+
+
 def delete_fuel_resources(env):
     node = get_one_controller(env)
     sftp = ssh.sftp(node)
