@@ -44,6 +44,7 @@ def cleanup_neutron_agents(access_data, hosts):
 
 
 def main():
+    hosts = [line.rstrip('\n') for line in  sys.stdin.readlines()]
     hosts = sys.stdin.readlines()
     access_data = {
         'user': os.environ['OS_USERNAME'],
