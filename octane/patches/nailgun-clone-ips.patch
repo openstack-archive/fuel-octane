@@ -135,7 +135,7 @@ index 5416463..f9ede88 100644
 +                continue
 +            orig_node_adapter = node_by_net_names[net_names].pop()
 +
-+            seed_node_adapter.hostname = orig_node_adapter.hostname
++            #seed_node_adapter.hostname = orig_node_adapter.hostname
 +            ips_mapping = nets_ips_by_node[orig_node_adapter]
 +            if networks:
 +                ips_mapping = {}
