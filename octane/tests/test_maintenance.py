@@ -10,12 +10,40 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
+
 from octane.util import maintenance
+from octane.util import subprocess
 
 
 def test_parse_crm_status():
     res = list(maintenance.parse_crm_status(CRM_STATUS_SAMPLE))
     assert res == CRM_STATUS_PARSE_RESULT
+
+
+def test_stop_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
+                                mock_subprocess, node):
+    get_one_controller = mocker.patch('octane.util.env.get_one_controller')
+    get_one_controller.return_value = node
+
+    parse_crm_status = mocker.patch.object(maintenance, 'parse_crm_status')
+    parse_crm_status.return_value = ['s1', 's2']
+
+    mock_ssh_call.side_effect = \
+        [subprocess.CalledProcessError(1, 'cmd'), None, None]
+
+    mocker.patch('time.sleep')
+
+    maintenance.stop_corosync_services('env')
+
+    assert not mock_subprocess.called
+    mock_ssh_call_output.assert_called_once_with(['crm', 'status'], node=node)
+    assert mock_ssh_call.call_args_list == [
+        mock.call(['crm', 'resource', 'stop', 's1'], node=node),
+        mock.call(['crm', 'resource', 'stop', 's1'], node=node),
+        mock.call(['crm', 'resource', 'stop', 's2'], node=node),
+    ]
+
 
 CRM_STATUS_SAMPLE = """
 Last updated: Fri Jul 31 15:02:15 2015

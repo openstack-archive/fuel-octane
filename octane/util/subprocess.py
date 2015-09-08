@@ -24,6 +24,7 @@ import threading
 
 LOG = logging.getLogger(__name__)
 PIPE = subprocess.PIPE
+CalledProcessError = subprocess.CalledProcessError
 
 
 def _close_stdin(chain_fn=None):
@@ -191,7 +192,7 @@ def popen(cmd, **kwargs):
         raise
     LOG.info("Process %s finished with return value %s", name, rv)
     if rv:
-        raise subprocess.CalledProcessError(rv, name)
+        raise CalledProcessError(rv, name)
 
 
 def call(cmd, **kwargs):
