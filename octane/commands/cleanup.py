@@ -45,7 +45,7 @@ def cleanup_environment(env_id):
         with ssh.popen(command, node=controller, stdin=ssh.PIPE) as proc:
             roles = ["controller", "compute"]
             for node in env_util.get_nodes(env, roles):
-                proc.stdin.write(node.data['fqdn'] + "\n")
+                proc.stdin.write(node.data['hostname'].split('.')[0] + "\n")
 
 
 class CleanupCommand(cmd.Command):
