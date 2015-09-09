@@ -113,15 +113,46 @@ def zabbix_monitoring_extreme_networks_settings(astute, attrs):
     attrs['metadata']['enabled'] = True
 
 
+class UnknownPlugin(Exception):
+    message = "Unknown plugin '{0}'"
+
+    def __init__(self, plugin):
+        super(UnknownPlugin, self).__init__(self.message.format(plugin))
+
+
+class PluginNotConfigured(Exception):
+    message = "No settings for plugin '{0}' in environment #{1}. " \
+        "Was it installed before environment #{1} has been created?"
+
+    def __init__(self, plugin, env_id):
+        super(PluginNotConfigured, self).__init__(self.message.format(
+            plugin, env_id))
+
+
 def transfer_plugins_settings(orig_env_id, seed_env_id, plugins):
     orig_env = environment.Environment(orig_env_id)
     seed_env = environment.Environment(seed_env_id)
     astute = env_util.get_astute_yaml(orig_env)
     attrs = seed_env.get_settings_data()
+    editable_attrs = attrs['editable']
+
+    plugin_fns = {}
+    plugin_attrs = {}
+    for plugin in plugins:
+        try:
+            plugin_fns[plugin] = PLUGINS[plugin]
+        except KeyError:
+            raise UnknownPlugin(plugin)
+        try:
+            plugin_attrs[plugin] = editable_attrs[plugin]
+        except KeyError:
+            raise PluginNotConfigured(plugin, seed_env_id)
 
     for plugin in plugins:
         LOG.info("Fetching settings for plugin '%s'", plugin)
-        PLUGINS[plugin](astute, attrs['editable'][plugin])
+        plugin_fn = plugin_fns[plugin]
+        plugin_attr = plugin_attrs[plugin]
+        plugin_fn(astute, plugin_attr)
 
     seed_env.set_settings_data(attrs)
 
