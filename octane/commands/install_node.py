@@ -68,15 +68,37 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.warn("Using default networks for node %s", node)
 
 
+class NoSuchNetwork(Exception):
+    message = "Environment ID {0} doesn't have {1} network"
+
+    def __init__(self, env_id, network):
+        super(NoSuchNetwork, self).__init__(self.message.format(
+            env_id, network))
+
+
+def check_networks(orig_env, seed_env, networks):
+    orig_networks = \
+        [net['name'] for net in env_util.get_env_networks(orig_env)]
+    seed_networks = \
+        [net['name'] for net in env_util.get_env_networks(seed_env)]
+    for net in networks:
+        if net not in orig_networks:
+            raise NoSuchNetwork(orig_env.data['id'], net)
+        if net not in seed_networks:
+            raise NoSuchNetwork(seed_env.data['id'], net)
+
+
 def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
-    env = environment_obj.Environment
-    nodes = [node_obj.Node(node_id) for node_id in node_ids]
     if orig_id == seed_id:
         raise Exception("Original and seed environments have the same ID: %s",
                         orig_id)
-    orig_env = env(orig_id)
+
+    orig_env = environment_obj.Environment(orig_id)
+    seed_env = environment_obj.Environment(seed_id)
+    check_networks(orig_env, seed_env, networks)
+
+    nodes = [node_obj.Node(node_id) for node_id in node_ids]
     orig_node = env_util.get_one_controller(orig_env)
-    seed_env = env(seed_id)
     seed_env.assign(nodes, orig_node.data['roles'])
     for node in nodes:
         disk_info_fixture = orig_node.get_attribute('disks')
