@@ -49,3 +49,15 @@ def set_console_formatter(**formatter_kwargs):
 def silence_iso8601():
     iso8601_logger = logging.getLogger('iso8601')
     iso8601_logger.setLevel(logging.INFO)
+
+
+class UrllibFilter(logging.Filter):
+    def filter(self, record):
+        if record.msg.startswith('Starting new HTTP connection'):
+            record.levelno = logging.DEBUG
+        return True
+
+
+def lower_urllib_level():
+    urllib_logger = logging.getLogger('urllib3.connectionpool')
+    urllib_logger.addFilter(UrllibFilter())

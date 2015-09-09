@@ -40,6 +40,7 @@ class OctaneApp(app.App):
         super(OctaneApp, self).configure_logging()
         log.set_console_formatter()
         log.silence_iso8601()
+        log.lower_urllib_level()
 
 
 def main(argv=None):
