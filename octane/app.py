@@ -34,6 +34,11 @@ class OctaneApp(app.App):
             description, version, argparse_kwargs)
         if os.environ.get('OCTANE_DEBUG'):
             parser.set_defaults(debug=True, verbose_level=2)
+        if os.getuid() == 0:  # Fuel master anarchy
+            log_file = '/var/log/octane.log'
+        else:  # Probably local dev's env
+            log_file = 'octane.log'
+        parser.set_defaults(log_file=log_file)
         return parser
 
     def configure_logging(self):

@@ -37,7 +37,7 @@ def set_console_formatter(**formatter_kwargs):
     formatter_kwargs.setdefault('datefmt', '%Y-%m-%d %H:%M:%S')
     root_logger = logging.getLogger('')
     for handler in root_logger.handlers:
-        if isinstance(handler, logging.StreamHandler):
+        if handler.__class__ is logging.StreamHandler:  # Skip subclasses
             console_handler = handler
             break
     else:
