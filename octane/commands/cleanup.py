@@ -42,14 +42,10 @@ def cleanup_environment(env_id):
             .format(admin_pass, script_dst_filename),
         ]
 
-        data = ""
-        for node in env_util.get_controllers(env):
-            data = data + node.data['fqdn'] + "\n"
-        for node in env_util.get_nodes(env, ['compute']):
-            data = data + node.data['hostname'] + "\n"
-
         with ssh.popen(command, node=controller, stdin=ssh.PIPE) as proc:
-            proc.stdin.write(data)
+            roles = ["controller", "compute"]
+            for node in env_util.get_nodes(env, roles):
+                proc.stdin.write(node.data['hostname'].split('.')[0] + "\n")
 
 
 class CleanupCommand(cmd.Command):
