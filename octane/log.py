@@ -12,6 +12,18 @@
 
 import logging
 import string
+import sys
+
+if sys.version_info < (2, 7):
+    import functools
+
+    @functools.wraps(logging.Formatter.format)
+    def new_format(self, record, string=string,
+                   old_format=logging.Formatter.format):
+        if string.find is None:
+            string.find = str.find
+        return old_format(self, record)
+    logging.Formatter.format = new_format
 
 
 class ColorFormatter(logging.Formatter):
@@ -23,10 +35,8 @@ class ColorFormatter(logging.Formatter):
         logging.CRITICAL: '\033[01;31m',  # BOLD RED
     }
 
-    def format(self, record, string=string, Formatter=logging.Formatter):
+    def format(self, record, Formatter=logging.Formatter):
         # Hack to get last log line instead of exception on 2.6
-        if string.find is None:
-            string.find = str.find
         res = Formatter.format(self, record)  # old-style class on 2.6
         return self.LEVEL_COLORS[record.levelno] + res + '\033[m'
 
