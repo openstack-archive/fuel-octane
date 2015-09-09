@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import sys
 
 from cliff import app
@@ -20,8 +21,6 @@ from octane import log
 
 
 class OctaneApp(app.App):
-    DEFAULT_VERBOSE_LEVEL = 2  # Enable DEBUG logging
-
     def __init__(self, **kwargs):
         super(OctaneApp, self).__init__(
             description='Octane - upgrade your Fuel',
@@ -33,13 +32,20 @@ class OctaneApp(app.App):
     def build_option_parser(self, description, version, argparse_kwargs=None):
         parser = super(OctaneApp, self).build_option_parser(
             description, version, argparse_kwargs)
-        parser.set_defaults(debug=True)
+        if os.environ.get('OCTANE_DEBUG'):
+            parser.set_defaults(debug=True, verbose_level=2)
+        if os.getuid() == 0:  # Fuel master anarchy
+            log_file = '/var/log/octane.log'
+        else:  # Probably local dev's env
+            log_file = 'octane.log'
+        parser.set_defaults(log_file=log_file)
         return parser
 
     def configure_logging(self):
         super(OctaneApp, self).configure_logging()
         log.set_console_formatter()
         log.silence_iso8601()
+        log.lower_urllib_level()
 
 
 def main(argv=None):

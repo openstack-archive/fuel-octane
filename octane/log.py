@@ -37,7 +37,7 @@ def set_console_formatter(**formatter_kwargs):
     formatter_kwargs.setdefault('datefmt', '%Y-%m-%d %H:%M:%S')
     root_logger = logging.getLogger('')
     for handler in root_logger.handlers:
-        if isinstance(handler, logging.StreamHandler):
+        if handler.__class__ is logging.StreamHandler:  # Skip subclasses
             console_handler = handler
             break
     else:
@@ -49,3 +49,15 @@ def set_console_formatter(**formatter_kwargs):
 def silence_iso8601():
     iso8601_logger = logging.getLogger('iso8601')
     iso8601_logger.setLevel(logging.INFO)
+
+
+class UrllibFilter(logging.Filter):
+    def filter(self, record):
+        if record.msg.startswith('Starting new HTTP connection'):
+            record.levelno = logging.DEBUG
+        return True
+
+
+def lower_urllib_level():
+    urllib_logger = logging.getLogger('urllib3.connectionpool')
+    urllib_logger.addFilter(UrllibFilter())
