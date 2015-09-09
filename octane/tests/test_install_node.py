@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
+
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.install_node.install_node')
@@ -19,3 +21,11 @@ def test_parser(mocker, octane_app):
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2, [3, 4], isolated=True,
                               networks=["public", "management"])
+
+
+def test_parser_fail_networks(mocker, octane_app):
+    m = mocker.patch('octane.util.env.get_env_networks')
+    m.return_value = [{'name': 'public'}]
+    with pytest.raises(Exception):
+        octane_app.run(["install-node", "--isolated", "1", "2", "3", "4",
+                        "--network", "public", "management"])

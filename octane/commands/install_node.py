@@ -68,7 +68,21 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.warn("Using default networks for node %s", node)
 
 
+def check_networks(orig_id, seed_id, networks):
+    orig_networks = [net['name'] for net in env_util.get_env_networks(orig_id)]
+    seed_networks = [net['name'] for net in env_util.get_env_networks(seed_id)]
+    for net in networks:
+        if net not in orig_networks:
+            raise Exception("Environemt ID {0} doesn't have {1} network"
+                            .format(orig_id, net))
+        if net not in seed_networks:
+            raise Exception("Environemt ID {0} doesn't have {1} network"
+                            .format(seed_id, net))
+
+
 def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
+    check_networks(orig_id, seed_id, networks)
+
     env = environment_obj.Environment
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
     if orig_id == seed_id:

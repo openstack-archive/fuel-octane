@@ -10,23 +10,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from __future__ import print_function
-
 import logging
 
 from cliff import command as cmd
 from fuelclient import objects
 from requests import HTTPError
 
+from octane.util import env as env_util
+
 LOG = logging.getLogger(__name__)
 
 KEEP_NETWORK_NAMES = ['fuelweb_admin', 'management', 'public']
-
-
-def get_env_networks(env_id):
-    env = objects.Environment(env_id)
-    network_data = env.get_network_data()
-    return network_data['networks']
 
 
 def update_env_networks(env_id, networks):
@@ -93,5 +87,5 @@ class SyncNetworksCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        networks = get_env_networks(parsed_args.original_env)
+        networks = env_util.get_env_networks(parsed_args.original_env)
         update_env_networks(parsed_args.seed_env, networks)
