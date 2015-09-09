@@ -87,5 +87,6 @@ class SyncNetworksCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        networks = env_util.get_env_networks(parsed_args.original_env)
+        orig_env = objects.Environment(parsed_args.original_env)
+        networks = env_util.get_env_networks(orig_env)
         update_env_networks(parsed_args.seed_env, networks)

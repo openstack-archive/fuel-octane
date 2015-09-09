@@ -14,6 +14,8 @@
 def test_parser(mocker, octane_app):
     networks = [{'key': 'value'}]
 
+    env_cls = mocker.patch('fuelclient.objects.Environment')
+
     m1 = mocker.patch('octane.util.env.get_env_networks')
     m1.return_value = networks
 
@@ -21,5 +23,5 @@ def test_parser(mocker, octane_app):
     octane_app.run(["sync-networks", "1", "2"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with(1)
+    m1.assert_called_once_with(env_cls.return_value)
     m2.assert_called_once_with(2, networks)

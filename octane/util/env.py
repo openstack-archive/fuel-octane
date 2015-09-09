@@ -48,8 +48,7 @@ def get_one_controller(env):
     return next(get_controllers(env))
 
 
-def get_env_networks(env_id):
-    env = environment_obj.Environment(env_id)
+def get_env_networks(env):
     network_data = env.get_network_data()
     return network_data['networks']
 
