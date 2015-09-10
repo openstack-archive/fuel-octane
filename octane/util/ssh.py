@@ -69,7 +69,7 @@ class _cache(object):
 
 
 @_cache
-def _get_client(node):
+def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -77,7 +77,7 @@ def _get_client(node):
     return client
 
 
-@_get_client.check
+@get_client.check
 def _check_client(node, client):
     t = client.get_transport()
     if t:
@@ -112,7 +112,7 @@ class SSHPopen(subprocess.BasePopen):
         for key in ['stdin', 'stdout', 'stderr']:
             assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
-        self._channel = _get_client(self.node).get_transport().open_session()
+        self._channel = get_client(self.node).get_transport().open_session()
         self._channel.exec_command(" ".join(map(pipes.quote, cmd)))
         self.name = "%s[at node-%d]" % (self.name, self.node.data['id'])
         if 'stdin' not in self.popen_kwargs:
@@ -180,14 +180,14 @@ def call_output(cmd, **kwargs):
 
 @_cache
 def _get_sftp(node):
-    transport = _get_client(node).get_transport()
+    transport = get_client(node).get_transport()
     return paramiko.SFTPClient.from_transport(transport)
 
-_get_client.invalidate.append(_get_sftp)
+get_client.invalidate.append(_get_sftp)
 
 
 def sftp(node):
-    _get_client(node)  # ensure we're still connected
+    get_client(node)  # ensure we're still connected
     return _get_sftp(node)
 
 
