@@ -48,6 +48,11 @@ def get_one_controller(env):
     return next(get_controllers(env))
 
 
+def get_env_networks(env):
+    network_data = env.get_network_data()
+    return network_data['networks']
+
+
 def change_env_settings(env_id, master_ip=''):
     # workaround for bugs related to DNS, NTP and TLS
     env = environment_obj.Environment(env_id)
