@@ -142,7 +142,7 @@ class InstallNodeCommand(cmd.Command):
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
         parser.add_argument(
-            '--networks', type=str, nargs='+',
+            '--networks', type=str, nargs='+', default=[],
             help="Names of networks which IPs should be copied")
         return parser
 
