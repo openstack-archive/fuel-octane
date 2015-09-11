@@ -70,7 +70,6 @@ def prepare():
     if not os.path.isdir(magic_consts.FUEL_CACHE):
         os.makedirs(magic_consts.FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
-    subprocess.call(["pip", "install", "wheel"])
     # From patch_all_containers
     apply_patches()
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
