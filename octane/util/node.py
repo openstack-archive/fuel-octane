@@ -46,9 +46,10 @@ def reboot_nodes(nodes, timeout=600):
         done = set()
         for node in wait_list:
             if time.time() - start > timeout:
+                failed = ", ".join(str(node.data['id'] for node in wait_list))
                 raise Exception(
                     "Timeout waiting for nodes {0} to reboot".format(
-                        node_ids_str))
+                        failed))
             try:
                 new_client = ssh.get_client(node)
             except socket.error:
@@ -57,4 +58,26 @@ def reboot_nodes(nodes, timeout=600):
                 continue
             if new_client != old_clients[node]:
                 done.add(node)
+        wait_list -= done
+
+
+def wait_for_mcollective_start(nodes, timeout=600):
+    start_at = time.time()
+    wait_list = set(nodes)
+    node_ids_str = ", ".join(str(node.data['id']) for node in nodes)
+    LOG.info("Wait for mcollective start on nodes {0}".format(node_ids_str))
+    while wait_list:
+        time.sleep(10)
+        done = set()
+        for node in wait_list:
+            try:
+                ssh.call(['service', 'mcollective', 'status'], node=node)
+            except Exception as e:
+                LOG.debug(e)
+            else:
+                done.add(node)
+        if time.time() - start_at > timeout:
+            failed = ", ".join(str(node.data['id'] for node in wait_list))
+            raise Exception("Timeout waiting for nodes {0} to start"
+                            " mcollective".format(failed))
         wait_list -= done
