@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import sys
 
 from cliff import app
@@ -28,14 +29,23 @@ class OctaneApp(app.App):
             **kwargs
         )
 
+    def build_option_parser(self, description, version, argparse_kwargs=None):
+        parser = super(OctaneApp, self).build_option_parser(
+            description, version, argparse_kwargs)
+        if os.environ.get('OCTANE_DEBUG'):
+            parser.set_defaults(debug=True, verbose_level=2)
+        if os.getuid() == 0:  # Fuel master anarchy
+            log_file = '/var/log/octane.log'
+        else:  # Probably local dev's env
+            log_file = 'octane.log'
+        parser.set_defaults(log_file=log_file)
+        return parser
+
     def configure_logging(self):
         super(OctaneApp, self).configure_logging()
-        if self.options.verbose_level > 1:
-            log.set_console_formatter(
-                fmt='%(asctime)s %(levelname)-8s %(name)-15s %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-            )
-            log.silence_iso8601()
+        log.set_console_formatter()
+        log.silence_iso8601()
+        log.lower_urllib_level()
 
 
 def main(argv=None):
