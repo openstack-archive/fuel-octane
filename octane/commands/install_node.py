@@ -18,6 +18,7 @@ from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import node as node_util
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -108,6 +109,8 @@ def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
     if networks:
         env_util.clone_ips(orig_id, networks)
 
+    node_util.reboot_nodes(nodes)
+    node_util.wait_for_mcollective_start(nodes)
     env_util.provision_nodes(seed_env, nodes)
 
     for node in nodes:
