@@ -26,6 +26,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         self.create_configdrive_partition()
         self.preserve_partition()
         disk.update_node_partition_info(self.node.id)
+        self.backup_iscsi_initiator_info()
 
     def postdeploy(self):
         controller = env_util.get_one_controller(self.env)
@@ -35,6 +36,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                  self.node.data['id'])],
             node=controller,
         )
+        self.restore_iscsi_initiator_info()
 
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
@@ -75,3 +77,26 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         # it was agreed that 10MB is enough for config drive partition
         size = 10
         disk.create_partition(disks[0]['name'], size, self.node)
+
+    def backup_iscsi_initiator_info(self):
+        file_path = "/etc/iscsi/initiatorname.iscsi"
+        bup_path = os.path.join(magic_consts.FUEL_CACHE,
+                                "iscsi_initiator_files")
+        if not os.path.exists(bup_path):
+            os.makedirs(bup_path)
+        bup_file_path = os.path.join(bup_path, self.node.data['hostname'])
+        ssh.sftp(self.node).get(file_path, bup_file_path)
+
+    def restore_iscsi_initiator_info(self):
+        file_path = "/etc/iscsi/initiatorname.iscsi"
+        bup_path = os.path.join(magic_consts.FUEL_CACHE,
+                                "iscsi_initiator_files")
+        if not os.path.exists(bup_path):
+            raise Exception("Backup folder is not present")
+
+        bup_file_path = os.path.join(bup_path, self.node.data['hostname'])
+        ssh.sftp(self.node).put(bup_file_path, file_path)
+        service_list = ["open-iscsi", "multipath-tools", "nova-compute"]
+        command = "".join(["service %s restart;" % s for s in service_list])
+        ssh.call(["sh", "-c", command],
+                 node=self.node)
