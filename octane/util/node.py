@@ -46,7 +46,7 @@ def reboot_nodes(nodes, timeout=600):
         done = set()
         for node in wait_list:
             if time.time() - start > timeout:
-                failed = ", ".join(str(node.data['id'] for node in wait_list))
+                failed = ", ".join(str(node.data['id']) for node in wait_list)
                 raise Exception(
                     "Timeout waiting for nodes {0} to reboot".format(
                         failed))
