@@ -26,8 +26,10 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         self.create_configdrive_partition()
         self.preserve_partition()
         disk.update_node_partition_info(self.node.id)
+        self.backup_iscsi_initiator_info()
 
     def postdeploy(self):
+        self.restore_iscsi_initiator_info()
         controller = env_util.get_one_controller(self.env)
         ssh.call(
             ["sh", "-c", ". /root/openrc; "
@@ -75,3 +77,26 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         # it was agreed that 10MB is enough for config drive partition
         size = 10
         disk.create_partition(disks[0]['name'], size, self.node)
+
+    def backup_iscsi_initiator_info(self):
+        file_path, bup_file_path = self.get_iscsi_file_pathes(
+            self.node.data['hostname'])
+        os.makedirs(os.path.dirname(bup_file_path), exist_ok=True)
+        ssh.sftp(self.node).get(file_path, bup_file_path)
+
+    def restore_iscsi_initiator_info(self):
+        file_path, bup_file_path = self.get_iscsi_file_pathes(
+            self.node.data['hostname'])
+        if not os.path.exists(bup_file_path):
+            raise Exception("Backup iscsi configuration is not present for "
+                            "compute node %s" % str(self.node.id))
+        ssh.sftp(self.node).put(bup_file_path, file_path)
+        # services what should be restarted to make changes take effect
+        for service in ["open-iscsi", "multipath-tools", "nova-compute"]:
+            ssh.call(["service %s restart" % service], node=self.node)
+
+    def get_iscsi_files_pathes(self, suffix, makedir=False):
+        node_file_path = "/etc/iscsi/initiatorname.iscsi"
+        base_bup_path = os.path.join(magic_consts.FUEL_CACHE,
+                                     "iscsi_initiator_files")
+        return node_file_path, os.path.join(base_bup_path, suffix)
