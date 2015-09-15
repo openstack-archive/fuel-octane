@@ -12,6 +12,7 @@
 
 import re
 import time
+from xml.etree import ElementTree
 
 from octane import magic_consts
 from octane.util import env as env_util
@@ -50,7 +51,7 @@ def disable_apis(env):
                 new.write(use_backend_line)
         ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
 
-_default_exclude_services = ('mysql', 'haproxy', 'p_dns', 'p_ntp')
+_default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp')
 
 
 def parse_crm_status(status_out, exclude=_default_exclude_services):
@@ -61,10 +62,19 @@ def parse_crm_status(status_out, exclude=_default_exclude_services):
         yield name
 
 
+def get_crm_services(status_out, exclude=_default_exclude_services):
+    data = ElementTree.fromstring(status_out)
+    for resource in data.find('resources'):
+        name = resource.get('id')
+        if any(service in name for service in exclude):
+            continue
+        yield name
+
+
 def stop_corosync_services(env):
     node = env_util.get_one_controller(env)
-    status_out = ssh.call_output(['crm', 'status'], node=node)
-    for service in parse_crm_status(status_out):
+    status_out = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+    for service in get_crm_services(status_out):
         while True:
             try:
                 ssh.call(['crm', 'resource', 'stop', service],
