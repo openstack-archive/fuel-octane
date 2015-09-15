@@ -111,6 +111,13 @@ def transfer_image(node, tenant, user, password, token, container, object_id,
     LOG.info("Swift %s image has been transferred" % object_id)
 
 
+def create_container(node, tenant, user, password, token, container):
+    cmd = ". /root/openrc; swift --os-project-name {0}"\
+        " --os-username {1} --os-password {2} --os-auth-token {3}"\
+        " post {4}".format(tenant, user, password, token, container)
+    ssh.call(["sh", "-c", cmd], node=node)
+
+
 def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
     """Sync glance images from original ENV to seed ENV
 
@@ -155,6 +162,10 @@ def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
     # get service tenant id & lists of objects for seed env
     seed_token = get_auth_token(seed_node, tenant, glance_user,
                                 seed_glance_pass)
+    # to be sure that glance container is present for seed env
+    create_container(seed_node, tenant, glance_user, seed_glance_pass,
+                     seed_token, container)
+
     seed_swift_list = set(get_swift_objects(seed_node,
                                             tenant,
                                             glance_user,
