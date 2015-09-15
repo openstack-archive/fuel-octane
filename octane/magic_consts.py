@@ -26,3 +26,4 @@ OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
 BRIDGES = ['br-ex', 'br-mgmt']
 DEFAULT_DISKS = True
 DEFAULT_NETS = True
+ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
