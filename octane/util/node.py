@@ -10,7 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import functools
 import logging
+import shutil
 import socket
 import sys
 import time
@@ -31,6 +33,41 @@ def preserve_partition(node, partition):
                 })
 
     node.upload_node_attribute('disks', disks)
+
+
+def get_ip(network_name, node):
+    for net in node.data['network_data']:
+        if net['name'] == network_name:
+            return net['ip']
+
+
+def get_ips(network_name, nodes):
+    get_network_ip = functools.partial(get_ip, network_name)
+    return map(get_network_ip, nodes)
+
+
+def get_hostnames(nodes):
+    return [node.data['fqdn'] for node in nodes]
+
+
+def tar_files(filename, node, *files):
+    cmd = ['tar', 'cvzfP', '-']
+    cmd.extend(files)
+    with ssh.popen(cmd, stdout=ssh.PIPE, node=node) as proc:
+        with open(filename, 'wb') as f:
+            shutil.copyfileobj(proc.stdout, f)
+
+
+def untar_files(filename, node):
+    cmd = ['tar', 'xzf', '-', '-C', '/']
+    with ssh.popen(cmd, stdin=ssh.PIPE, node=node) as proc:
+        with open(filename, 'rb') as f:
+            shutil.copyfileobj(f, proc.stdin)
+
+
+def get_hostname_remotely(node):
+    hostname = ssh.call_output(['hostname'], node=node)
+    return hostname
 
 
 def reboot_nodes(nodes, timeout=600):
