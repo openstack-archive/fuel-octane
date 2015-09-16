@@ -140,14 +140,14 @@ def get_admin_iface(actions):
 def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
     version = LooseVersion(host_config.get('openstack_version'))
-    if version < LooseVersion('2014.2-6.1'):
+    if version < LooseVersion('2014.2.2-6.1'):
         provider = 'ovs'
     else:
         provider = get_bridge_provider(actions, bridge)
     for action in actions:
         if provider == 'ovs' and action.get('action') == 'add-patch':
             bridges = action.get('bridges', [])
-            if bridge in bridges:
+            if bridges[0] == bridge:
                 return action, provider
         elif provider == 'lnx' and action.get('action') == 'add-port':
             if action.get('bridge') == bridge:
