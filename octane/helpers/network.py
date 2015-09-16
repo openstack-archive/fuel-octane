@@ -236,14 +236,29 @@ def delete_overlay_networks(node, host_config):
         delete_tunnels_cmd(node, bridge)
 
 
-def delete_port_ovs(bridge, port):
+def delete_port_ovs(bridge, port, node):
     bridges = port['bridges']
     port_name = "%s--%s" % (bridges[0], bridges[1])
     return ['ovs-vsctl', 'del-port', bridges[0], port_name]
 
 
-def delete_port_lnx(bridge, port):
-    return ['brctl', 'delif', bridge, port['name']]
+def delete_port_lnx(bridge, port, node):
+    def list_ovs_ports(bridge, node):
+        out = ssh.call_output(['ovs-vsctl', 'list-ports', bridge],
+                              node=node)
+        return out.split("\n")
+
+    def list_lnx_ports(bridge, node):
+        out = ssh.call_output(['brctl', 'show', bridge],
+                              node=node)
+        return out.split("\n")
+
+    if (port['action'] == 'add-port' or
+            port['action'] == 'add-bond'):
+        return ['brctl', 'delif', bridge, port['name']]
+    elif port['action'] == 'add-patch':
+        # Ports has the same name for lnx and ovs bridges 7.0
+        raise NotImplementedError
 
 
 delete_port_providers = {
@@ -254,9 +269,9 @@ delete_port_providers = {
 
 def delete_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
-        port, provider = ts.get_patch_port_action(host_config, bridge)
+        port, provider = ts.get_port_action(host_config, bridge)
         delete_port_cmd = delete_port_providers[provider]
-        cmd = delete_port_cmd(bridge, port)
+        cmd = delete_port_cmd(bridge, port, node)
         ssh.call(cmd, node=node)
 
 
@@ -298,6 +313,7 @@ def create_port_ovs(bridge, port):
 
 
 def create_port_lnx(bridge, port):
+    # TODO: support for bond interfaces - bond0 , bond0.380
     port_name = port.get('name')
     if port_name:
         return [
@@ -316,7 +332,7 @@ create_port_providers = {
 
 def create_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
-        port, provider = ts.get_patch_port_action(host_config, bridge)
+        port, provider = ts.get_port_action(host_config, bridge)
         create_port_cmd = create_port_providers[provider]
         cmds = create_port_cmd(bridge, port)
         for cmd in cmds:
