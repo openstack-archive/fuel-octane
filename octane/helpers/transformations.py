@@ -137,20 +137,55 @@ def get_admin_iface(actions):
     return 'br-fw-admin'
 
 
-def get_patch_port_action(host_config, bridge):
+def get_physical_interfaces(host_config):
+    interfaces = host_config['network_scheme']['interfaces']
+    return interfaces.keys()
+
+
+def get_physical_bridges(host_config):
+    actions = get_actions(host_config)
+    ifaces = get_physical_interfaces(host_config)
+    for action in actions:
+        if action.get('action') == 'add-port' and action.get('bridge') and \
+           any(iface in action.get('name') for iface in ifaces):
+            yield action.get('bridge')
+    for action in actions:
+        if action.get('action') == 'add-bond' and action.get('bridge'):
+            yield action.get('bridge')
+
+
+def get_physical_bridge_port(actions, bridge):
+    accept_actions = ['add-port', 'add-bond']
+    for action in actions:
+        if (action.get('action') in accept_actions and
+                action.get('bridge') == bridge):
+            return action
+
+
+def get_port_action(host_config, bridge):
     actions = get_actions(host_config)
     version = LooseVersion(host_config.get('openstack_version'))
     if version < LooseVersion('2014.2.2-6.1'):
         provider = 'ovs'
     else:
         provider = get_bridge_provider(actions, bridge)
-    for action in actions:
-        if provider == 'ovs' and action.get('action') == 'add-patch':
-            bridges = action.get('bridges', [])
-            if bridges[0] == bridge:
+
+    ph_bridges = list(get_physical_bridges(host_config))
+    # if bridge is connected to physical iface directly
+    if bridge in ph_bridges:
+        return get_physical_bridge_port(actions, bridge), provider
+    # if bridge is connected to other bridge we are insterested in only
+    # add-patch actions
+    patch_actions = [a for a in actions if a.get('action') == 'add-patch']
+    if provider == 'ovs':
+        for action in patch_actions:
+            if (bridge in action.get('bridges', [])):
                 return action, provider
-        elif provider == 'lnx' and action.get('action') == 'add-port':
-            if action.get('bridge') == bridge:
+    elif provider == 'lnx':
+        for action in patch_actions:
+            bridges = action.get('bridges', [])
+            if (bridge in bridges and
+                    set(bridges).intersection(ph_bridges)):
                 return action, provider
 
 
