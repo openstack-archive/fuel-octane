@@ -51,8 +51,7 @@ def disable_apis(env):
                 new.write(use_backend_line)
         ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
 
-_default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp')
-
+_default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp', 'vip')
 
 def parse_crm_status(status_out, exclude=_default_exclude_services):
     for match in re.finditer(r"clone.*\[(.*)\]", status_out):

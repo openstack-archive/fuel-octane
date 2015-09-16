@@ -65,10 +65,10 @@ Online: [ node-1 ]
 
  Clone Set: clone_p_vrouter [p_vrouter]
      Started: [ node-1 ]
- vip__management	(ocf::fuel:ns_IPaddr2):	Started node-1 
- vip__public_vrouter	(ocf::fuel:ns_IPaddr2):	Started node-1 
- vip__management_vrouter	(ocf::fuel:ns_IPaddr2):	Started node-1 
- vip__public	(ocf::fuel:ns_IPaddr2):	Started node-1 
+ vip__management	(ocf::fuel:ns_IPaddr2):	Started node-1
+ vip__public_vrouter	(ocf::fuel:ns_IPaddr2):	Started node-1
+ vip__management_vrouter	(ocf::fuel:ns_IPaddr2):	Started node-1
+ vip__public	(ocf::fuel:ns_IPaddr2):	Started node-1
  Master/Slave Set: master_p_conntrackd [p_conntrackd]
      Masters: [ node-1 ]
  Clone Set: clone_p_haproxy [p_haproxy]
@@ -223,8 +223,4 @@ CRM_XML_PARSE_RESULT = [
     'p_ceilometer-agent-central',
     'p_ceilometer-alarm-evaluator',
     'p_cinder-volume',
-    'vip__management',
-    'vip__public',
-    'vip__vrouter',
-    'vip__vrouter_pub',
 ]
