@@ -236,14 +236,27 @@ def delete_overlay_networks(node, host_config):
         delete_tunnels_cmd(node, bridge)
 
 
-def delete_port_ovs(bridge, port):
+def delete_port_ovs(bridge, port, node):
     bridges = port['bridges']
     port_name = "%s--%s" % (bridges[0], bridges[1])
     return ['ovs-vsctl', 'del-port', bridges[0], port_name]
 
 
-def delete_port_lnx(bridge, port):
-    return ['brctl', 'delif', bridge, port['name']]
+def delete_port_lnx(bridge, port, node):
+    def list_ovs_ports(bridge, node):
+        out = ssh.call_output(['ovs-vsctl', 'list-ports', bridge],
+                              node=node)
+        return out.split("\n")
+
+    def list_lnx_ports(bridge, node):
+        out = ssh.call_output(['brctl', 'show', bridge],
+                              node=node)
+        return out.split("\n")
+
+    if port['action'] == 'add-port':
+        return ['brctl', 'delif', bridge, port['name']]
+    elif port['action'] == 'add-patch':
+        raise
 
 
 delete_port_providers = {
@@ -256,7 +269,7 @@ def delete_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
         port, provider = ts.get_patch_port_action(host_config, bridge)
         delete_port_cmd = delete_port_providers[provider]
-        cmd = delete_port_cmd(bridge, port)
+        cmd = delete_port_cmd(bridge, port, node)
         ssh.call(cmd, node=node)
 
 
