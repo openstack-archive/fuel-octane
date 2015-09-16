@@ -20,7 +20,7 @@ lib64
 pip-log.txt
 
 # Runtime logs
-.log
+octane.log
 
 # Unit test / coverage reports
 .coverage
