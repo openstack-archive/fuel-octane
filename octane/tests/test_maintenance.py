@@ -223,8 +223,4 @@ CRM_XML_PARSE_RESULT = [
     'p_ceilometer-agent-central',
     'p_ceilometer-alarm-evaluator',
     'p_cinder-volume',
-    'vip__management',
-    'vip__public',
-    'vip__vrouter',
-    'vip__vrouter_pub',
 ]
