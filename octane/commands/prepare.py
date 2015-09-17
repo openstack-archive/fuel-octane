@@ -74,6 +74,7 @@ def prepare():
     apply_patches()
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
     patch_initramfs()
+    subprocess.call(["cobbler", "sync"])
 
 
 def revert_prepare():
