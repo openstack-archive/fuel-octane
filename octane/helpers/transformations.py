@@ -147,7 +147,7 @@ def get_patch_port_action(host_config, bridge):
     for action in actions:
         if provider == 'ovs' and action.get('action') == 'add-patch':
             bridges = action.get('bridges', [])
-            if bridges[0] == bridge:
+            if bridge in bridges[0]:
                 return action, provider
         elif provider == 'lnx' and action.get('action') == 'add-port':
             if action.get('bridge') == bridge:
