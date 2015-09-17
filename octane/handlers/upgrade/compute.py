@@ -80,7 +80,9 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def backup_iscsi_initiator_info(self):
         bup_file_path = get_iscsi_bup_file_path(self.node)
-        os.makedirs(os.path.dirname(bup_file_path), exist_ok=True)
+        file_dir = os.path.dirname(bup_file_path)
+        if not os.path.exists(file_dir):
+            os.makedirs(file_dir)
         ssh.sftp(self.node).get(magic_consts.ISCSI_CONFIG_PATH, bup_file_path)
 
     def restore_iscsi_initiator_info(self):
