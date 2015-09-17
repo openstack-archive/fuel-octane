@@ -56,6 +56,7 @@ def patch_initramfs():
         with open(magic_consts.BOOTSTRAP_INITRAMFS, "wb") as f:
             subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
                             " | gzip -c", shell=True, stdout=f, cwd=chroot)
+        docker.run_in_container("cobbler", ["cobbler", "sync"])
     finally:
         shutil.rmtree(chroot)
 
