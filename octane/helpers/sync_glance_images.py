@@ -88,7 +88,7 @@ def download_image(node, tenant, user, password, token, container, object_id):
                 container,
                 object_id)
     ssh.call(["sh", "-c", cmd], node=node)
-    LOG.info("Swift %s image has been downloaded" % object_id)
+    LOG.info("Swift %s image has been downloaded", object_id)
 
 
 def delete_image(node, tenant, user, password, token, container, object_id):
@@ -97,7 +97,7 @@ def delete_image(node, tenant, user, password, token, container, object_id):
         " delete {4} {5}".format(tenant, user, password, token,
                                  container, object_id)
     ssh.call(["sh", "-c", cmd], node=node)
-    LOG.info("Swift %s image has been deleted" % object_id)
+    LOG.info("Swift %s image has been deleted", object_id)
 
 
 def transfer_image(node, tenant, user, password, token, container, object_id,
@@ -108,7 +108,7 @@ def transfer_image(node, tenant, user, password, token, container, object_id,
            '--os-storage-url', storage_url, 'upload', container,
            object_id]
     ssh.call(cmd, node=node)
-    LOG.info("Swift %s image has been transferred" % object_id)
+    LOG.info("Swift %s image has been transferred", object_id)
 
 
 def create_container(node, tenant, user, password, token, container):
@@ -196,7 +196,7 @@ def sync_glance_images(source_env_id, seed_env_id, seed_swift_ep):
             # image should be resynced
             delete_image(seed_node, tenant, glance_user, seed_glance_pass,
                          seed_token, container, image)
-            LOG.info("Swift %s image should be resynced" % image)
+            LOG.info("Swift %s image should be resynced", image)
             seed_swift_list.remove(image)
     # migrate new images
     for image in source_swift_list - seed_swift_list:
