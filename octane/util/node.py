@@ -55,6 +55,7 @@ def reboot_nodes(nodes, timeout=600):
             except socket.error:
                 LOG.debug("Failed to connect to node %s", node.data['id'],
                           exc_info=sys.exc_info())
+                node.update()  # IP could've been changed, use new IP next time
                 continue
             if new_client != old_clients[node]:
                 done.add(node)
