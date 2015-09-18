@@ -18,9 +18,7 @@ from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import release as release_obj
 
-from octane import magic_consts
 from octane.util import env as env_util
-from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
 
@@ -62,18 +60,9 @@ def upgrade_env(env_id):
     return seed_id
 
 
-def write_service_tenant_id(env_id):
+def cache_service_tenant_id(env_id):
     env = environment_obj.Environment(env_id)
-    node = env_util.get_one_controller(env)
-    tenant_id, _ = ssh.call(["bash", "-c", ". /root/openrc;",
-                             "keystone tenant-list | ",
-                             "awk -F\| '\$2 ~ /id/{print \$3}' | tr -d \ "],
-                            stdout=ssh.PIPE,
-                            node=node)
-    tenant_file = '%s/env-%s-service-tenant-id' % (magic_consts.FUEL_CACHE,
-                                                   str(env_id))
-    with open(tenant_file, 'w') as f:
-        f.write(tenant_id)
+    env_util.cache_service_tenant_id(env)
 
 
 class UpgradeEnvCommand(cmd.Command):
@@ -87,6 +76,6 @@ class UpgradeEnvCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        write_service_tenant_id(parsed_args.env_id)
+        cache_service_tenant_id(parsed_args.env_id)
         seed_id = upgrade_env(parsed_args.env_id)
         print(seed_id)  # TODO: This shouldn't be needed
