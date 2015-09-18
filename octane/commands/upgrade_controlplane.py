@@ -48,12 +48,9 @@ def connect_to_networks(env):
                 network.create_patch_ports(node, info)
 
 
-def update_neutron_config(env):
-    controllers = list(env_util.get_controllers(env))
-    tenant_file = '%s/env-%s-service-tenant-id' % (magic_consts.FUEL_CACHE,
-                                                   str(env.id))
-    with open(tenant_file) as f:
-        tenant_id = f.read()
+def update_neutron_config(orig_env, seed_env):
+    controllers = list(env_util.get_controllers(seed_env))
+    tenant_id = env_util.cache_service_tenant_id(orig_env)
 
     sed_script = 's/^(nova_admin_tenant_id )=.*/\\1 = %s/' % (tenant_id,)
     for node in controllers:
@@ -64,7 +61,7 @@ def update_neutron_config(env):
 def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
-    update_neutron_config(seed_env)
+    update_neutron_config(orig_env, seed_env)
     maintenance.start_corosync_services(seed_env)
     maintenance.start_upstart_services(seed_env)
     disconnect_networks(orig_env)
