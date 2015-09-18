@@ -117,7 +117,7 @@ def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
         # FIXME: properly call all handlers all over the place
         controller_upgrade.ControllerUpgrade(
             node, seed_env, isolated=isolated).predeploy()
-    if len(nodes) > 1:
+    if isolated and len(nodes) > 1:
         isolate(nodes, seed_env)
 
     env_util.deploy_changes(seed_env, nodes)
