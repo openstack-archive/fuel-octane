@@ -112,15 +112,6 @@ def parse_tenant_get(output, field):
 
 
 def get_service_tenant_id(env, node=None):
-    env_id = env.data['id']
-    fname = os.path.join(
-        magic_consts.FUEL_CACHE,
-        "env-{0}-service-tenant-id".format(env_id),
-    )
-    if os.path.exists(fname):
-        with open(fname) as f:
-            return f.readline()
-
     if node is None:
         node = get_one_controller(env)
 
@@ -134,12 +125,25 @@ def get_service_tenant_id(env, node=None):
         node=node,
     )
     tenant_id = parse_tenant_get(tenant_out, 'id')
+    return tenant_id
+
+
+def cache_service_tenant_id(env, node=None):
+    env_id = env.data['id']
+    fname = os.path.join(
+        magic_consts.FUEL_CACHE,
+        "env-{0}-service-tenant-id".format(env_id),
+    )
+    if os.path.exists(fname):
+        with open(fname) as f:
+            return f.readline()
+
+    tenant_id = get_service_tenant_id(env)
     dname = os.path.dirname(fname)
     if not os.path.exists(dname):
         os.makedirs(dname)
     with open(fname, 'w') as f:
         f.write(tenant_id)
-    return tenant_id
 
 
 def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
