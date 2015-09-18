@@ -17,6 +17,16 @@ def test_parse_tenant_get():
     res = env_util.parse_tenant_get(TENANT_GET_SAMPLE, 'id')
     assert res == 'e26c8079d61f46c48f9a6d606631ee5e'
 
+
+def test_cache_service_tenant_id(mocker, mock_open, mock_os_path, node):
+    mock_open.return_value.readline.return_value = '111'
+    test_env = mocker.MagicMock()
+    test_env.data = {
+        'id': 111,
+    }
+    res = env_util.cache_service_tenant_id(test_env, node)
+    assert res == '111'
+
 TENANT_GET_SAMPLE = """
 +-------------+-----------------------------------+
 |   Property  |               Value               |

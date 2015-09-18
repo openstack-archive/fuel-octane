@@ -17,6 +17,7 @@ import mock
 import pytest
 
 from octane import app
+from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -111,3 +112,11 @@ def mock_ssh_call_output(mocker):
         mocker, 'octane.util.ssh.call_output',
         ALL_SSH_KWARGS.difference(['stdout']),
     )
+
+
+@pytest.fixture
+def mock_os_path(mocker):
+    res = mocker.patch('os.path')
+    res.exists.return_value = True
+    res.dirname.return_value = magic_consts.FUEL_CACHE
+    return res
