@@ -25,10 +25,8 @@ from octane.util import ssh
 
 def start_corosync_services(env):
     node = next(env_util.get_controllers(env))
-    status_out, _ = ssh.call(['crm', 'resource', 'list'],
-                             stdout=ssh.PIPE,
-                             node=node)
-    for service in maintenance.parse_crm_status(status_out):
+    status_out = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+    for service in maintenance.get_crm_services(status_out):
         while True:
             try:
                 ssh.call(['crm', 'resource', 'start', service],
