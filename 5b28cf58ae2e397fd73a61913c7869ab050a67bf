@@ -1,0 +1,9 @@
+Verified+2: Jenkins
+Code-Review+2: Yuriy Taraday <yorik.sar@gmail.com>
+Workflow+1: Yuriy Taraday <yorik.sar@gmail.com>
+Code-Review+1: Sergey Novikov <snovikov@mirantis.com>
+Submitted-by: Jenkins
+Submitted-at: Fri, 18 Sep 2015 18:10:11 +0000
+Reviewed-on: https://review.openstack.org/225193
+Project: stackforge/fuel-octane
+Branch: refs/heads/master
