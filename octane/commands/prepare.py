@@ -67,31 +67,47 @@ def patch_fuel_agent(chroot):
         subprocess.call(["patch", "-N", "-p0"], stdin=patch, cwd=chroot)
 
 
-def prepare():
+def prepare(ibp=False):
     if not os.path.isdir(magic_consts.FUEL_CACHE):
         os.makedirs(magic_consts.FUEL_CACHE)
     subprocess.call(["yum", "-y", "install"] + magic_consts.PACKAGES)
     # From patch_all_containers
     apply_patches()
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
-    patch_initramfs()
+    if not ibp:
+        patch_initramfs()
 
 
-def revert_prepare():
+def revert_prepare(ibp=False):
     apply_patches(revert=True)
     docker.run_in_container("nailgun", ["pkill", "-f", "wsgi"])
-    revert_initramfs()
+    if not ibp:
+        revert_initramfs()
 
 
 class PrepareCommand(cmd.Command):
     """Prepare the Fuel master node to upgrade an environment"""
 
+    def get_parser(self, prog_name):
+        parser = super(PrepareCommand, self).get_parser(prog_name)
+        parser.add_argument(
+            '--ibp', type=bool, default=False,
+            help="Original environment uses image-based provisioning")
+        return parser
+
     def take_action(self, parsed_args):
-        prepare()
+        prepare(parsed_args.ibp)
 
 
 class RevertCommand(cmd.Command):
     """Revert all patches applied by 'prepare' command"""
 
+    def get_parser(self, prog_name):
+        parser = super(RevertCommand, self).get_parser(prog_name)
+        parser.add_argument(
+            '--ibp', type=bool, default=False,
+            help="Original environment uses image-based provisioning")
+        return parser
+
     def take_action(self, parsed_args):
-        revert_prepare()
+        revert_prepare(parsed_args.ibp)
