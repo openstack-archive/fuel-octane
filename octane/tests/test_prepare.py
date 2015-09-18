@@ -16,7 +16,7 @@ def test_prepare_parser(mocker, octane_app):
     octane_app.run(["prepare"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with()
+    m.assert_called_once_with(False)
 
 
 def test_revert_parser(mocker, octane_app):
@@ -24,4 +24,4 @@ def test_revert_parser(mocker, octane_app):
     octane_app.run(["revert-prepare"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    mock_apply.assert_called_once_with()
+    mock_apply.assert_called_once_with(False)
