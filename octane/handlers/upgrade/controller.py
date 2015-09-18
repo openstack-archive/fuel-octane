@@ -33,7 +33,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.gateway = None
 
     def preupgrade(self):
-        self.service_tenant_id = env_util.get_service_tenant_id(
+        self.service_tenant_id = env_util.cache_service_tenant_id(
             self.env, self.node)
 
     def predeploy(self):
