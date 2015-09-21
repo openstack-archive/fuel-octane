@@ -3,4 +3,4 @@ branch = True
 source = octane
 
 [report]
-ignore-errors = True
+ignore_errors = True
