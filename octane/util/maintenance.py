@@ -56,14 +56,6 @@ _default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp', 'vip',
                              'clone_p_vrouter')
 
 
-def parse_crm_status(status_out, exclude=_default_exclude_services):
-    for match in re.finditer(r"clone.*\[(.*)\]", status_out):
-        name = match.group(1)
-        if any(service in name for service in exclude):
-            continue
-        yield name
-
-
 def get_crm_services(status_out, exclude=_default_exclude_services):
     data = ElementTree.fromstring(status_out)
     for resource in data.find('resources'):
