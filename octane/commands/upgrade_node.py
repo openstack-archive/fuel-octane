@@ -56,7 +56,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     call_handlers('predeploy')
     if network_template:
         env_util.set_network_template(env, network_template)
-    env_util.deploy_nodes(env, nodes)
+    env_util.deploy_env(env, nodes)
     call_handlers('postdeploy')
 
 
