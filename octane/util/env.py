@@ -160,6 +160,26 @@ def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
         time.sleep(check_freq)
 
 
+def wait_for_env(cluster, status, timeout=60 * 60, check_freq=60):
+    cluster_id = cluster.data['id']
+    LOG.debug("Waiting for cluster %s to transition to status '%s'",
+              cluster_id, status)
+    started_at = time.time()  # TODO: use monotonic timer
+    while True:
+        real_status = cluster.status
+        if real_status == 'error':
+            raise Exception("Cluster %s fell into error status" %
+                            (cluster_id,))
+        if real_status == status:
+            LOG.info("Cluster %s transitioned to status '%s'", cluster_id,
+                     status)
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for cluster %s to transition to "
+                            "status '%s'" % (cluster_id, status))
+        time.sleep(check_freq)
+
+
 def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
     for node in nodes:  # TODO: do this smarter way
         wait_for_node(node, status, timeout, check_freq)
@@ -177,6 +197,11 @@ def move_nodes(env, nodes):
 def provision_nodes(env, nodes):
     env.install_selected_nodes('provision', nodes)
     wait_for_nodes(nodes, "provisioned")
+
+
+def deploy_env(env, nodes):
+    env.install_selected_nodes('deploy', nodes)
+    wait_for_env(env, "operational")
 
 
 def deploy_nodes(env, nodes):
