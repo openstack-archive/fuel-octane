@@ -58,7 +58,7 @@ _default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp', 'vip',
 
 def get_crm_services(status_out, exclude=_default_exclude_services):
     data = ElementTree.fromstring(status_out)
-    for resource in data.find('resources'):
+    for resource in data:
         name = resource.get('id')
         if any(service in name for service in exclude):
             continue
@@ -67,7 +67,8 @@ def get_crm_services(status_out, exclude=_default_exclude_services):
 
 def stop_corosync_services(env):
     node = env_util.get_one_controller(env)
-    status_out = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
+                                  'resources'], node=node)
     for service in get_crm_services(status_out):
         while True:
             try:
