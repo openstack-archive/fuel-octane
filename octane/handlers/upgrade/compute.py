@@ -91,10 +91,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             raise Exception("Backup iscsi configuration is not present for "
                             "compute node %s" % str(self.node.id))
         ssh.sftp(self.node).put(bup_file_path, magic_consts.ISCSI_CONFIG_PATH)
-        # services what should be restarted to make changes take effect
-        # FIXME: return "multipath-tools" service to service list when
-        # post plugin handler will be implemented
-        for service in ["open-iscsi", "nova-compute"]:
+        for service in ["open-iscsi", "multipath-tools", "nova-compute"]:
             ssh.call(['service', service, 'restart'], node=self.node)
 
 
