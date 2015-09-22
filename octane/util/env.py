@@ -20,6 +20,7 @@ import yaml
 
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
+from fuelclient.objects import task as task_obj
 
 from octane import magic_consts
 from octane.util import ssh
@@ -160,6 +161,26 @@ def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
         time.sleep(check_freq)
 
 
+def wait_for_tasks(env, status, timeout=60 * 60, check_freq=60):
+    env_id = env.data['id']
+    LOG.debug("Waiting for env %s to have no '%s' tasks",
+              env_id, status)
+    started_at = time.time()  # TODO: use monotonic timer
+    while True:
+        tasks = task_obj.Task.get_all_data()
+        cl_tasks = []
+        for task in tasks:
+            if task['cluster'] == env_id and task['status'] == status:
+                cl_tasks.append(task)
+        if not cl_tasks:
+            LOG.info("Env %s have no '%s' tasks", env_id, status)
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for env %s to complete "
+                            "all tasks status" % env_id)
+        time.sleep(check_freq)
+
+
 def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
     for node in nodes:  # TODO: do this smarter way
         wait_for_node(node, status, timeout, check_freq)
@@ -182,6 +203,7 @@ def provision_nodes(env, nodes):
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
     wait_for_nodes(nodes, "ready")
+    wait_for_tasks(env, "running")
 
 
 def deploy_changes(env, nodes):
