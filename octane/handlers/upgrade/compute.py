@@ -18,6 +18,7 @@ from octane.helpers import disk
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
+from octane.util import plugin
 from octane.util import ssh
 
 
@@ -79,6 +80,9 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         disk.create_partition(disks[0]['name'], size, self.node)
 
     def backup_iscsi_initiator_info(self):
+        plugin_status = plugin.plugin_status(self.env, 'emc_vnx')
+        if plugin_status != plugin.PLUGIN_STATUSES.enabled:
+            return
         bup_file_path = get_iscsi_bup_file_path(self.node)
         file_dir = os.path.dirname(bup_file_path)
         if not os.path.exists(file_dir):
@@ -86,6 +90,9 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         ssh.sftp(self.node).get(magic_consts.ISCSI_CONFIG_PATH, bup_file_path)
 
     def restore_iscsi_initiator_info(self):
+        plugin_status = plugin.plugin_status(self.env, 'emc_vnx')
+        if plugin_status != plugin.PLUGIN_STATUSES.enabled:
+            return
         bup_file_path = get_iscsi_bup_file_path(self.node)
         if not os.path.exists(bup_file_path):
             raise Exception("Backup iscsi configuration is not present for "
