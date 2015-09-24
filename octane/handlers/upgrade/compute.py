@@ -23,10 +23,12 @@ from octane.util import ssh
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        self.create_configdrive_partition()
-        self.preserve_partition()
-        disk.update_node_partition_info(self.node.id)
+        env = self.node.env
+        if env_util.get_env_provision_method(env) != 'image':
+            self.create_configdrive_partition()
+            disk.update_node_partition_info(self.node.id)
         self.backup_iscsi_initiator_info()
+        self.preserve_partition()
 
     def postdeploy(self):
         self.restore_iscsi_initiator_info()
