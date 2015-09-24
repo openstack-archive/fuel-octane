@@ -16,6 +16,7 @@ from octane import handlers
 class UpgradeHandler(object):
     def __init__(self, node, env, isolated):
         self.node = node
+        self.orig_env = node.env
         self.env = env
         self.isolated = isolated
 
