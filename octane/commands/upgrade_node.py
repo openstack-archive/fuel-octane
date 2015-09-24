@@ -47,9 +47,8 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
+    patch_node_volumes_information(one_orig_id)
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
-    copy_patches_folder_to_nailgun()
-    disk.update_partition_generator()
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
@@ -58,6 +57,15 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
         env_util.set_network_template(env, network_template)
     env_util.deploy_nodes(env, nodes)
     call_handlers('postdeploy')
+
+
+def patch_node_volumes_information(env_id):
+    """Update partitions generator for release 5.2.9"""
+
+    env = environment_obj.Environment(env_id)
+    if env.data['fuel_version'] == '5.2.9':
+        copy_patches_folder_to_nailgun()
+        disk.update_partition_generator()
 
 
 def copy_patches_folder_to_nailgun():
