@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
-import subprocess
 import yaml
 
 from cliff import command as cmd
@@ -21,36 +20,6 @@ from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import maintenance
 from octane.util import ssh
-
-
-def start_corosync_services(env):
-    node = next(env_util.get_controllers(env))
-    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
-                                  'resources'], node=node)
-    for service in maintenance.get_crm_services(status_out):
-        while True:
-            try:
-                ssh.call(['crm', 'resource', 'start', service],
-                         node=node)
-            except subprocess.CalledProcessError:
-                pass
-            else:
-                break
-
-
-def start_upstart_services(env):
-    controllers = list(env_util.get_controllers(env))
-    for node in controllers:
-        sftp = ssh.sftp(node)
-        try:
-            svc_file = sftp.open('/root/services_list')
-        except IOError:
-            raise
-        else:
-            with svc_file:
-                to_start = svc_file.read().splitlines()
-        for service in to_start:
-            ssh.call(['start', service], node=node)
 
 
 def disconnect_networks(env):
@@ -96,8 +65,8 @@ def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
     update_neutron_config(seed_env)
-    start_corosync_services(seed_env)
-    start_upstart_services(seed_env)
+    maintenance.start_corosync_services(seed_env)
+    maintenance.start_upstart_services(seed_env)
     disconnect_networks(orig_env)
     connect_to_networks(seed_env)
 

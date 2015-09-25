@@ -48,6 +48,26 @@ def test_stop_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
     ]
 
 
+def test_start_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
+                                 mock_subprocess, node):
+    get_controllers = mocker.patch('octane.util.env.get_controllers')
+    get_controllers.return_value = iter([node])
+    get_crm_services = mocker.patch.object(maintenance, 'get_crm_services')
+    get_crm_services.return_value = ['test_service1', 'test_service2']
+    mock_ssh_call.side_effect = \
+        [None, subprocess.CalledProcessError(1, 'cmd'), None]
+
+    maintenance.start_corosync_services('env')
+
+    mock_ssh_call_output.assert_called_once_with(
+        ['cibadmin', '--query', '--scope', 'resources'], node=node)
+    assert mock_ssh_call.call_args_list == [
+        mock.call(['crm', 'resource', 'start', 'test_service1'], node=node),
+        mock.call(['crm', 'resource', 'start', 'test_service2'], node=node),
+        mock.call(['crm', 'resource', 'start', 'test_service2'], node=node),
+    ]
+
+
 CRM_XML_SAMPLE = """
 <resources>
   <clone id="clone_p_vrouter">
