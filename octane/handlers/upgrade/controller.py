@@ -38,6 +38,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def predeploy(self):
         deployment_info = env_util.merge_deployment_info(self.env)
+        network_data = self.env.get_network_data()
+        gw_admin = transformations.get_network_gw(network_data,
+                                                  "fuelweb_admin")
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -63,7 +66,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 transformations.remove_ports(info)
                 endpoints = deployment_info[0]["network_scheme"]["endpoints"]
                 self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info)
+                transformations.reset_gw_admin(info, gw_admin)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
