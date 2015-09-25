@@ -54,6 +54,11 @@ def get_env_networks(env):
     return network_data['networks']
 
 
+def get_env_provision_method(env):
+    attrs = env.get_attributes()
+    return attrs['editable']['provision']['method']['value']
+
+
 def change_env_settings(env_id, master_ip=''):
     # workaround for bugs related to DNS, NTP and TLS
     env = environment_obj.Environment(env_id)
