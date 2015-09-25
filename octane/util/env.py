@@ -143,6 +143,26 @@ def get_service_tenant_id(env, node=None):
     return tenant_id
 
 
+def wait_for_env(cluster, status, timeout=60 * 60, check_freq=60):
+    cluster_id = cluster.data['id']
+    LOG.debug("Waiting for cluster %s to transition to status '%s'",
+              cluster_id, status)
+    started_at = time.time()  # TODO: use monotonic timer
+    while True:
+        real_status = cluster.status
+        if real_status == 'error':
+            raise Exception("Cluster %s fell into error status" %
+                            (cluster_id,))
+        if real_status == status:
+            LOG.info("Cluster %s transitioned to status '%s'", cluster_id,
+                     status)
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for cluster %s to transition to "
+                            "status '%s'" % (cluster_id, status))
+        time.sleep(check_freq)
+
+
 def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
     node_id = node.data['id']
     LOG.debug("Waiting for node %s to transition to status '%s'",
@@ -208,7 +228,7 @@ def deploy_nodes(env, nodes):
 
 def deploy_changes(env, nodes):
     env.deploy_changes()
-    wait_for_nodes(nodes, "ready", timeout=180 * 60)
+    wait_for_env(env, "operational", timeout=180 * 60)
 
 
 def merge_deployment_info(env):
