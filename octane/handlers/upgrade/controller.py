@@ -63,7 +63,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 transformations.remove_ports(info)
                 endpoints = deployment_info[0]["network_scheme"]["endpoints"]
                 self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info)
+                network_data = self.env.get_network_data()
+                gw_admin = transformations.get_fuelweb_admin_gw(network_data)
+                transformations.reset_gw_admin(info, gw_admin)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
