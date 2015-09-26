@@ -11,9 +11,7 @@
 # under the License.
 
 import logging
-import shutil
 
-from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
 
@@ -26,14 +24,6 @@ def check_cluster(node):
     LOG.debug('Got status: %s', res)
     if not res or 'HEALTH_OK' not in res:
         raise Exception("Ceph cluster is unhealthy: " + res)
-
-
-def patch_mcollective(node):
-    with open(magic_consts.MCOLLECTIVE_PATCH) as p:
-        cmd = ['patch', '-Np2', magic_consts.MCOLLECTIVE_PATCH_TARGET]
-        with ssh.popen(cmd, node=node, stdin=ssh.PIPE) as proc:
-            shutil.copyfileobj(p, proc.stdin)
-    ssh.call(['service', 'mcollective', 'restart'], node=node)
 
 
 def set_osd_noout(env):

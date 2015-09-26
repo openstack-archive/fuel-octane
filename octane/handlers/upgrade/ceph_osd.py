@@ -20,7 +20,6 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
         ceph.check_cluster(self.node)
 
     def prepare(self):
-        ceph.patch_mcollective(self.node)
         self.preserve_partition()
         ceph.set_osd_noout(self.env)
 
