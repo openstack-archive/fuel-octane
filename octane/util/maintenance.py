@@ -51,6 +51,29 @@ def disable_apis(env):
                 new.write(use_backend_line)
         ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
 
+
+def enable_apis(env):
+    controllers = list(env_util.get_controllers(env))
+    maintenance_line = 'backend maintenance'
+    use_backend_line = '  use_backend maintenance if TRUE'
+    for node in controllers:
+        sftp = ssh.sftp(node)
+        sftp.chdir('/etc/haproxy')
+        with ssh.update_file(sftp, 'haproxy.cfg') as (old, new):
+            for line in old:
+                if maintenance_line in line:
+                    continue
+                new.write(line)
+        sftp.chdir('/etc/haproxy/conf.d')
+        for f in sftp.listdir():
+            with ssh.update_file(sftp, f) as (old, new):
+                for line in old:
+                    if use_backend_line in line:
+                        continue
+                    new.write(line)
+        ssh.call(['crm', 'resource', 'restart', 'p_haproxy'], node=node)
+
+
 _default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp', 'vip',
                              'p_conntrackd', 'p_rabbitmq-server',
                              'clone_p_vrouter')
@@ -79,6 +102,25 @@ def stop_corosync_services(env):
             else:
                 break
     time.sleep(60)
+
+
+def wait_for_corosync_services_sync(env, timeout=720, check_freq=20):
+    node = env_util.get_one_controller(env)
+    started_at = time.time()
+    db_status = ssh.call_output(['cibadmin', '--query', '--scope',
+                                 'resources'], node=node)
+    while True:
+        real_status = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+        if is_resources_synced(db_status, real_status):
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for corosync cluster for env %s"
+                            " to be synced" % env.id)
+        time.sleep(check_freq)
+
+
+def is_resources_synced(db_status, real_status):
+    pass
 
 
 def stop_upstart_services(env):
@@ -119,6 +161,7 @@ def start_corosync_services(env):
                 pass
             else:
                 break
+    time.sleep(180)
 
 
 def start_upstart_services(env):
@@ -134,3 +177,14 @@ def start_upstart_services(env):
                 to_start = svc_file.read().splitlines()
         for service in to_start:
             ssh.call(['start', service], node=node)
+
+
+def get_cluster_stop_actions():
+    return [['pcs', 'cluster', 'kill']]
+
+
+def get_cluster_start_actions(env):
+    major_version = env.data['fuel_version'].split('.')[0]
+    if int(major_version) < 6:
+        return [['service', 'corosync', 'start']]
+    return [['pcs', 'cluster', 'start']]
