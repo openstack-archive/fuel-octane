@@ -34,6 +34,9 @@ def upgrade_control_plane(orig_id, seed_id):
     # enable all services on seed env
     maintenance.start_corosync_services(seed_env)
     maintenance.start_upstart_services(seed_env)
+    # disable cluster services on orig env
+    env_util.run_on_controllers(orig_env,
+                                maintenance.get_cluster_stop_actions())
     # switch networks to seed env
     env_util.configure_network(orig_env, 'delete_patch_ports')
     env_util.configure_network(seed_env, 'delete_overlay_networks')
