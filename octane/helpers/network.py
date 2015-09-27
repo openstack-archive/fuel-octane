@@ -273,7 +273,7 @@ def create_port_ovs(bridge, port):
         return cmd
 
     cmds = []
-    tags = port.get('vlan_ids', ['', ''])
+    tags = port.get('vlan_ids') or port.get('tags') or ['', '']
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
     bridge_index = bridges.index(bridge)
@@ -282,7 +282,7 @@ def create_port_ovs(bridge, port):
         tag = tags[index]
         tags[index] = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
-    trunk_str = ','.join(trunks)
+    trunk_str = ','.join([str(item) for item in trunks])
     if trunk_str:
         trunk = 'trunks=[%s]' % (trunk_str,)
     if bridges:
