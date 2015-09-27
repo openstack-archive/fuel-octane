@@ -22,6 +22,7 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
 
+from octane.helpers import network
 from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
@@ -270,3 +271,50 @@ def set_network_template(env, filename):
     with open(filename, 'r') as f:
         data = f.read()
         env.set_network_template_data(yaml.load(data))
+
+
+def get_bup_deployment_info(env_id):
+    deployment_info = []
+    backup_path = os.path.join(magic_consts.FUEL_CACHE,
+                               'deployment_{0}.orig'
+                               .format(env_id))
+    if not os.path.exists(backup_path):
+        return None
+
+    for filename in os.listdir(backup_path):
+        filepath = os.path.join(backup_path, filename)
+        with open(filepath) as info_file:
+            info = yaml.safe_load(info_file)
+            deployment_info.append(info)
+
+    return deployment_info
+
+
+def collect_deployment_info(env, nodes):
+    deployment_info = []
+    for node in nodes:
+        info = get_astute_yaml(env, node)
+        deployment_info.append(info)
+    return deployment_info
+
+
+def connect_to_networks(env):
+    critical_roles = ['primary-controller', 'controller']
+    controllers = list(get_controllers(env))
+    deployment_info = get_bup_deployment_info(env.id)
+    if not deployment_info:
+        deployment_info = collect_deployment_info(env, controllers)
+        critical_roles = []
+    for node in controllers:
+        for info in deployment_info:
+            if (info['role'] in critical_roles
+                    and info['uid'] == str(node.id)):
+                network.delete_overlay_networks(node, info)
+                network.create_patch_ports(node, info)
+
+
+def disconnect_networks(env):
+    controllers = list(get_controllers(env))
+    for node in controllers:
+        deployment_info = get_astute_yaml(env, node)
+        network.delete_patch_ports(node, deployment_info)
