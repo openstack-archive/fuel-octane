@@ -68,6 +68,10 @@ def test_start_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
     ]
 
 
+def test_disable_api(mocker, mock_ssh_call, mock_subprocess, mock_open,
+                     node):
+    pass
+
 CRM_XML_SAMPLE = """
 <resources>
   <clone id="clone_p_vrouter">
@@ -467,3 +471,57 @@ CRM_XML_PARSE_RESULT = [
     'p_ceilometer-agent-central',
     'p_ceilometer-alarm-evaluator',
 ]
+
+HAPROXY_CONFIG = """"
+global
+  daemon
+  group  haproxy
+  log  /dev/log local0
+  maxconn  16000
+  pidfile  /var/run/haproxy.pid
+  spread-checks  3
+  stats  socket /var/lib/haproxy/stats
+  tune.bufsize  32768
+  user  haproxy
+
+defaults
+  log  global
+  maxconn  8000
+  mode  http
+  option  redispatch
+  option  tcp-smart-accept
+  option  tcp-smart-connect
+  option  http-server-close
+  option  splice-auto
+  option  dontlognull
+  retries  3
+  stats  enable
+  timeout  http-request 20s
+  timeout  queue 1m
+  timeout  connect 10s
+  timeout  client 1m
+  timeout  server 1m
+  timeout  check 10s
+
+listen Stats *:10000
+  mode http
+  stats enable
+  stats uri /
+  stats refresh 5s
+  stats show-node
+  stats show-legends
+  stats hide-version
+
+include conf.d/*.cfg
+"""
+
+NOVA_HAPROXY_CONFIG = """
+listen nova-api-1
+  bind 172.16.38.47:8773
+  bind 10.20.5.10:8773
+  balance  roundrobin
+  option  httplog
+  server node-5 10.20.5.13:8773   check
+  server node-8 10.20.5.15:8773   check
+  server node-2 10.20.5.11:8773   check
+"""
