@@ -60,20 +60,41 @@ def disconnect_networks(env):
         network.delete_patch_ports(node, deployment_info)
 
 
-def connect_to_networks(env):
+def get_bup_deployment_info(env_id):
     deployment_info = []
-    controllers = list(env_util.get_controllers(env))
     backup_path = os.path.join(magic_consts.FUEL_CACHE,
                                'deployment_{0}.orig'
-                               .format(env.id))
+                               .format(env_id))
+    if not backup_path:
+        return None
+
     for filename in os.listdir(backup_path):
         filepath = os.path.join(backup_path, filename)
         with open(filepath) as info_file:
             info = yaml.safe_load(info_file)
             deployment_info.append(info)
+
+    return deployment_info
+
+
+def collect_deployment_info(env, nodes):
+    deployment_info = []
+    for node in nodes:
+        info = env_util.get_astute_yaml(env, node)
+        deployment_info.append(info)
+    return deployment_info
+
+
+def connect_to_networks(env):
+    critical_roles = ['primary-controller', 'controller']
+    controllers = list(env_util.get_controllers(env))
+    deployment_info = get_bup_deployment_info(env.id)
+    if not deployment_info:
+        deployment_info = collect_deployment_info(env, controllers)
+        critical_roles = []
     for node in controllers:
         for info in deployment_info:
-            if (info['role'] in ('primary-controller', 'controller')
+            if (info['role'] in critical_roles
                     and info['uid'] == str(node.id)):
                 network.delete_overlay_networks(node, info)
                 network.create_patch_ports(node, info)
