@@ -56,7 +56,10 @@ def get_env_networks(env):
 
 def get_env_provision_method(env):
     attrs = env.get_attributes()
-    return attrs['editable']['provision']['method']['value']
+    if 'provision' in attrs['editable']:
+        return attrs['editable']['provision']['method']['value']
+    else:
+        return 'cobbler'
 
 
 def change_env_settings(env_id, master_ip=''):
