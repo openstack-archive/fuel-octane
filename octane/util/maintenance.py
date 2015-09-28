@@ -104,3 +104,33 @@ def stop_upstart_services(env):
                 to_stop = svc_file.read().splitlines()
         for service in to_stop:
             ssh.call(['stop', service], node=node)
+
+
+def start_corosync_services(env):
+    node = next(env_util.get_controllers(env))
+    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
+                                  'resources'], node=node)
+    for service in get_crm_services(status_out):
+        while True:
+            try:
+                ssh.call(['crm', 'resource', 'start', service],
+                         node=node)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                break
+
+
+def start_upstart_services(env):
+    controllers = list(env_util.get_controllers(env))
+    for node in controllers:
+        sftp = ssh.sftp(node)
+        try:
+            svc_file = sftp.open('/root/services_list')
+        except IOError:
+            raise
+        else:
+            with svc_file:
+                to_start = svc_file.read().splitlines()
+        for service in to_start:
+            ssh.call(['start', service], node=node)
