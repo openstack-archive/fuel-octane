@@ -246,18 +246,15 @@ def deploy_changes(env, nodes):
     wait_for_env(env, "operational", timeout=180 * 60)
 
 
-def merge_deployment_info(env):
-    default_info = env.get_default_facts('deployment')
+def get_deployment_info(env):
+    deployment_info = []
     try:
         deployment_info = env.get_facts('deployment')
     except fuelclient.cli.error.ServerDataException:
         LOG.warn('Deployment info is unchanged for env: %s',
                  env.id)
-        deployment_info = []
-    for info in default_info:
-        if not (info['uid'], info['role']) in [(i['uid'], i['role'])
-           for i in deployment_info]:
-            deployment_info.append(info)
+    deployment_info = [x for x in deployment_info
+                       if x['role'] != 'primary-controller']
     return deployment_info
 
 
