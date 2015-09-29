@@ -57,7 +57,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
         for info in deployment_info:
-            if not info['uid'] == str(self.node.id):
+            if (not info['role'] == 'primary-controller' and
+                    not info['uid'] == str(self.node.id)):
+                deployment_info.delete(info)
                 continue
             if self.isolated:
                 transformations.remove_ports(info)

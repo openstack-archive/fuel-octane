@@ -49,3 +49,50 @@ TENANT_GET_SAMPLE = """
 |     name    |              services             |
 +-------------+-----------------------------------+
 """[1:]
+
+
+def test_merge_deployment_info():
+    env = mock.Mock()
+    env.get_default_facts.return_value = DEFAULT_FACTS_SAMPLE
+    env.get_facts.return_value = DEPLOYMENT_FACTS_SAMPLE
+    res = env_util.merge_deployment_info(env)
+    assert res == MERGED_FACTS_SAMPLE
+
+
+DEFAULT_FACTS_SAMPLE = [{
+    'role': 'controller',
+    'changed': False,
+    'uid': 1
+}, {
+    'role': 'controller',
+    'changed': False,
+    'uid': 2
+}, {
+    'role': 'primary-controller',
+    'changed': False,
+    'uid': 3
+}]
+
+DEPLOYMENT_FACTS_SAMPLE = [{
+    'role': 'controller',
+    'changed': True,
+    'uid': 1
+}, {
+    'role': 'primary-controller',
+    'changed': True,
+    'uid': 3
+}]
+
+MERGED_FACTS_SAMPLE = [{
+    'role': 'controller',
+    'changed': True,
+    'uid': 1
+}, {
+    'role': 'controller',
+    'changed': False,
+    'uid': 2
+}, {
+    'role': 'primary-controller',
+    'changed': False,
+    'uid': 3
+}]
