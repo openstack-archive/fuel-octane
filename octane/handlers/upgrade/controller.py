@@ -37,7 +37,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             self.env, self.node)
 
     def predeploy(self):
-        deployment_info = env_util.merge_deployment_info(self.env)
+        deployment_info = self.env.get_default_facts('deployment')
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
