@@ -14,9 +14,7 @@
 def test_parser(mocker, octane_app):
     m1 = mocker.patch('octane.commands.upgrade_env.upgrade_env')
     m1.return_value = 2
-    m2 = mocker.patch('octane.commands.upgrade_env.write_service_tenant_id')
     octane_app.run(["upgrade-env", "1"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m1.assert_called_once_with(1)
-    m2.assert_called_once_with(1)
