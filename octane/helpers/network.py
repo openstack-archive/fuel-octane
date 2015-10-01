@@ -238,8 +238,10 @@ def delete_overlay_networks(node, host_config):
 
 def delete_port_ovs(bridge, port):
     bridges = port['bridges']
-    port_name = "%s--%s" % (bridges[0], bridges[1])
-    return ['ovs-vsctl', 'del-port', bridges[0], port_name]
+    port1_name = "%s--%s" % (bridges[0], bridges[1])
+    port2_name = "%s--%s" % (bridges[1], bridges[0])
+    return [['ovs-vsctl', 'del-port', bridges[0], port1_name],
+            ['ovs-vsctl', 'del-port', bridges[1], port2_name]]
 
 
 def delete_port_lnx(bridge, port):
@@ -256,8 +258,9 @@ def delete_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
         port, provider = ts.get_patch_port_action(host_config, bridge)
         delete_port_cmd = delete_port_providers[provider]
-        cmd = delete_port_cmd(bridge, port)
-        ssh.call(cmd, node=node)
+        cmds = delete_port_cmd(bridge, port)
+        for cmd in cmds:
+            ssh.call(cmd, node=node)
 
 
 def create_port_ovs(bridge, port):
@@ -273,7 +276,7 @@ def create_port_ovs(bridge, port):
         return cmd
 
     cmds = []
-    tags = port.get('vlan_ids', ['', ''])
+    tags = port.get('vlan_ids') or port.get('tags', ['', ''])
     trunks = port.get('trunks', [])
     bridges = port.get('bridges', [])
     bridge_index = bridges.index(bridge)
@@ -282,7 +285,7 @@ def create_port_ovs(bridge, port):
         tag = tags[index]
         tags[index] = "tag=%s" % (str(tag),) if tag else ''
     trunk = ''
-    trunk_str = ','.join(trunks)
+    trunk_str = ','.join(map(str, trunks))
     if trunk_str:
         trunk = 'trunks=[%s]' % (trunk_str,)
     if bridges:
