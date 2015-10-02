@@ -15,9 +15,7 @@ import os
 
 from octane.helpers import transformations
 
-
-SKIP_TASKS = ["upload_cirros", "ceph_ready_check"]
-
+SKIP_TASKS = ["upload_cirros", "ceph_ready_check", "configure_default_route"]
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Remove patch ports from "
