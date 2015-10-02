@@ -225,11 +225,13 @@ def move_nodes(env, nodes):
 
 def provision_nodes(env, nodes):
     env.install_selected_nodes('provision', nodes)
+    LOG.info("Nodes provision started. Please wait...")
     wait_for_nodes(nodes, "provisioned")
 
 
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
+    LOG.info("Nodes deply started. Please wait...")
     wait_for_nodes(nodes, "ready")
     wait_for_tasks(env, "running")
 
