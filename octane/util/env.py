@@ -231,7 +231,7 @@ def provision_nodes(env, nodes):
 
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
-    LOG.info("Nodes deply started. Please wait...")
+    LOG.info("Nodes deploy started. Please wait...")
     wait_for_nodes(nodes, "ready")
     wait_for_tasks(env, "running")
 
