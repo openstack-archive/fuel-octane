@@ -101,7 +101,56 @@ def stop_corosync_services(env):
                 pass
             else:
                 break
-    time.sleep(60)
+    wait_for_corosync_services_sync(env, False)
+
+
+def wait_for_corosync_services_sync(env, status, timeout=720, check_freq=20):
+    node = env_util.get_one_controller(env)
+    started_at = time.time()
+    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
+                                  'resources'], node=node)
+    resource_list = get_crm_services(status_out)
+    while True:
+        crm_out = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+        if is_resources_synced(resource_list, crm_out, status):
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for corosync cluster for env %s"
+                            " to be synced" % env.id)
+        time.sleep(check_freq)
+
+
+def is_resources_synced(resources, crm_out, status):
+    def get_resource(resources, resource_id):
+        for resource in resources:
+            if resource.get('id') == resource_id:
+                return resource
+        return None
+
+    data = ElementTree.fromstring(crm_out)
+    mon_resources = data.find('resources')
+    for resource in resources:
+        res = get_resource(mon_resources, resource)
+        if not (is_resource_active(res) is status):
+            return False
+    return True
+
+
+def is_resource_active(resource):
+    if resource is None:
+        return False
+    if resource.tag == 'resource':
+        return is_primitive_active(resource)
+    for primitive in resource:
+        if not is_primitive_active(primitive):
+            return False
+    return True
+
+
+def is_primitive_active(resource):
+    if resource.get('active') == 'true':
+        return True
+    return False
 
 
 def stop_upstart_services(env):
@@ -142,7 +191,7 @@ def start_corosync_services(env):
                 pass
             else:
                 break
-    time.sleep(60)
+    wait_for_corosync_services_sync(env, True)
 
 
 def start_upstart_services(env):
