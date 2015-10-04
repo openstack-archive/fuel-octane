@@ -33,7 +33,7 @@ def upgrade_db(orig_id, seed_id):
     # Wait for Neutron to reconfigure networks
     time.sleep(7)  # FIXME: Use more deterministic way
     maintenance.disable_apis(orig_env)
-    maintenance.stop_corosync_services(seed_env)
+    maintenance.manage_corosync_services(seed_env, 'stop')
     maintenance.stop_upstart_services(seed_env)
 
     expected_dbs = set(magic_consts.OS_SERVICES)

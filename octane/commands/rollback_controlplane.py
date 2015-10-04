@@ -28,7 +28,7 @@ def rollback_control_plane(seed_id, orig_id):
         network.create_patch_ports(node, info)
     # enable cluster's services for orig_env
     maintenance.start_cluster(orig_env)
-    maintenance.start_corosync_services(orig_env)
+    maintenance.manage_corosync_services(orig_env, 'start')
     maintenance.enable_apis(orig_env)
 
 

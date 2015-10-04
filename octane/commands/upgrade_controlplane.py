@@ -37,7 +37,7 @@ def upgrade_control_plane(orig_id, seed_id):
     if len(controllers) > 1:
         maintenance.stop_cluster(seed_env)
     else:
-        maintenance.start_corosync_services(seed_env)
+        maintenance.manage_corosync_services(seed_env, 'start')
         maintenance.start_upstart_services(seed_env)
     # disable cluster services on orig env
     maintenance.stop_cluster(orig_env)
@@ -53,7 +53,7 @@ def upgrade_control_plane(orig_id, seed_id):
     # enable all services on seed env
     if len(controllers) > 1:
         maintenance.start_cluster(seed_env)
-        maintenance.start_corosync_services(seed_env)
+        maintenance.manage_corosync_services(seed_env, 'start')
         maintenance.start_upstart_services(seed_env)
 
 
