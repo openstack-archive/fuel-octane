@@ -11,6 +11,7 @@
 # under the License.
 
 import mock
+from xml.etree import ElementTree
 
 from octane.util import maintenance
 from octane.util import subprocess
@@ -19,6 +20,50 @@ from octane.util import subprocess
 def test_get_crm_services():
     res = list(maintenance.get_crm_services(CRM_XML_SAMPLE))
     assert sorted(res) == CRM_XML_PARSE_RESULT
+
+
+def test_resources_synced():
+    resource_list = ["master_p_rabbitmq-server", "vip__management_old"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          False)
+    assert res is False
+
+    resource_list = ["master_p_rabbitmq-server", "vip__management_old"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          True)
+    assert res is False
+
+    resource_list = ["master_p_rabbitmq-server",
+                     "p_ceilometer-alarm-evaluator"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          False)
+    assert res is True
+
+    resource_list = ["clone_p_neutron-metadata-agent", "vip__management_old",
+                     "group__zabbix-server"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          True)
+    assert res is True
+
+    resource_list = ["test1", "vip__management_old"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          True)
+    assert res is False
+
+    resource_list = ["test1", "test2"]
+    res = maintenance.is_resources_synced(resource_list, CRM_XML_STATUS_SAMPLE,
+                                          False)
+    assert res is True
+
+
+def test_resources_status():
+    data = ElementTree.fromstring(CRM_XML_STATUS_SAMPLE)
+    resources = next(el for el in data if el.tag == 'resources')
+
+    result = []
+    for resource in resources:
+        result.append(maintenance.is_resource_active(resource))
+    assert result == [True, False, False, True, True]
 
 
 def test_stop_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
@@ -34,6 +79,9 @@ def test_stop_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
 
     mocker.patch('time.sleep')
 
+    wait_for_services = \
+        mocker.patch('octane.util.maintenance.wait_for_corosync_services_sync')
+
     maintenance.stop_corosync_services('env')
 
     assert not mock_subprocess.called
@@ -41,6 +89,7 @@ def test_stop_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
     mock_ssh_call_output.assert_called_once_with(['cibadmin', '--query',
                                                   '--scope', 'resources'],
                                                  node=node)
+    assert wait_for_services.call_args_list == [mock.call('env', False)]
     assert mock_ssh_call.call_args_list == [
         mock.call(['crm', 'resource', 'stop', 's1'], node=node),
         mock.call(['crm', 'resource', 'stop', 's1'], node=node),
@@ -57,10 +106,15 @@ def test_start_corosync_services(mocker, mock_ssh_call, mock_ssh_call_output,
     mock_ssh_call.side_effect = \
         [None, subprocess.CalledProcessError(1, 'cmd'), None]
 
+    wait_for_services = \
+        mocker.patch('octane.util.maintenance.wait_for_corosync_services_sync')
+
     maintenance.start_corosync_services('env')
 
     mock_ssh_call_output.assert_called_once_with(
         ['cibadmin', '--query', '--scope', 'resources'], node=node)
+
+    assert wait_for_services.call_args_list == [mock.call('env', True)]
     assert mock_ssh_call.call_args_list == [
         mock.call(['crm', 'resource', 'start', 'test_service1'], node=node),
         mock.call(['crm', 'resource', 'start', 'test_service2'], node=node),
@@ -467,3 +521,41 @@ CRM_XML_PARSE_RESULT = [
     'p_ceilometer-agent-central',
     'p_ceilometer-alarm-evaluator',
 ]
+CRM_XML_STATUS_SAMPLE = """
+<crm_mon version="1.1.12">
+    <resources>
+        <resource id="vip__management_old" resource_agent="ocf::mirantis:ns_IPaddr2" role="Started" active="true" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+            <node name="node-2" id="node-2" cached="false"/>
+        </resource>
+        <resource id="p_ceilometer-alarm-evaluator" resource_agent="ocf::mirantis:ceilometer-alarm-evaluator" role="Started" active="false" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+        <clone id="master_p_rabbitmq-server" multi_state="true" unique="false" managed="true" failed="false" failure_ignored="false" >
+            <resource id="p_rabbitmq-server" resource_agent="ocf::mirantis:rabbitmq-server" role="Master" active="true" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                <node name="node-3" id="node-3" cached="false"/>
+            </resource>
+            <resource id="p_rabbitmq-server" resource_agent="ocf::mirantis:rabbitmq-server" role="Slave" active="true" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                <node name="node-2" id="node-2" cached="false"/>
+            </resource>
+            <resource id="p_rabbitmq-server" resource_agent="ocf::mirantis:rabbitmq-server" role="Stopped" active="false" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+        </clone>
+        <clone id="clone_p_neutron-metadata-agent" >
+            <resource id="p_neutron-metadata-agent" resource_agent="ocf::mirantis:neutron-agent-metadata" active="true" >
+                <node name="node-3" id="node-3" cached="false"/>
+            </resource>
+            <resource id="p_neutron-metadata-agent" resource_agent="ocf::mirantis:neutron-agent-metadata" active="true" >
+                <node name="node-2" id="node-2" cached="false"/>
+            </resource>
+            <resource id="p_neutron-metadata-agent" resource_agent="ocf::mirantis:neutron-agent-metadata" active="true" >
+                <node name="node-5" id="node-5" cached="false"/>
+            </resource>
+        </clone>
+        <group id="group__zabbix-server" number_resources="2" >
+             <resource id="vip__zbx_vip_mgmt" resource_agent="ocf::fuel:ns_IPaddr2" role="Started" active="true" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                 <node name="node-6" id="6" cached="false"/>
+             </resource>
+             <resource id="p_zabbix-server" resource_agent="ocf::fuel:zabbix-server" role="Started" active="true" orphaned="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                 <node name="node-6" id="6" cached="false"/>
+             </resource>
+        </group>
+    </resources>
+</crm_mon>
+"""[1:]  # noqa
