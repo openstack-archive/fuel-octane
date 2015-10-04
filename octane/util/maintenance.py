@@ -79,29 +79,93 @@ _default_exclude_services = ('p_mysql', 'p_haproxy', 'p_dns', 'p_ntp', 'vip',
                              'clone_p_vrouter')
 
 
-def get_crm_services(status_out, exclude=_default_exclude_services):
+def get_crm_services(status_out):
     data = ElementTree.fromstring(status_out)
     for resource in data:
-        name = resource.get('id')
-        if any(service in name for service in exclude):
-            continue
-        yield name
+        yield resource.get('id')
+
+
+def start_corosync_services(env):
+    manage_corosync_services(env, 'start')
 
 
 def stop_corosync_services(env):
+    manage_corosync_services(env, 'stop')
+
+
+def manage_corosync_services(env, status):
     node = env_util.get_one_controller(env)
     status_out = ssh.call_output(['cibadmin', '--query', '--scope',
                                   'resources'], node=node)
-    for service in get_crm_services(status_out):
+    services_list = []
+    for res in get_crm_services(status_out):
+        if any(service in res for service in _default_exclude_services):
+            continue
+        services_list.append(res)
+
+    for service in services_list:
         while True:
             try:
-                ssh.call(['crm', 'resource', 'stop', service],
+                ssh.call(['crm', 'resource', status, service],
                          node=node)
             except subprocess.CalledProcessError:
-                pass
+                # Sometimes pacemaker rejects part of requests what it is
+                # not able to process. Sleep was added to mitigate this risk.
+                time.sleep(1)
             else:
                 break
-    time.sleep(60)
+    status_bool = status == 'start'
+    wait_for_corosync_services_sync(env, services_list, status_bool)
+
+
+def wait_for_corosync_services_sync(env, resource_list, status,
+                                    timeout=1200, check_freq=20):
+    node = env_util.get_one_controller(env)
+    started_at = time.time()
+    while True:
+        crm_out = ssh.call_output(['crm_mon', '--as-xml'], node=node)
+        if is_resources_synced(resource_list, crm_out, status):
+            return
+        if time.time() - started_at >= timeout:
+            raise Exception("Timeout waiting for corosync cluster for env %s"
+                            " to be synced" % env.id)
+        time.sleep(check_freq)
+
+
+def is_resources_synced(resources, crm_out, status):
+    def get_resource(resources, resource_id):
+        for resource in resources:
+            if resource.get('id') == resource_id:
+                return resource
+        return None
+
+    data = ElementTree.fromstring(crm_out)
+    mon_resources = data.find('resources')
+    for resource in resources:
+        res = get_resource(mon_resources, resource)
+        if not (is_resource_active(res) is status):
+            return False
+    return True
+
+
+# Resources are fetching from the output of 'crm_mon' command. This command
+# doesn't return resource if it's not started and we can consider 'absent'
+# resource as disabled.
+def is_resource_active(resource):
+    if resource is None:
+        return False
+    if resource.tag == 'resource':
+        return is_primitive_active(resource)
+    for primitive in resource:
+        if not is_primitive_active(primitive):
+            return False
+    return True
+
+
+def is_primitive_active(resource):
+    if resource.get('active') == 'true':
+        return True
+    return False
 
 
 def stop_upstart_services(env):
@@ -127,22 +191,6 @@ def stop_upstart_services(env):
                 to_stop = svc_file.read().splitlines()
         for service in to_stop:
             ssh.call(['stop', service], node=node)
-
-
-def start_corosync_services(env):
-    node = next(env_util.get_controllers(env))
-    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
-                                  'resources'], node=node)
-    for service in get_crm_services(status_out):
-        while True:
-            try:
-                ssh.call(['crm', 'resource', 'start', service],
-                         node=node)
-            except subprocess.CalledProcessError:
-                pass
-            else:
-                break
-    time.sleep(60)
 
 
 def start_upstart_services(env):
@@ -179,3 +227,15 @@ def start_cluster(env):
     for node in controllers:
         for cmd in cmds:
             ssh.call(cmd, node=node)
+    # When we start cluster we should wait while resources from constant
+    # `_default_exclude_services` become up and running. BTW, We don't touch
+    # these resources in stop/start corosync resources methods at all.
+    node = env_util.get_one_controller(env)
+    status_out = ssh.call_output(['cibadmin', '--query', '--scope',
+                                  'resources'], node=node)
+    services_list = []
+    for res in get_crm_services(status_out):
+        if any(service in res for service in _default_exclude_services):
+            services_list.append(res)
+
+    wait_for_corosync_services_sync(env, True, services_list)
