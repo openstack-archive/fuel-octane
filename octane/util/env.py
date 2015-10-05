@@ -326,3 +326,10 @@ def iter_deployment_info(env, roles):
     for node in controllers:
         info = parse_node_deployment_info(node, roles, full_info)
         yield (node, info)
+
+
+def run_on_controllers(env, actions):
+    controllers = list(get_controllers(env))
+    for node in controllers:
+        for action in actions:
+            ssh.call(action, node=node)
