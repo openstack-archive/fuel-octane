@@ -9,43 +9,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os
-import yaml
-
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
-from octane.helpers import network
-from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import maintenance
 from octane.util import ssh
-
-
-def disconnect_networks(env):
-    controllers = list(env_util.get_controllers(env))
-    for node in controllers:
-        deployment_info = env_util.get_astute_yaml(env, node)
-        network.delete_patch_ports(node, deployment_info)
-
-
-def connect_to_networks(env):
-    deployment_info = []
-    controllers = list(env_util.get_controllers(env))
-    backup_path = os.path.join(magic_consts.FUEL_CACHE,
-                               'deployment_{0}.orig'
-                               .format(env.id))
-    for filename in os.listdir(backup_path):
-        filepath = os.path.join(backup_path, filename)
-        with open(filepath) as info_file:
-            info = yaml.safe_load(info_file)
-            deployment_info.append(info)
-    for node in controllers:
-        for info in deployment_info:
-            if (info['role'] in ('primary-controller', 'controller')
-                    and info['uid'] == str(node.id)):
-                network.delete_overlay_networks(node, info)
-                network.create_patch_ports(node, info)
 
 
 def update_neutron_config(orig_env, seed_env):
@@ -62,10 +31,13 @@ def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
     update_neutron_config(orig_env, seed_env)
+    # enable all services on seed env
     maintenance.start_corosync_services(seed_env)
     maintenance.start_upstart_services(seed_env)
-    disconnect_networks(orig_env)
-    connect_to_networks(seed_env)
+    # switch networks to seed env
+    env_util.configure_network(orig_env, 'delete_patch_ports')
+    env_util.configure_network(seed_env, 'delete_overlay_networks')
+    env_util.configure_network(seed_env, 'create_patch_ports')
 
 
 class UpgradeControlPlaneCommand(cmd.Command):
