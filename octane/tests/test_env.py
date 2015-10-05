@@ -25,6 +25,38 @@ def mock_os_path(mocker):
     return res
 
 
+def test_parse_node_deployment_info():
+    deployment_info = [{
+        'uid': '1',
+        'nodes': [{
+            'uid': '1',
+            'role': 'primary-controller',
+            'name': 'test',
+        }, {
+            'uid': '1',
+            'role': 'zabbix',
+            'name': 'test',
+        }, {
+            'uid': '2',
+            'role': 'compute',
+            'name': 'test2',
+        }],
+    }, {
+        'uid': '2',
+    }]
+    roles = ['controller', 'primary-controller']
+
+    node1 = mock.Mock()
+    node1.id = 1
+    res = env_util.parse_node_deployment_info(node1, roles, deployment_info)
+    assert res == deployment_info[0]
+
+    node2 = mock.Mock()
+    node2.id = 2
+    res = env_util.parse_node_deployment_info(node2, roles, deployment_info)
+    assert res is None
+
+
 def test_parse_tenant_get():
     res = env_util.parse_tenant_get(TENANT_GET_SAMPLE, 'id')
     assert res == 'e26c8079d61f46c48f9a6d606631ee5e'

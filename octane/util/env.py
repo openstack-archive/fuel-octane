@@ -277,3 +277,52 @@ def set_network_template(env, filename):
     with open(filename, 'r') as f:
         data = f.read()
         env.set_network_template_data(yaml.load(data))
+
+
+def parse_node_deployment_info(node, roles, data):
+    node_roles = [n['role']
+                  for n in data[0]['nodes'] if str(node.id) == n['uid']]
+    if not set(roles) & set(node_roles):
+        return None
+
+    for info in data:
+        if info['uid'] == str(node.id):
+            return info
+    return None
+
+
+def get_backup_deployment_info(env_id):
+    deployment_info = []
+    backup_path = os.path.join(
+        magic_consts.FUEL_CACHE, 'deployment_{0}.orig'.format(env_id))
+    if not os.path.exists(backup_path):
+        return None
+
+    for filename in os.listdir(backup_path):
+        filepath = os.path.join(backup_path, filename)
+        with open(filepath) as info_file:
+            info = yaml.safe_load(info_file)
+            deployment_info.append(info)
+
+    return deployment_info
+
+
+def collect_deployment_info(env, nodes):
+    deployment_info = []
+    for node in nodes:
+        info = get_astute_yaml(env, node)
+        deployment_info.append(info)
+    return deployment_info
+
+
+def iter_deployment_info(env, roles):
+    controllers = list(get_controllers(env))
+    full_info = get_backup_deployment_info(env.id)
+    roles = ['primary-controller', 'controller']
+
+    if not full_info:
+        full_info = collect_deployment_info(env, controllers)
+
+    for node in controllers:
+        info = parse_node_deployment_info(node, roles, full_info)
+        yield (node, info)
