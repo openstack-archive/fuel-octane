@@ -25,6 +25,73 @@ def mock_os_path(mocker):
     return res
 
 
+def test_find_node_deployment_info():
+    roles = ['controller', 'primary-controller']
+    node = mock.Mock()
+    node.id = 1
+    res = env_util.find_node_deployment_info(node, roles, DEPLOYMENT_INFO)
+    assert res == DEPLOYMENT_INFO[0]
+
+
+def test_find_node_deployment_info_none():
+    roles = ['controller', 'primary-controller']
+    node = mock.Mock()
+    node.id = 2
+    res = env_util.find_node_deployment_info(node, roles, DEPLOYMENT_INFO)
+    assert res is None
+
+
+DEPLOYMENT_INFO = [{
+    'uid': '1',
+    'role': 'primary-controller',
+    'nodes': [{
+        'uid': '1',
+        'role': 'primary-controller',
+        'name': 'test',
+    }, {
+        'uid': '1',
+        'role': 'zabbix',
+        'name': 'test',
+    }, {
+        'uid': '2',
+        'role': 'compute',
+        'name': 'test2',
+    }],
+}, {
+    'uid': '1',
+    'role': 'zabbix',
+    'nodes': [{
+        'uid': '1',
+        'role': 'primary-controller',
+        'name': 'test',
+    }, {
+        'uid': '1',
+        'role': 'zabbix',
+        'name': 'test',
+    }, {
+        'uid': '2',
+        'role': 'compute',
+        'name': 'test2',
+    }],
+}, {
+    'uid': '2',
+    'role': 'compute',
+    'nodes': [{
+        'uid': '1',
+        'role': 'primary-controller',
+        'name': 'test',
+    }, {
+        'uid': '1',
+        'role': 'zabbix',
+        'name': 'test',
+    }, {
+        'uid': '2',
+        'role': 'compute',
+        'name': 'test2',
+    }],
+}]
+
+
 def test_parse_tenant_get():
     res = env_util.parse_tenant_get(TENANT_GET_SAMPLE, 'id')
     assert res == 'e26c8079d61f46c48f9a6d606631ee5e'
