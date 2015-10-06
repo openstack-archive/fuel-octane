@@ -82,3 +82,13 @@ def wait_for_mcollective_start(nodes, timeout=600):
             raise Exception("Timeout waiting for nodes {0} to start"
                             " mcollective".format(failed))
         wait_list -= done
+
+
+def set_reinstall_node_flag(env, node):
+    # It should be safe to work with single node deployment info as we don't
+    # support upgrade of multiple ceph-osd nodes at once.
+    deployment_info = env.get_default_facts('deployment',
+                                            nodes=[node.data['id']])
+    for info in deployment_info:
+        info.update({'reinstall_node': 'true'})
+    env.upload_facts('deployment', deployment_info)
