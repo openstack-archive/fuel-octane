@@ -22,6 +22,7 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         self.preserve_partition()
         ceph.set_osd_noout(self.env)
+        node_util.set_reinstall_node_flag(self.env, self.node)
 
     def postdeploy(self):
         ceph.unset_osd_noout(self.env)
