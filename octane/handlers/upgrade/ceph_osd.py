@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from octane.commands import prepare
 from octane.handlers import upgrade
 from octane.util import ceph
 from octane.util import node as node_util
@@ -22,9 +23,11 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         self.preserve_partition()
         ceph.set_osd_noout(self.env)
+        prepare.patch_puppet()
 
     def postdeploy(self):
         ceph.unset_osd_noout(self.env)
+        prepare.patch_puppet(revert=True)
 
     def preserve_partition(self):
         partition = 'ceph'
