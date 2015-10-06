@@ -1,0 +1,291 @@
+From 200001b2f317890a184f938399b580e0d24aecbb Mon Sep 17 00:00:00 2001
+From: Oleg Gelbukh <ogelbukh@mirantis.com>
+Date: Mon, 20 Jul 2015 13:29:09 +0000
+Subject: [PATCH] Support Ceph OSD devices with existing data set
+
+Partition preservation feature allows to preserve data on Ceph OSD device, but
+later on Puppet will run 'ceph-deploy prepare' on every Ceph device in a system.
+This call destroys data set on those devices.
+
+Partition preservation is only required if the node is being reinstalled. Pass a
+hiera flag 'reinstall_node' to the Ceph module to make sure that existing
+prepared Ceph OSD devices won't be formatted by Puppet.
+
+To preserve data on Ceph OSD devices through deployment process, we need to
+check if the device has Ceph data and if so, skip running 'ceph-deploy prepare'
+on that device. Only prepared devices must be activated to avoid deployment
+failure.
+
+It was noted that the bug #1474510 causes ceph-osd service to start improperly,
+thus preventing ceph-all init script from activating all the existing OSD
+devices on boot.
+
+We should cover following cases with this module:
+
+1. Install new Ceph OSD node. In this case, we don't expect any devices listed
+by facter to be prepared OSDs, and run prepare/activate on every device.
+
+In this case, 'reinstall_node' is 'false'. For every device, we run 'ceph-deploy
+prepare' -> 'ceph-deploy activate' with the following conditions:
+
+* run 'ceph-deploy activate' only if the device is 'prepared'
+
+2. Add new OSDs on existing Ceph OSD node. In this case, we expect some devices
+to be active OSDs, and all other devices found by facter must be
+prepared/activated.
+
+In this case, 'reinstall_node' is 'false'. For every device, we run 'ceph-deploy
+prepare' -> 'ceph-deploy activate' with the following conditions:
+
+* run 'ceph-deploy prepare' if the device is not 'active'
+* run 'ceph-deploy activate' only if the device is 'prepared'
+
+3. Reinstall operating system on the existing Ceph OSD node without dropping OSD
+data. In this case, we expect that all devices listed in facts are prepared, and
+only have to be activated. We also expect that all devices are configured for
+the current cluster, thus we need to stop deployment if something goes wrong
+(i.e. devices cannot be activated).
+
+In this case, 'reinstall_node' is 'true'. For every device, we run 'ceph-deploy
+activate' only if the device is 'prepared'
+
+DocImpact
+Change-Id: I667fa6aab9d6f46c73bfb8ca0e267afede6049fb
+Implements: blueprint partition-preservation
+---
+ deployment/puppet/ceph/manifests/init.pp           |    1 +
+ deployment/puppet/ceph/manifests/osds.pp           |   19 +++++++-
+ deployment/puppet/ceph/manifests/osds/osd.pp       |   48 +++++++++++++-------
+ deployment/puppet/ceph/spec/classes/osds__spec.rb  |   13 +++++-
+ deployment/puppet/ceph/spec/defines/osd__spec.rb   |   12 +++--
+ .../puppet/osnailyfacter/modular/ceph/ceph-osd.pp  |    1 +
+ 6 files changed, 68 insertions(+), 26 deletions(-)
+
+diff --git a/deployment/puppet/ceph/manifests/init.pp b/deployment/puppet/ceph/manifests/init.pp
+index af7c5f0..8815305 100644
+--- a/deployment/puppet/ceph/manifests/init.pp
++++ b/deployment/puppet/ceph/manifests/init.pp
+@@ -12,6 +12,7 @@ class ceph (
+       $osd_devices                        = split($::osd_devices_list, ' '),
+       $use_ssl                            = false,
+       $use_rgw                            = false,
++      $use_prepared_devices               = false,
+ 
+       # ceph.conf Global settings
+       $auth_supported                     = 'cephx',
+diff --git a/deployment/puppet/ceph/manifests/osds.pp b/deployment/puppet/ceph/manifests/osds.pp
+index 3281415..92ec7f1 100644
+--- a/deployment/puppet/ceph/manifests/osds.pp
++++ b/deployment/puppet/ceph/manifests/osds.pp
+@@ -1,6 +1,19 @@
+-# prepare and bring online the devices listed in $::ceph::osd_devices
++# == Class: ceph::osd
++#
++# Prepare and bring online the OSD devices
++#
++# ==== Parameters
++#
++# [*devices*]
++# (optional) Array. This is the list of OSD devices identified by the facter.
++#
++# [*use_prepared_devices*]
++# (optional) Boolean. Tells if OSD devices are prepared in advance. Defaults to
++# the value defined in the class 'ceph'.
++#
+ class ceph::osds (
+   $devices = $::ceph::osd_devices,
++  $use_prepared_devices = $::ceph::use_prepared_devices
+ ){
+ 
+   firewall { '011 ceph-osd allow':
+@@ -10,6 +23,8 @@ class ceph::osds (
+     action => accept,
+   } ->
+ 
+-  ceph::osds::osd{ $devices: }
++  ceph::osds::osd{ $devices:
++    use_prepared_devices => $use_prepared_devices
++  }
+ 
+ }
+diff --git a/deployment/puppet/ceph/manifests/osds/osd.pp b/deployment/puppet/ceph/manifests/osds/osd.pp
+index b8fd18e..b6647b8 100644
+--- a/deployment/puppet/ceph/manifests/osds/osd.pp
++++ b/deployment/puppet/ceph/manifests/osds/osd.pp
+@@ -1,25 +1,39 @@
+-define ceph::osds::osd () {
++# == Define: ceph::osds::osd
++#
++# Prepare and activate OSD nodes on the node
++#
++# === Parameters
++#
++# [*use_prepared_devices*]
++# (required) Boolean. If true, the device assumed to be prepared in advance and
++# 'ceph-deploy prepare' will be skipped for the device.
++#
++define ceph::osds::osd (
++  $use_prepared_devices,
++) {
+ 
+   # ${name} format is DISK[:JOURNAL]
+   $params             = split($name, ':')
+   $data_device_name   = $params[0]
+   $deploy_device_name = "${::hostname}:${name}"
+ 
+-  exec { "ceph-deploy osd prepare ${deploy_device_name}":
+-    # ceph-deploy osd prepare is ensuring there is a filesystem on the
+-    # disk according to the args passed to ceph.conf (above).
+-    #
+-    # It has a long timeout because of the format taking forever. A
+-    # resonable amount of time would be around 300 times the length of
+-    # $osd_nodes. Right now its 0 to prevent puppet from aborting it.
+-    command   => "ceph-deploy osd prepare ${deploy_device_name}",
+-    returns   => 0,
+-    timeout   => 0, # TODO: make this something reasonable
+-    tries     => 2, # This is necessary because of race for mon creating keys
+-    try_sleep => 1,
+-    logoutput => true,
+-    unless    => "grep -q ${data_device_name} /proc/mounts",
+-  } ->
++  unless $use_prepared_devices {
++    exec { "ceph-deploy osd prepare ${deploy_device_name}":
++      # ceph-deploy osd prepare is ensuring there is a filesystem on the
++      # disk according to the args passed to ceph.conf (above).
++      #
++      # It has a long timeout because of the format taking forever. A
++      # resonable amount of time would be around 300 times the length of
++      # $osd_nodes. Right now its 0 to prevent puppet from aborting it.
++      command   => "ceph-deploy osd prepare ${deploy_device_name}",
++      returns   => 0,
++      timeout   => 0, # TODO: make this something reasonable
++      tries     => 2, # This is necessary because of race for mon creating keys
++      try_sleep => 1,
++      logoutput => true,
++      unless    => "ceph-disk list | grep -q '${data_device_name} .*ceph data, active'",
++    } -> Exec["ceph-deploy osd activate ${deploy_device_name}"]
++  }
+ 
+   exec { "ceph-deploy osd activate ${deploy_device_name}":
+     command   => "ceph-deploy osd activate ${deploy_device_name}",
+@@ -27,7 +41,7 @@ define ceph::osds::osd () {
+     tries     => 3,
+     logoutput => true,
+     timeout   => 0,
+-    unless    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|${data_device_name}\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
++    onlyif    => "ceph-disk list | grep -q '${data_device_name} .*ceph data, prepared'",
+   }
+ 
+ }
+diff --git a/deployment/puppet/ceph/spec/classes/osds__spec.rb b/deployment/puppet/ceph/spec/classes/osds__spec.rb
+index b4b7c1b..263d5ae 100644
+--- a/deployment/puppet/ceph/spec/classes/osds__spec.rb
++++ b/deployment/puppet/ceph/spec/classes/osds__spec.rb
+@@ -12,20 +12,29 @@ describe 'ceph::osds', :type => :class do
+ 
+ 
+   context 'Class ceph::osds without devices' do
+-    let (:params) {{ :devices => nil }}
++    let (:params) {{ :devices => nil,
++                     :use_prepared_devices => false }}
+ 
+     it { should contain_firewall('011 ceph-osd allow') }
+     it { should_not contain_ceph__osds__osd }
+   end
+ 
+   context 'Class ceph::osds with devices and journals' do
+-    let (:params) {{ :devices => ['/dev/sdc1:/dev/sdc2', '/dev/sdd1:/dev/sdd2' ] }}
++    let (:params) {{ :devices => ['/dev/sdc1:/dev/sdc2', '/dev/sdd1:/dev/sdd2'] }}
+ 
+     it { should contain_firewall('011 ceph-osd allow') }
+     it { should contain_ceph__osds__osd('/dev/sdc1:/dev/sdc2') }
+     it { should contain_ceph__osds__osd('/dev/sdd1:/dev/sdd2') }
+   end
+ 
++  context 'Class ceph::osds with prepared devices' do
++    let (:params) {{ :devices => ['/dev/vdc', '/dev/vdd' ] }}
++
++    it { should contain_firewall('011 ceph-osd allow') }
++    it { should contain_ceph__osds__osd('/dev/vdc') }
++    it { should contain_ceph__osds__osd('/dev/vdd') }
++  end
++
+ end
+ 
+ # vim: set ts=2 sw=2 et :
+diff --git a/deployment/puppet/ceph/spec/defines/osd__spec.rb b/deployment/puppet/ceph/spec/defines/osd__spec.rb
+index b510da3..921b42f 100644
+--- a/deployment/puppet/ceph/spec/defines/osd__spec.rb
++++ b/deployment/puppet/ceph/spec/defines/osd__spec.rb
+@@ -2,11 +2,12 @@ require 'spec_helper'
+ 
+ describe 'ceph::osds::osd', :type => :define do
+   let :facts do
+-    { :hostname => 'test.example', }
++    { :hostname => 'test.example' }
+   end
+ 
+   context 'Simple test' do
+     let(:title) { '/dev/svv' }
++    let(:params) {{ :use_prepared_devices => false }}
+ 
+     it { should contain_exec("ceph-deploy osd prepare test.example:/dev/svv").with(
+       'command'   => 'ceph-deploy osd prepare test.example:/dev/svv',
+@@ -15,7 +16,7 @@ describe 'ceph::osds::osd', :type => :define do
+       'tries'     => 2,
+       'try_sleep' => 1,
+       'logoutput' => true,
+-      'unless'    => "grep -q /dev/svv /proc/mounts",
++      'unless'    => "ceph-disk list | grep -q '/dev/svv .*ceph data, active'",
+       )
+     }
+     it { should contain_exec("ceph-deploy osd activate test.example:/dev/svv").with(
+@@ -24,13 +25,14 @@ describe 'ceph::osds::osd', :type => :define do
+       'tries'     => 3,
+       'logoutput' => true,
+       'timeout'   => 0,
+-      'unless'    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|/dev/svv\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
++      'onlyif'    => "ceph-disk list | grep -q '/dev/svv .*ceph data, prepared'",
+     )
+     }
+   end
+ 
+   context 'Simple test with journal' do
+     let(:title) { '/dev/sdd:/dev/journal' }
++    let(:params) {{ :use_prepared_devices => false }}
+     it { should contain_exec("ceph-deploy osd prepare test.example:/dev/sdd:/dev/journal").with(
+       'command'   => 'ceph-deploy osd prepare test.example:/dev/sdd:/dev/journal',
+       'returns'   => 0,
+@@ -38,7 +40,7 @@ describe 'ceph::osds::osd', :type => :define do
+       'tries'     => 2,
+       'try_sleep' => 1,
+       'logoutput' => true,
+-      'unless'    => "grep -q /dev/sdd /proc/mounts",
++      'unless'    => "ceph-disk list | grep -q '/dev/sdd .*ceph data, active'",
+       )
+     }
+     it { should contain_exec("ceph-deploy osd activate test.example:/dev/sdd:/dev/journal").with(
+@@ -47,7 +49,7 @@ describe 'ceph::osds::osd', :type => :define do
+       'tries'     => 3,
+       'logoutput' => true,
+       'timeout'   => 0,
+-      'unless'    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|/dev/sdd\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
++      'onlyif'    => "ceph-disk list | grep -q '/dev/sdd .*ceph data, prepared'",
+       )
+     }
+   end
+diff --git a/deployment/puppet/osnailyfacter/modular/ceph/ceph-osd.pp b/deployment/puppet/osnailyfacter/modular/ceph/ceph-osd.pp
+index c3917d3..a9d52ee 100644
+--- a/deployment/puppet/osnailyfacter/modular/ceph/ceph-osd.pp
++++ b/deployment/puppet/osnailyfacter/modular/ceph/ceph-osd.pp
+@@ -44,6 +44,7 @@ class {'ceph':
+   syslog_log_facility      => hiera('syslog_log_facility_ceph','LOG_LOCAL0'),
+   rgw_keystone_admin_token => $keystone_hash['admin_token'],
+   ephemeral_ceph           => $storage_hash['ephemeral_ceph'],
++  use_prepared_devices     => hiera('reinstall_node', false),
+ }
+ 
+ $osd_devices = split($::osd_devices_list, ' ')
+-- 
+1.7.9.5
+
