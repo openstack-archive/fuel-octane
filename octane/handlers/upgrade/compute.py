@@ -36,8 +36,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         controller = env_util.get_one_controller(self.env)
         ssh.call(
             ["sh", "-c", ". /root/openrc; "
-             "nova service-enable node-{0} nova-compute".format(
-                 self.node.data['id'])],
+             "nova service-enable {0} nova-compute".format(
+                 self.node.data['fqdn'])],
             node=controller,
         )
 
