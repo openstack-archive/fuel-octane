@@ -41,6 +41,16 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             node=controller,
         )
 
+        sftp = ssh.sftp(self.node)
+
+        with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+            for line in old:
+                new.write(line)
+                if line.startswith("[upgrade_levels]"):
+                    new.write("compute=juno\n")
+
+        ssh.call(["service", "nova-compute", "restart"], node=self.node)
+
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
         with ssh.tempdir(controller) as tempdir:
