@@ -90,6 +90,23 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                         self.service_tenant_id))
                 else:
                     new.write(line)
+        if self.orig_env.data["fuel_version"] == "6.1":
+            with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+                for line in old:
+                    new.write(line)
+                    if line.startswith("[upgrade_levels]"):
+                        new.write("compute=juno\n")
+
+            nova_services = ssh.call_output(
+                ["bash", "-c",
+                 "initctl list | "
+                 "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
+                node=self.node
+            )
+
+            for nova_service in nova_services.split():
+                ssh.call(["service", nova_service, "restart"], node=self.node)
+
         ssh.call(['restart', 'neutron-server'], node=self.node)
         if self.isolated and self.gateway:
             # From restore_default_gateway
