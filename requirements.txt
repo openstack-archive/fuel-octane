@@ -11,6 +11,7 @@ oslo.config<1.10.0  # the last version with namespace package
 # (taken from requirements.txt in python-fuelclient)
 argparse==1.2.1
 requests>=2.1.0,!=2.4.0,<=2.2.1
+six>=1.7.0,<=1.9.0
 
 python-keystoneclient<=0.11.1  # the last version without too fresh requirements
 python-fuelclient>=6.1
