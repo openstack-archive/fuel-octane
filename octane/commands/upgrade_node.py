@@ -53,6 +53,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
     call_handlers('predeploy')
+    env_util.update_deployment_info(env, isolated)
     if network_template:
         env_util.set_network_template(env, network_template)
     if isolated:
