@@ -22,6 +22,8 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
 
+from octane.helpers import tasks as tasks_helpers
+from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
@@ -274,3 +276,40 @@ def set_network_template(env, filename):
     with open(filename, 'r') as f:
         data = f.read()
         env.set_network_template_data(yaml.load(data))
+
+
+def update_deployment_info(env, isolated):
+    default_info = env.get_default_facts('deployment')
+    network_data = env.get_network_data()
+    gw_admin = transformations.get_network_gw(network_data,
+                                              "fuelweb_admin")
+    if isolated:
+        # From backup_deployment_info
+        backup_path = os.path.join(
+            magic_consts.FUEL_CACHE,
+            "deployment_{0}.orig".format(env.id),
+        )
+        if not os.path.exists(backup_path):
+            os.makedirs(backup_path)
+        # Roughly taken from Environment.write_facts_to_dir
+        for info in default_info:
+            fname = os.path.join(
+                backup_path,
+                "{0}_{1}.yaml".format(info['role'], info['uid']),
+            )
+            with open(fname, 'w') as f:
+                yaml.safe_dump(info, f, default_flow_style=False)
+    deployment_info = []
+    for info in default_info:
+        if isolated:
+            transformations.remove_ports(info)
+            transformations.reset_gw_admin(info, gw_admin)
+        # From run_ping_checker
+        info['run_ping_checker'] = False
+        transformations.remove_predefined_nets(info)
+        deployment_info.append(info)
+    env.upload_facts('deployment', deployment_info)
+
+    tasks = env.get_deployment_tasks()
+    tasks_helpers.skip_tasks(tasks)
+    env.update_deployment_tasks(tasks)

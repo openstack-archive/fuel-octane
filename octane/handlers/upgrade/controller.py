@@ -11,15 +11,9 @@
 # under the License.
 
 import logging
-import os
 import subprocess
 
-import yaml
-
 from octane.handlers import upgrade
-from octane.helpers import tasks as tasks_helpers
-from octane.helpers import transformations
-from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
 
@@ -37,48 +31,14 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             self.env, self.node)
 
     def predeploy(self):
-        default_info = self.env.get_default_facts('deployment')
-        deployment_info = env_util.get_deployment_info(self.env)
-        network_data = self.env.get_network_data()
-        gw_admin = transformations.get_network_gw(network_data,
-                                                  "fuelweb_admin")
-        if self.isolated:
-            # From backup_deployment_info
-            backup_path = os.path.join(
-                magic_consts.FUEL_CACHE,
-                "deployment_{0}.orig".format(self.node.data['cluster']),
-            )
-            if not os.path.exists(backup_path):
-                os.makedirs(backup_path)
-            # Roughly taken from Environment.write_facts_to_dir
-            for info in default_info:
-                if not info['uid'] == str(self.node.id):
-                    continue
-                fname = os.path.join(
-                    backup_path,
-                    "{0}_{1}.yaml".format(info['role'], info['uid']),
-                )
-                with open(fname, 'w') as f:
-                    yaml.safe_dump(info, f, default_flow_style=False)
-        for info in default_info:
-            if not (info['role'] == 'primary-controller' or
-                    info['uid'] == str(self.node.id)):
-                continue
-            if self.isolated:
-                transformations.remove_ports(info)
-                if info['uid'] == str(self.node.id):
-                    endpoints = info["network_scheme"]["endpoints"]
-                    self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info, gw_admin)
-            # From run_ping_checker
-            info['run_ping_checker'] = False
-            transformations.remove_predefined_nets(info)
-            deployment_info.append(info)
-        self.env.upload_facts('deployment', deployment_info)
+        self.backup_initial_gw_info()
 
-        tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
-        self.env.update_deployment_tasks(tasks)
+    def backup_initial_gw_info(self):
+        default_info = self.env.get_default_facts('deployment')
+        for info in default_info:
+            if info['uid'] == str(self.node.id):
+                endpoints = info["network_scheme"]["endpoints"]
+                self.gateway = endpoints["br-ex"]["gateway"]
 
     def postdeploy(self):
         # From neutron_update_admin_tenant_id
