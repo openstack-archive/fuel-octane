@@ -38,7 +38,6 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
-        deployment_info = env_util.get_deployment_info(self.env)
         network_data = self.env.get_network_data()
         gw_admin = transformations.get_network_gw(network_data,
                                                   "fuelweb_admin")
@@ -60,19 +59,16 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 )
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
+        deployment_info = []
         for info in default_info:
-            if not (info['role'] == 'primary-controller' or
-                    info['uid'] == str(self.node.id)):
-                continue
-            if self.isolated:
-                transformations.remove_ports(info)
-                if info['uid'] == str(self.node.id):
+            if info['uid'] == str(self.node.id):
+                info['run_ping_checker'] = False
+                transformations.remove_predefined_nets(info)
+                if self.isolated:
+                    transformations.remove_ports(info)
                     endpoints = info["network_scheme"]["endpoints"]
                     self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info, gw_admin)
-            # From run_ping_checker
-            info['run_ping_checker'] = False
-            transformations.remove_predefined_nets(info)
+                    transformations.reset_gw_admin(info, gw_admin)
             deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
 
