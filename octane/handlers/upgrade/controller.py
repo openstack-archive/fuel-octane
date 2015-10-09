@@ -61,7 +61,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
         for info in default_info:
-            if not (info['role'] == 'primary-controller' or
+            if not (info['role'].startswith('primary') or
                     info['uid'] == str(self.node.id)):
                 continue
             if self.isolated:
