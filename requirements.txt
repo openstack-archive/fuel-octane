@@ -16,5 +16,3 @@ python-keystoneclient<=0.11.1  # the last version without too fresh requirements
 python-fuelclient>=6.1
 cliff>=1.7.0,<=1.9.0  # should already be pulled by python-fuelclient
 paramiko==1.13.0
-
-pyzabbix==0.7.3
