@@ -23,4 +23,5 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr'],
+    extras_require={'zabbix': ['pyzabbix==0.7.3']},
     pbr=True)
