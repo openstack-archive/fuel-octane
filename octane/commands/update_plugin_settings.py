@@ -12,7 +12,6 @@
 
 import argparse
 import logging
-import pyzabbix
 import re
 import requests
 
@@ -81,9 +80,9 @@ def get_zabbix_client(astute):
     session.proxies = {
         'http': 'http://{0}:8888'.format(node_ip)
     }
+    import pyzabbix
     client = pyzabbix.ZabbixAPI(server=url, session=session)
     client.login(user=user, password=password)
-
     return client
 
 
