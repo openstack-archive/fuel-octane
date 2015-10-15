@@ -109,7 +109,8 @@ def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
     if networks:
         env_util.clone_ips(orig_id, networks)
 
-    node_util.reboot_nodes(nodes)
+    node_util.reboot_nodes(nodes, timeout=180 * 60)
+    LOG.info("Nodes reboot in progress. Please wait...")
     node_util.wait_for_mcollective_start(nodes)
     env_util.provision_nodes(seed_env, nodes)
 
