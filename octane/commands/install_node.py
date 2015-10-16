@@ -13,6 +13,7 @@
 import logging
 
 from octane.handlers.upgrade import controller as controller_upgrade
+from octane.handlers import install as install_handlers
 from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
@@ -89,10 +90,26 @@ def check_networks(orig_env, seed_env, networks):
             raise NoSuchNetwork(seed_env.data['id'], net)
 
 
-def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
+def _install_node(env_id, node_ids, isolated=False, network_template=None):
+    env = environment_obj.Environment(env_id)
+    nodes = [node_obj.Node(node_id) for node_id in node_ids]
+
+    call_handlers = install_handlers.get_nodes_handlers(nodes, env, isolated)
+    call_handlers('preinstall')
+    call_handlers('prepare')
+    env_util.provision_nodes(env, nodes)
+    call_handlers('predeploy')
+    if network_template:
+        env_util.set_network_template(env, network_template)
+    env_util.deploy_nodes(env, nodes)
+    call_handlers('postdeploy')
+
+
+def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None,
+                 network_template=None):
     if orig_id == seed_id:
-        raise Exception("Original and seed environments have the same ID: %s",
-                        orig_id)
+        _install_node(seed_id, node_ids, isolated, network_template)
+        return
 
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
@@ -146,9 +163,13 @@ class InstallNodeCommand(cmd.Command):
         parser.add_argument(
             '--networks', type=str, nargs='+', default=[],
             help="Names of networks which IPs should be copied")
+        parser.add_argument(
+            '--template', type=str, metavar='TEMPLATE_FILE',
+            help="Use network template from file")
         return parser
 
     def take_action(self, parsed_args):
         install_node(parsed_args.orig_id, parsed_args.seed_id,
                      parsed_args.node_ids, isolated=parsed_args.isolated,
-                     networks=parsed_args.networks)
+                     networks=parsed_args.networks,
+                     network_template=parsed_args.template)
