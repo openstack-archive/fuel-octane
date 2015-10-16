@@ -23,4 +23,7 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr'],
+    # NOTE(akscram): The extras_require parameter properly handled from
+    #                setup.cfg in pbr since 1.0.0.
+    extras_require={'zabbix': ['pyzabbix==0.7.3']},
     pbr=True)
