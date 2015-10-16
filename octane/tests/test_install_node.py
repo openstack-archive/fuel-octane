@@ -23,7 +23,8 @@ def test_parser(mocker, octane_app):
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2, [3, 4], isolated=True,
-                              networks=["public", "management"])
+                              networks=["public", "management"],
+                              network_template=None)
 
 
 def test_parser_no_networks(mocker, octane_app):
@@ -31,7 +32,8 @@ def test_parser_no_networks(mocker, octane_app):
     octane_app.run(["install-node", "--isolated", "1", "2", "3", "4"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, 2, [3, 4], isolated=True, networks=[])
+    m.assert_called_once_with(1, 2, [3, 4], isolated=True, networks=[],
+                              network_template=None)
 
 
 @pytest.mark.parametrize("fail,side_effect", [
