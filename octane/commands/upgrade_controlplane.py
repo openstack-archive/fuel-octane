@@ -31,10 +31,14 @@ def update_neutron_config(orig_env, seed_env):
 def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
+    controllers = env_util.get_controllers(seed_env)
     update_neutron_config(orig_env, seed_env)
     # enable all services on seed env
-    maintenance.start_corosync_services(seed_env)
-    maintenance.start_upstart_services(seed_env)
+    if len(controllers) > 1:
+        maintenance.stop_cluster(seed_env)
+    else:
+        maintenance.start_corosync_services(seed_env)
+        maintenance.start_upstart_services(seed_env)
     # disable cluster services on orig env
     maintenance.stop_cluster(orig_env)
     # switch networks to seed env
@@ -46,6 +50,10 @@ def upgrade_control_plane(orig_id, seed_id):
     for node, info in env_util.iter_deployment_info(seed_env, roles):
         network.delete_overlay_networks(node, info)
         network.create_patch_ports(node, info)
+    # enable all services on seed env
+    if len(controllers) > 1:
+        maintenance.start_cluster(seed_env)
+        maintenance.start_upstart_services(seed_env)
 
 
 class UpgradeControlPlaneCommand(cmd.Command):
