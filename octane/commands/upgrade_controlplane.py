@@ -53,6 +53,7 @@ def upgrade_control_plane(orig_id, seed_id):
     # enable all services on seed env
     if len(controllers) > 1:
         maintenance.start_cluster(seed_env)
+        maintenance.start_corosync_services(seed_env)
         maintenance.start_upstart_services(seed_env)
 
 
