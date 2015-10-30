@@ -10,8 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import os.path
 import stat
+import subprocess
 
 from octane.handlers import upgrade
 from octane.helpers import disk
@@ -20,6 +22,8 @@ from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import plugin
 from octane.util import ssh
+
+LOG = logging.getLogger(__name__)
 
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
@@ -34,12 +38,25 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def postdeploy(self):
         self.restore_iscsi_initiator_info()
         controller = env_util.get_one_controller(self.env)
-        ssh.call(
-            ["sh", "-c", ". /root/openrc; "
-             "nova service-enable {0} nova-compute".format(
-                 self.node.data['fqdn'])],
-            node=controller,
-        )
+        # FIXME: Add more correct handling of case
+        # when node may have not full name in services data
+        try:
+            ssh.call(
+                ["sh", "-c", ". /root/openrc; "
+                 "nova service-enable {0} nova-compute".format(
+                     self.node.data['fqdn'])],
+                node=controller,
+            )
+        except subprocess.CalledProcessError as exc:
+            LOG.warn("Cannot start service 'nova-compute' on {0} "
+                     "by reason: {1}. Try again".format(
+                         self.node.data['fqdn'], exc))
+            ssh.call(
+                ["sh", "-c", ". /root/openrc; "
+                 "nova service-enable {0} nova-compute".format(
+                     self.node.data['fqdn'].split('.', 1)[0])],
+                node=controller,
+            )
 
         sftp = ssh.sftp(self.node)
 
