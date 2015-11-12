@@ -1,5 +1,5 @@
 %define name fuel-octane
-%{!?version: %define version 1}
+%{!?version: %define version 1.0.0}
 %{!?release: %define release 1}
 
 Name: %{name}
