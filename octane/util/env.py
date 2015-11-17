@@ -22,6 +22,8 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
 
+from octane.helpers import tasks as tasks_helpers
+from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
@@ -225,37 +227,38 @@ def move_nodes(env, nodes):
         node_id = node.data['id']
         subprocess.call(
             ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
+    LOG.info("Nodes provision started. Please wait...")
     wait_for_nodes(nodes, "provisioned")
 
 
 def provision_nodes(env, nodes):
     env.install_selected_nodes('provision', nodes)
-    wait_for_nodes(nodes, "provisioned")
+    LOG.info("Nodes provision started. Please wait...")
+    wait_for_nodes(nodes, "provisioned", timeout=180 * 60)
 
 
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
-    wait_for_nodes(nodes, "ready")
+    LOG.info("Nodes deploy started. Please wait...")
+    wait_for_nodes(nodes, "ready", timeout=180 * 60)
     wait_for_tasks(env, "running")
 
 
 def deploy_changes(env, nodes):
     env.deploy_changes()
+    LOG.info("Nodes deploy started. Please wait...")
     wait_for_env(env, "operational", timeout=180 * 60)
 
 
-def merge_deployment_info(env):
-    default_info = env.get_default_facts('deployment')
+def get_deployment_info(env):
+    deployment_info = []
     try:
         deployment_info = env.get_facts('deployment')
     except fuelclient.cli.error.ServerDataException:
         LOG.warn('Deployment info is unchanged for env: %s',
                  env.id)
-        deployment_info = []
-    for info in default_info:
-        if not (info['uid'], info['role']) in [(i['uid'], i['role'])
-           for i in deployment_info]:
-            deployment_info.append(info)
+    deployment_info = [x for x in deployment_info
+                       if x['role'] != 'primary-controller']
     return deployment_info
 
 
@@ -275,3 +278,89 @@ def set_network_template(env, filename):
     with open(filename, 'r') as f:
         data = f.read()
         env.set_network_template_data(yaml.load(data))
+
+
+def update_deployment_info(env, isolated):
+    default_info = env.get_default_facts('deployment')
+    network_data = env.get_network_data()
+    gw_admin = transformations.get_network_gw(network_data,
+                                              "fuelweb_admin")
+    if isolated:
+        # From backup_deployment_info
+        backup_path = os.path.join(
+            magic_consts.FUEL_CACHE,
+            "deployment_{0}.orig".format(env.id),
+        )
+        if not os.path.exists(backup_path):
+            os.makedirs(backup_path)
+        # Roughly taken from Environment.write_facts_to_dir
+        for info in default_info:
+            fname = os.path.join(
+                backup_path,
+                "{0}_{1}.yaml".format(info['role'], info['uid']),
+            )
+            with open(fname, 'w') as f:
+                yaml.safe_dump(info, f, default_flow_style=False)
+    deployment_info = []
+    for info in default_info:
+        if isolated:
+            transformations.remove_ports(info)
+            transformations.reset_gw_admin(info, gw_admin)
+        # From run_ping_checker
+        info['run_ping_checker'] = False
+        transformations.remove_predefined_nets(info)
+        deployment_info.append(info)
+    env.upload_facts('deployment', deployment_info)
+
+    tasks = env.get_deployment_tasks()
+    tasks_helpers.skip_tasks(tasks)
+    env.update_deployment_tasks(tasks)
+
+
+def find_node_deployment_info(node, roles, data):
+    node_roles = [n['role']
+                  for n in data[0]['nodes'] if str(node.id) == n['uid']]
+    if not set(roles) & set(node_roles):
+        return None
+
+    for info in data:
+        if info['uid'] == str(node.id):
+            return info
+    return None
+
+
+def get_backup_deployment_info(env_id):
+    deployment_info = []
+    backup_path = os.path.join(
+        magic_consts.FUEL_CACHE, 'deployment_{0}.orig'.format(env_id))
+    if not os.path.exists(backup_path):
+        return None
+
+    for filename in os.listdir(backup_path):
+        filepath = os.path.join(backup_path, filename)
+        with open(filepath) as info_file:
+            info = yaml.safe_load(info_file)
+            deployment_info.append(info)
+
+    return deployment_info
+
+
+def collect_deployment_info(env, nodes):
+    deployment_info = []
+    for node in nodes:
+        info = get_astute_yaml(env, node)
+        deployment_info.append(info)
+    return deployment_info
+
+
+def iter_deployment_info(env, roles):
+    controllers = list(get_controllers(env))
+    full_info = get_backup_deployment_info(env.id)
+    roles = ['primary-controller', 'controller']
+
+    if not full_info:
+        full_info = collect_deployment_info(env, controllers)
+
+    for node in controllers:
+        info = find_node_deployment_info(node, roles, full_info)
+        yield (node, info)

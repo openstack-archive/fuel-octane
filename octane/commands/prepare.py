@@ -22,15 +22,23 @@ from octane.util import subprocess
 
 
 def patch_puppet(revert=False):
-    direction = "-R" if revert else "-N"
     puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
         with open(os.path.join(d, "patch")) as patch:
-            subprocess.call(["patch", direction, "-p3"], stdin=patch,
-                            cwd=magic_consts.PUPPET_DIR)
+            try:
+                subprocess.call(["patch", "-R", "-p3"], stdin=patch,
+                                cwd=magic_consts.PUPPET_DIR)
+            except subprocess.CalledProcessError:
+                if not revert:
+                    pass
+                else:
+                    raise
+            if not revert:
+                subprocess.call(["patch", "-N", "-p3"], stdin=patch,
+                                cwd=magic_consts.PUPPET_DIR)
 
 
 def apply_patches(revert=False):

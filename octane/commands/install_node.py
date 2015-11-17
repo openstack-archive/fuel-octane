@@ -109,14 +109,13 @@ def install_node(orig_id, seed_id, node_ids, isolated=False, networks=None):
     if networks:
         env_util.clone_ips(orig_id, networks)
 
-    node_util.reboot_nodes(nodes)
+    LOG.info("Nodes reboot in progress. Please wait...")
+    node_util.reboot_nodes(nodes, timeout=180 * 60)
     node_util.wait_for_mcollective_start(nodes)
     env_util.provision_nodes(seed_env, nodes)
 
-    for node in nodes:
-        # FIXME: properly call all handlers all over the place
-        controller_upgrade.ControllerUpgrade(
-            node, seed_env, isolated=isolated).predeploy()
+    env_util.update_deployment_info(seed_env, isolated)
+
     if isolated and len(nodes) > 1:
         isolate(nodes, seed_env)
 

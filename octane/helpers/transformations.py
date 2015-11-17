@@ -99,6 +99,14 @@ def remove_predefined_nets(host_config):
     return host_config
 
 
+def get_network_gw(data, network_name):
+    for net in data['networks']:
+        if net['name'] == network_name:
+            return net.get('gateway')
+    else:
+        return None
+
+
 def reset_gw_admin(host_config, gateway=None):
     if gateway:
         gw = gateway

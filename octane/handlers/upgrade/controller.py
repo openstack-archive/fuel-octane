@@ -37,7 +37,11 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             self.env, self.node)
 
     def predeploy(self):
-        deployment_info = env_util.merge_deployment_info(self.env)
+        default_info = self.env.get_default_facts('deployment')
+        deployment_info = env_util.get_deployment_info(self.env)
+        network_data = self.env.get_network_data()
+        gw_admin = transformations.get_network_gw(network_data,
+                                                  "fuelweb_admin")
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -47,7 +51,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             if not os.path.exists(backup_path):
                 os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
-            for info in deployment_info:
+            for info in default_info:
                 if not info['uid'] == str(self.node.id):
                     continue
                 fname = os.path.join(
@@ -56,17 +60,20 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 )
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
-        for info in deployment_info:
-            if not info['uid'] == str(self.node.id):
+        for info in default_info:
+            if not (info['role'] == 'primary-controller' or
+                    info['uid'] == str(self.node.id)):
                 continue
             if self.isolated:
                 transformations.remove_ports(info)
-                endpoints = deployment_info[0]["network_scheme"]["endpoints"]
-                self.gateway = endpoints["br-ex"]["gateway"]
-                transformations.reset_gw_admin(info)
+                if info['uid'] == str(self.node.id):
+                    endpoints = info["network_scheme"]["endpoints"]
+                    self.gateway = endpoints["br-ex"]["gateway"]
+                transformations.reset_gw_admin(info, gw_admin)
             # From run_ping_checker
             info['run_ping_checker'] = False
             transformations.remove_predefined_nets(info)
+            deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
 
         tasks = self.env.get_deployment_tasks()
@@ -83,6 +90,23 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                         self.service_tenant_id))
                 else:
                     new.write(line)
+        if self.orig_env.data["fuel_version"] == "6.1":
+            with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+                for line in old:
+                    new.write(line)
+                    if line.startswith("[upgrade_levels]"):
+                        new.write("compute=juno\n")
+
+            nova_services = ssh.call_output(
+                ["bash", "-c",
+                 "initctl list | "
+                 "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
+                node=self.node
+            )
+
+            for nova_service in nova_services.split():
+                ssh.call(["service", nova_service, "restart"], node=self.node)
+
         ssh.call(['restart', 'neutron-server'], node=self.node)
         if self.isolated and self.gateway:
             # From restore_default_gateway
