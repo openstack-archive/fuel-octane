@@ -1,0 +1,9 @@
+Verified+2: Jenkins
+Code-Review+2: Ilya Kharin <akscram@gmail.com>
+Workflow+1: Ilya Kharin <akscram@gmail.com>
+Code-Review+2: Oleg Gelbukh <ogelbukh@mirantis.com>
+Submitted-by: Jenkins
+Submitted-at: Wed, 18 Nov 2015 11:54:06 +0000
+Reviewed-on: https://review.openstack.org/246676
+Project: openstack/fuel-octane
+Branch: refs/heads/master
