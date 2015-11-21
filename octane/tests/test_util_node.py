@@ -13,6 +13,7 @@
 import io
 import mock
 import pytest
+import StringIO
 
 from octane.util import node as node_util
 from octane.util import ssh
@@ -96,3 +97,54 @@ def test_untar_files(node, mock_ssh_popen, mock_open):
                                            stdin=ssh.PIPE, node=node)
     mock_open.assert_called_once_with('filename', 'rb')
     assert buf.getvalue() == content
+
+
+NOVA_DEFAULT = b'[DEFAULT]\ndebug = True\n'
+NOVA_WITH_EMPTY_LEVELS = NOVA_DEFAULT + b'[upgrade_levels]\n'
+NOVA_WITH_KILO_LEVELS = NOVA_WITH_EMPTY_LEVELS + b'compute=kilo\n'
+
+
+@pytest.mark.parametrize("content,expected_content", [
+    (NOVA_DEFAULT, NOVA_DEFAULT),
+    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_KILO_LEVELS),
+])
+def test_add_compute_upgrade_levels(mocker, node, content, expected_content):
+    mock_sftp = mocker.patch('octane.util.ssh.sftp')
+
+    old = StringIO.StringIO(content)
+    mock_new = mocker.Mock()
+    buf = io.BytesIO()
+    mock_new.write = buf.write
+    mock_update_file = mocker.patch('octane.util.ssh.update_file')
+    mock_update_file.return_value.__enter__.return_value = (old, mock_new)
+
+    node_util.add_compute_upgrade_levels(node, 'kilo')
+
+    mock_sftp.assert_called_once_with(node)
+    mock_update_file.assert_called_once_with(mock_sftp.return_value,
+                                             '/etc/nova/nova.conf')
+    assert buf.getvalue() == expected_content
+
+
+@pytest.mark.parametrize("content,expected_content", [
+    (NOVA_DEFAULT, NOVA_DEFAULT),
+    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_EMPTY_LEVELS),
+    (NOVA_WITH_KILO_LEVELS, NOVA_WITH_EMPTY_LEVELS),
+])
+def test_remove_compute_upgrade_levels(mocker, node, content,
+                                       expected_content):
+    mock_sftp = mocker.patch('octane.util.ssh.sftp')
+
+    old = StringIO.StringIO(content)
+    mock_new = mocker.Mock()
+    buf = io.BytesIO()
+    mock_new.write = buf.write
+    mock_update_file = mocker.patch('octane.util.ssh.update_file')
+    mock_update_file.return_value.__enter__.return_value = (old, mock_new)
+
+    node_util.remove_compute_upgrade_levels(node)
+
+    mock_sftp.assert_called_once_with(node)
+    mock_update_file.assert_called_once_with(mock_sftp.return_value,
+                                             '/etc/nova/nova.conf')
+    assert buf.getvalue() == expected_content
