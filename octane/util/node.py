@@ -119,3 +119,21 @@ def wait_for_mcollective_start(nodes, timeout=600):
             raise Exception("Timeout waiting for nodes {0} to start"
                             " mcollective".format(failed))
         wait_list -= done
+
+
+def add_compute_upgrade_levels(node):
+    sftp = ssh.sftp(node)
+    with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+        for line in old:
+            new.write(line)
+            if line.startswith("[upgrade_levels]"):
+                new.write("compute=juno\n")
+
+
+def remove_compute_upgrade_levels(node):
+    sftp = ssh.sftp(node)
+    with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+        for line in old:
+            if line.startswith("compute=juno"):
+                continue
+            new.write(line)
