@@ -58,14 +58,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 node=controller,
             )
 
-        sftp = ssh.sftp(self.node)
-
         if self.orig_env.data["fuel_version"] == "6.1":
-            with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
-                for line in old:
-                    new.write(line)
-                    if line.startswith("[upgrade_levels]"):
-                        new.write("compute=juno\n")
+            node_util.add_compute_upgrade_levels(self.node)
 
             ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
