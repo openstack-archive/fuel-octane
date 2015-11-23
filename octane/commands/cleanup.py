@@ -18,6 +18,7 @@ from fuelclient import objects
 
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import node as node_util
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -25,6 +26,10 @@ LOG = logging.getLogger(__name__)
 
 def cleanup_environment(env_id):
     env = objects.Environment(env_id)
+
+    nodes = env.get_all_nodes()
+    for node in nodes:
+        node_util.remove_compute_upgrade_levels(node)
 
     controller = env_util.get_one_controller(env)
     sftp = ssh.sftp(controller)
