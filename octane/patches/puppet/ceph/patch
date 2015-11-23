@@ -1,4 +1,4 @@
-commit 58895ee6973857fa8b4ee811e7dfa5005ae22aa1 (HEAD, puppet-tests/review/oleg_gelbukh/bp/partition-preservation, review/oleg_gelbukh/bp/partition-preservation)
+commit d898a3d30e89eded72ca6bfa51c0b567e6f3055c (HEAD, puppet-tests/review/oleg_gelbukh/bp/partition-preservation, review/oleg_gelbukh/bp/partition-preservation)
 Author: Oleg Gelbukh <ogelbukh@mirantis.com>
 Date:   Mon Jul 20 13:29:09 2015 +0000
 
@@ -21,10 +21,10 @@ Date:   Mon Jul 20 13:29:09 2015 +0000
     Implements: blueprint partition-preservation
 
 diff --git a/deployment/puppet/ceph/manifests/osds.pp b/deployment/puppet/ceph/manifests/osds.pp
-index 3281415..a872bb8 100644
+index 3281415..19ce2b5 100644
 --- a/deployment/puppet/ceph/manifests/osds.pp
 +++ b/deployment/puppet/ceph/manifests/osds.pp
-@@ -1,4 +1,12 @@
+@@ -1,8 +1,28 @@
 -# prepare and bring online the devices listed in $::ceph::osd_devices
 +# == Class: ceph::osd
 +#
@@ -38,6 +38,28 @@ index 3281415..a872bb8 100644
  class ceph::osds (
    $devices = $::ceph::osd_devices,
  ){
+ 
++  exec { 'udevadm trigger':
++    command     => 'udevadm trigger',
++    returns     => 0,
++    logoutput   => true,
++  } ->
++
++  exec {'ceph-disk activate-all':
++    command     => 'ceph-disk activate-all',
++    returns     => 0,
++    logoutput   => true,
++  } ->
++
+   firewall { '011 ceph-osd allow':
+     chain  => 'INPUT',
+     dport  => '6800-7100',
+@@ -11,5 +31,4 @@ class ceph::osds (
+   } ->
+ 
+   ceph::osds::osd{ $devices: }
+-
+ }
 diff --git a/deployment/puppet/ceph/manifests/osds/osd.pp b/deployment/puppet/ceph/manifests/osds/osd.pp
 index b8fd18e..153b84d 100644
 --- a/deployment/puppet/ceph/manifests/osds/osd.pp
@@ -71,10 +93,25 @@ index b8fd18e..153b84d 100644
  
  }
 diff --git a/deployment/puppet/ceph/spec/classes/osds__spec.rb b/deployment/puppet/ceph/spec/classes/osds__spec.rb
-index b4b7c1b..157bcea 100644
+index b4b7c1b..d04d47f 100644
 --- a/deployment/puppet/ceph/spec/classes/osds__spec.rb
 +++ b/deployment/puppet/ceph/spec/classes/osds__spec.rb
-@@ -19,7 +19,7 @@ describe 'ceph::osds', :type => :class do
+@@ -5,9 +5,11 @@ describe 'ceph::osds', :type => :class do
+   context 'Simple ceph::osds class test' do
+     let (:params) {{ :devices => ['/dev/vdc', '/dev/vdd' ] }}
+ 
+-    it { should contain_firewall('011 ceph-osd allow') }
+-    it { should contain_ceph__osds__osd('/dev/vdc') }
+-    it { should contain_ceph__osds__osd('/dev/vdd') }
++    it { should contain_exec('udevadm trigger') }
++    it { should contain_exec('ceph-disk activate-all').that_requires('Exec[udevadm trigger]') }
++    it { should contain_firewall('011 ceph-osd allow').that_requires('Exec[ceph-disk activate-all]') }
++    it { should contain_ceph__osds__osd('/dev/vdc').that_requires('Firewall[011 ceph-osd allow]') }
++    it { should contain_ceph__osds__osd('/dev/vdd').that_requires('Firewall[011 ceph-osd allow]') }
+   end
+ 
+ 
+@@ -19,7 +21,7 @@ describe 'ceph::osds', :type => :class do
    end
  
    context 'Class ceph::osds with devices and journals' do
