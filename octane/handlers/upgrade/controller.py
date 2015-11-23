@@ -21,6 +21,7 @@ from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import node as node_util
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -91,11 +92,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 else:
                     new.write(line)
         if self.orig_env.data["fuel_version"] == "6.1":
-            with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
-                for line in old:
-                    new.write(line)
-                    if line.startswith("[upgrade_levels]"):
-                        new.write("compute=juno\n")
+            node_util.add_compute_upgrade_levels(self.node)
 
             nova_services = ssh.call_output(
                 ["bash", "-c",
