@@ -14,6 +14,7 @@ import logging
 import os.path
 
 from cliff import command as cmd
+from distutils.version import StrictVersion
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
@@ -63,10 +64,10 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
 
 
 def patch_partition_generator(env_id):
-    """Update partitions generator for release 5.2.9"""
+    """Update partitions generator for release 5.X.X"""
 
     env = environment_obj.Environment(env_id)
-    if env.data['fuel_version'] == '5.2.9':
+    if StrictVersion(env.data["fuel_version"]) < StrictVersion("6.0"):
         copy_patches_folder_to_nailgun()
         disk.update_partition_generator()
 
