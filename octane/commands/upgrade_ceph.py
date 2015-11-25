@@ -64,7 +64,7 @@ def import_bootstrap_osd(node):
     ssh.call(['ceph', 'auth', 'import', '-i',
               '/root/ceph.bootstrap-osd.keyring'], node=node)
     ssh.call(['ceph', 'auth', 'caps', 'client.bootstrap-osd', 'mon',
-              "'allow profile bootstrap-osd'"], node=node)
+              "allow profile bootstrap-osd"], node=node)
 
 
 def get_ceph_conf_filename(node):
