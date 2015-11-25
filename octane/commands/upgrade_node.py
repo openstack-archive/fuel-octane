@@ -63,10 +63,10 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
 
 
 def patch_partition_generator(env_id):
-    """Update partitions generator for release 5.2.9"""
+    """Update partitions generator for release 5.X.X"""
 
     env = environment_obj.Environment(env_id)
-    if env.data['fuel_version'] == '5.2.9':
+    if int(env.data['fuel_version'].split('.', 1)[0]) <= 5:
         copy_patches_folder_to_nailgun()
         disk.update_partition_generator()
 
