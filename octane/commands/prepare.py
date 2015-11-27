@@ -27,17 +27,21 @@ def patch_puppet(revert=False):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
             continue
-        with open(os.path.join(d, "patch")) as patch:
+        patch_name = os.path.join(d, "patch")
+        if not os.path.isfile(patch_name):
+            continue
+        with open(patch_name) as patch:
             try:
-                subprocess.call(["patch", "-R", "-p3"], stdin=patch,
+                subprocess.call(["patch", "-R", "-p3"],
+                                stdin=patch,
                                 cwd=magic_consts.PUPPET_DIR)
             except subprocess.CalledProcessError:
-                if not revert:
-                    pass
-                else:
+                if revert:
                     raise
             if not revert:
-                subprocess.call(["patch", "-N", "-p3"], stdin=patch,
+                patch.seek(0)
+                subprocess.call(["patch", "-N", "-p3"],
+                                stdin=patch,
                                 cwd=magic_consts.PUPPET_DIR)
 
 
