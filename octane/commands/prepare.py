@@ -29,15 +29,16 @@ def patch_puppet(revert=False):
             continue
         with open(os.path.join(d, "patch")) as patch:
             try:
-                subprocess.call(["patch", "-R", "-p3"], stdin=patch,
+                subprocess.call(["patch", "-R", "-p3"],
+                                stdin=patch,
                                 cwd=magic_consts.PUPPET_DIR)
             except subprocess.CalledProcessError:
-                if not revert:
-                    pass
-                else:
+                if revert:
                     raise
             if not revert:
-                subprocess.call(["patch", "-N", "-p3"], stdin=patch,
+                patch.seek(0)
+                subprocess.call(["patch", "-N", "-p3"],
+                                stdin=patch,
                                 cwd=magic_consts.PUPPET_DIR)
 
 
