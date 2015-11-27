@@ -37,6 +37,7 @@ def patch_puppet(revert=False):
                 else:
                     raise
             if not revert:
+                patch.seek(0)
                 subprocess.call(["patch", "-N", "-p3"], stdin=patch,
                                 cwd=magic_consts.PUPPET_DIR)
 
