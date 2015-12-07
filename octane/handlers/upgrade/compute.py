@@ -78,7 +78,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             sftp.put(local_path, remote_path)
             sftp.chmod(remote_path, stat.S_IRWXO)
             ssh.call(
-                [remote_path, 'node-{0}'.format(self.node.data['id'])],
+                [remote_path, node_util.get_nova_node_handle(self.node)],
                 node=controller,
             )
 
