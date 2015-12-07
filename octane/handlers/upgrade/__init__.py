@@ -17,6 +17,7 @@ class UpgradeHandler(object):
     def __init__(self, node, env, isolated):
         self.node = node
         self.orig_env = self.node.env
+        self.orig_version = self.orig_env.data["fuel_version"]
         self.env = env
         self.isolated = isolated
 
