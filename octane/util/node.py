@@ -17,6 +17,7 @@ import socket
 import sys
 import time
 
+from distutils import version
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -68,6 +69,16 @@ def untar_files(filename, node):
 def get_hostname_remotely(node):
     hostname = ssh.call_output(['hostname'], node=node)
     return hostname[:-1]
+
+
+def get_nova_node_handle(node):
+    version_num = node.env.data.get('fuel_version')
+    if not version_num:
+        raise Exception("Cannot determine Fuel version for node {0}"
+                        .format(node.data['id']))
+    if version.StrictVersion(version_num) < version.StrictVersion('6.1'):
+        return "node-{0}".format(node.data['id'])
+    return node.data['fqdn']
 
 
 def reboot_nodes(nodes, timeout=600):
