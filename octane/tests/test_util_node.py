@@ -20,13 +20,16 @@ from octane.util import ssh
 
 
 NODES = [
-    {'fqdn': 'node-1',
+    {'id': '1',
+     'fqdn': 'node-1.domain.tld',
      'network_data': [{'name': 'management', 'ip': '10.20.0.2'},
                       {'name': 'public', 'ip': '172.167.0.2'}]},
-    {'fqdn': 'node-2',
+    {'id': '2',
+     'fqdn': 'node-2.domain.tld',
      'network_data': [{'name': 'management', 'ip': '10.20.0.3'},
                       {'name': 'public', 'ip': '172.167.0.3'}]},
-    {'fqdn': 'node-3',
+    {'id': '3',
+     'fqdn': 'node-3.domain.tld',
      'network_data': [{'name': 'management', 'ip': '10.20.0.4'},
                       {'name': 'public', 'ip': '172.167.0.4'}]},
 ]
@@ -44,7 +47,7 @@ def test_get_ip(node_data, network_name, expected_ip):
 
 
 def create_node(data):
-    return mock.Mock(data=data, spec_set=['data'])
+    return mock.Mock(data=data, spec_set=['data', 'env'])
 
 
 @pytest.fixture
@@ -63,7 +66,9 @@ def test_get_ips(nodes, network_name, expected_ips):
 
 def test_get_hostnames(nodes):
     hostnames = node_util.get_hostnames(nodes)
-    assert hostnames == ['node-1', 'node-2', 'node-3']
+    assert hostnames == ['node-1.domain.tld',
+                         'node-2.domain.tld',
+                         'node-3.domain.tld']
 
 
 def test_tar_files(node, mock_ssh_popen, mock_open):
@@ -162,3 +167,19 @@ def test_is_live_migration_supported(mocker, node, content, expected_res):
 
     res = node_util.is_live_migration_supported(node)
     assert res == expected_res
+
+
+@pytest.mark.parametrize('node_data,fuel_version,expected_name', [
+    (NODES[0], '6.0', 'node-1'),
+    (NODES[0], '6.1', 'node-1.domain.tld'),
+    (NODES[0], 'invalid', None)
+])
+def test_get_nova_node_handle(mocker, node_data, fuel_version, expected_name):
+    node = create_node(node_data)
+    node.env.data.get.return_value = fuel_version
+    if expected_name:
+        name = node_util.get_nova_node_handle(node)
+        assert name == expected_name
+    else:
+        with pytest.raises(Exception):
+            node_util.get_nova_node_handle(node)
