@@ -141,3 +141,24 @@ def test_remove_compute_upgrade_levels(mocker, node, content,
                                        expected_content):
     with _check_upgrade_levels(mocker, node, content, expected_content):
         node_util.remove_compute_upgrade_levels(node)
+
+
+NOVA_LIVE_MIGRATION_FLAG = b"    live_migration_flag="
+NOVA_LIVE_MIGRATION_ENABLED = NOVA_LIVE_MIGRATION_FLAG + \
+    b"FLAG1,VIR_MIGRATE_LIVE,FLAG2\n"
+NOVA_NO_LIVE_MIGRATION_FLAG = b"no_live_migration_flag\n"
+NOVA_EMPTY = b""
+
+
+@pytest.mark.parametrize("content,expected_res", [
+    (NOVA_LIVE_MIGRATION_ENABLED, True),
+    (NOVA_LIVE_MIGRATION_FLAG, False),
+    (NOVA_NO_LIVE_MIGRATION_FLAG, False),
+    (NOVA_EMPTY, False),
+])
+def test_is_live_migration_supported(mocker, node, content, expected_res):
+    mock_sftp = mocker.patch("octane.util.ssh.sftp")
+    mock_sftp.return_value.open.return_value = io.BytesIO(content)
+
+    res = node_util.is_live_migration_supported(node)
+    assert res == expected_res
