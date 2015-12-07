@@ -32,8 +32,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         if env_util.get_env_provision_method(env) != 'image':
             self.create_configdrive_partition()
             disk.update_node_partition_info(self.node.id)
-        self.backup_iscsi_initiator_info()
-        self.preserve_partition()
+        if node_util.is_live_migration_supported(self.node):
+            self.evacuate_host()
+        else:
+            self.backup_iscsi_initiator_info()
+            self.preserve_partition()
 
     def postdeploy(self):
         self.restore_iscsi_initiator_info()

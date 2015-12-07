@@ -12,6 +12,7 @@
 
 import functools
 import logging
+import re
 import shutil
 import socket
 import sys
@@ -137,3 +138,13 @@ def remove_compute_upgrade_levels(node):
             if line.startswith("compute="):
                 continue
             new.write(line)
+
+
+def is_live_migration_supported(node):
+    sftp = ssh.sftp(node)
+    with ssh.update_file(sftp, '/etc/nova/nova.conf') as (config, _):
+        for line in config:
+            if line.startswith("live_migration_flag"):
+                if re.search("VIR_MIGRATE_LIVE", line):
+                    return True
+    return False

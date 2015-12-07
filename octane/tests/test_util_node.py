@@ -141,3 +141,36 @@ def test_remove_compute_upgrade_levels(mocker, node, content,
                                        expected_content):
     with _check_upgrade_levels(mocker, node, content, expected_content):
         node_util.remove_compute_upgrade_levels(node)
+
+
+@contextlib.contextmanager
+def _check_live_migration(mocker, node, content, expected_content):
+    mock_sftp = mocker.patch('octane.util.ssh.sftp')
+
+    conf = io.BytesIO(content)
+    mock_update_file = mocker.patch('octane.util.ssh.update_file')
+    mock_update_file.return_value.__enter__.return_value = (conf, mock.Mock())
+
+    yield
+
+    mock_sftp.assert_called_once_with(node)
+    mock_update_file.assert_called_once_with(mock_sftp.return_value,
+                                             '/etc/nova/nova.conf')
+
+
+NOVA_LIVE_MIGRATION_FLAG = b"live_migration_flag=VIR_MIGRATE_LIVE"
+NOVA_LIVE_MIGRATION_FLAG_DISABLED = b"live_migration_flag="
+NOVA_NO_LIVE_MIGRATION_FLAG = b"no_live_migration_flag"
+NOVA_EMPTY = b""
+
+
+@pytest.mark.parametrize("content,expected_res", [
+    (NOVA_LIVE_MIGRATION_FLAG, True),
+    (NOVA_LIVE_MIGRATION_FLAG_DISABLED, False),
+    (NOVA_NO_LIVE_MIGRATION_FLAG, False),
+    (NOVA_EMPTY, False),
+])
+def test_is_live_migration_supported(mocker, node, content, expected_res):
+    with _check_live_migration(mocker, node, content, None):
+        res = node_util.is_live_migration_supported(node)
+        assert res == expected_res
