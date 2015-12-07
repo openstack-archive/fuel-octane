@@ -137,3 +137,13 @@ def remove_compute_upgrade_levels(node):
             if line.startswith("compute="):
                 continue
             new.write(line)
+
+
+def is_live_migration_supported(node):
+    sftp = ssh.sftp(node)
+    with sftp.open('/etc/nova/nova.conf') as config:
+        for line in config:
+            if line.strip().startswith("live_migration_flag") \
+                    and "VIR_MIGRATE_LIVE" in line:
+                return True
+    return False
