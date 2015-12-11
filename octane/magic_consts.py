@@ -27,3 +27,11 @@ BRIDGES = ['br-ex', 'br-mgmt']
 DEFAULT_DISKS = True
 DEFAULT_NETS = True
 ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
+VERSIONS = {
+    '7.0': 'kilo',
+    '6.1': 'juno',
+    '6.0': 'juno',
+    '5.2.9': 'icehouse',
+    '5.1.1': 'icehouse',
+    '5.1': 'icehouse',
+}
