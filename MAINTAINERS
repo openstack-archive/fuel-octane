@@ -38,6 +38,9 @@ maintainers:
   - name:   Sergey Abramov
     email:  sabramov@mirantis.com
     IRC:    pod2metra
+  - name:   Viacheslav Valyavskiy
+    email:  vvalyavskiy@mirantis.com
+    IRC:    vvalyavskiy
 
 - specs/: &MOS_packaging_team
   - name:   Mikhail Ivanov
