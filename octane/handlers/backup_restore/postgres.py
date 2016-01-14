@@ -11,9 +11,18 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import docker
 
 
-class PostgresArchivator(base.CmdArchivator):
-    CONTAINER = "postgres"
-    CMD = ["sudo", "-u", "postgres", "pg_dumpall"]
-    FILENAME = "postgres/dump.sql"
+class NailgunArchivator(base.PostgresArchivator):
+    DB = "nailgun"
+
+    def post_restore_hook(self):
+        docker.run_in_container("nailgun", ["nailgun_syncdb"])
+
+
+class KeystoneArchivator(base.PostgresArchivator):
+    DB = "keystone"
+
+    def post_restore_hook(self):
+        docker.run_in_container("keystone", ["keystone-manage", "db_sync"])

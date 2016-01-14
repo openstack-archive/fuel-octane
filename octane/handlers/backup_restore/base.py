@@ -12,6 +12,8 @@
 
 import os
 
+import six
+
 from octane.util import archivate
 from octane.util import docker
 from octane.util import subprocess
@@ -57,6 +59,22 @@ class ContainerArchivator(Base):
                 "{0}/{1}".format(self.CONTAINER, filename)
             )
 
+    def restore(self):
+        assert self.CONTAINER
+        assert self.BACKUP_DIRECTORY
+        for member in self.archive:
+            if not member.name.startswith(self.CONTAINER):
+                continue
+            if not member.isfile():
+                continue
+            dump = self.archive.extractfile(member.name).read()
+            name = member.name.split("/", 1)[-1]
+            docker.write_data_in_docker_file(
+                self.CONTAINER,
+                os.path.join(self.BACKUP_DIRECTORY, name),
+                dump
+            )
+
 
 class CmdArchivator(Base):
 
@@ -82,6 +100,15 @@ class DirsArchivator(Base):
         assert self.TAG
         archivate.archive_dirs(self.archive, self.PATH, self.TAG)
 
+    def restore(self):
+        assert self.PATH
+        assert self.TAG
+        for member in self.archive:
+            if not (member.name.startswith(self.TAG) and member.isfile()):
+                continue
+            member.name = member.name.split("/", 1)[1]
+            self.archive.extract(member, self.PATH)
+
 
 class PathArchivator(Base):
     PATH = None
@@ -91,3 +118,59 @@ class PathArchivator(Base):
         assert self.PATH
         assert self.NAME
         self.archive.add(self.PATH, self.NAME)
+
+    def restore(self):
+        assert self.PATH
+        assert self.NAME
+        for member in self.archive:
+            if not (member.name.startswith(self.NAME) and member.isfile()):
+                continue
+            if os.path.isdir(self.PATH):
+                member.name = member.name.rsplit("/", 1)[-1]
+                path = self.PATH
+            elif os.path.isfile(self.PATH):
+                path, member.name = member.rsplit("/", 1)
+            self.archive.extract(member, path)
+
+
+class PostgresArchivatorMeta(type):
+
+    def __init__(cls, name, bases, attr):
+        super(PostgresArchivatorMeta, cls).__init__(name, bases, attr)
+        cls.CONTAINER = "postgres"
+        if cls.DB is not None and cls.CMD is None:
+            cls.CMD = ["sudo", "-u", "postgres", "pg_dump", "-c", cls.DB]
+        if cls.DB is not None and cls.FILENAME is None:
+            cls.FILENAME = "postgres/{0}.sql".format(cls.DB)
+
+
+@six.add_metaclass(PostgresArchivatorMeta)
+class PostgresArchivator(CmdArchivator):
+    DB = None
+
+    def post_restore_hook(self):
+        pass
+
+    def restore(self):
+        dump = self.archive.extractfile(self.FILENAME)
+        subprocess.call([
+            "systemctl", "stop", "docker-{0}.service".format(self.DB)
+        ])
+        docker.stop_container(self.DB)
+        with subprocess.popen(
+                [
+                    "dockerctl",
+                    "shell",
+                    "postgres",
+                    "sudo",
+                    "-u",
+                    "postgres",
+                    "psql",
+                ],
+                stdin=subprocess.PIPE) as process:
+            process.stdin.write(dump.read())
+        subprocess.call([
+            "systemctl", "start", "docker-{0}.service".format(self.DB)
+        ])
+        docker.start_container(self.DB)
+        self.post_restore_hook()
