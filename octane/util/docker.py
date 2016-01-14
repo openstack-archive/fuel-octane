@@ -11,12 +11,19 @@
 # under the License.
 
 import contextlib
+import logging
 import os.path
 import shutil
 import tarfile
 import tempfile
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from octane.util import subprocess
+
+LOG = logging.getLogger(__name__)
 
 
 def in_container(container, args, **popen_kwargs):
@@ -79,6 +86,23 @@ def put_files_to_docker(container, prefix, source_dir):
                 "Contents of {0} differ from contents of {1} in container {2}"
                 .format(local_filename, docker_filename, container)
             )
+
+
+def write_data_in_docker_file(container, path, data):
+    prefix, filename = path.rsplit("/", 1)
+    info = tarfile.TarInfo(filename)
+    info.size = len(data)
+    run_in_container(container, ["mkdir", "-p", prefix])
+    with in_container(
+            container,
+            ["tar", "-xv", "--overwrite", "-f", "-", "-C", prefix],
+            stdin=subprocess.PIPE,
+            ) as proc:
+        tar = tarfile.open(fileobj=proc.stdin, mode='w|')
+        with contextlib.closing(tar):
+            dump = StringIO(data)
+            dump.seek(0)
+            tar.addfile(info, dump)
 
 
 def get_files_from_docker(container, files, destination_dir):
@@ -148,3 +172,33 @@ def apply_patches(container, prefix, *patches, **kwargs):
         put_files_to_docker(container, "/", tempdir)
     finally:
         shutil.rmtree(tempdir)
+
+
+def get_docker_container_name(container, **extra_filtering):
+    cmd = [
+        "docker",
+        "ps",
+        "--filter",
+        "name={0}".format(container),
+        '--format="{{.Names}}"',
+    ]
+
+    for key, value in extra_filtering.iteritems():
+        cmd.append("--filter")
+        cmd.append("{0}={1}".format(key, value))
+
+    return subprocess.call(cmd, stdout=subprocess.PIPE)[0].strip()
+
+
+def stop_container(container):
+    name = get_docker_container_name(container, status="running")
+    if name:
+        subprocess.call(["docker", "stop", name])
+    LOG.warn("Nothing to stop, container not found")
+
+
+def start_container(container):
+    name = get_docker_container_name(container, status="exited")
+    if name:
+        subprocess.call(["docker", "start", name])
+    LOG.warn("Nothing to start, container not found")
