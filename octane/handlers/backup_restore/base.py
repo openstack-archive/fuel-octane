@@ -25,6 +25,15 @@ class Base(object):
     def backup(self):
         raise NotImplemented
 
+    def restore(self):
+        raise NotImplemented
+
+    def post_restore_action(self, context):
+        pass
+
+    def pre_restore_check(self):
+        pass
+
 
 class ContainerArchivator(Base):
 
@@ -56,6 +65,18 @@ class ContainerArchivator(Base):
                 "{0}/{1}".format(self.container, filename)
             )
 
+    def restore(self):
+        assert self.container
+        assert self.backup_directory
+        for member in archivate.filter_members(self.archive, self.container):
+            dump = self.archive.extractfile(member.name).read()
+            name = member.name.split("/", 1)[-1]
+            docker.write_data_in_docker_file(
+                self.container,
+                os.path.join(self.backup_directory, name),
+                dump
+            )
+
 
 class CmdArchivator(Base):
 
@@ -81,6 +102,14 @@ class DirsArchivator(Base):
         assert self.tag
         archivate.archive_dirs(self.archive, self.path, self.tag)
 
+    def restore(self):
+        assert self.path
+        assert self.tag
+
+        for member in archivate.filter_members(self.archive, self.tag):
+            member.name = member.name.split("/", 1)[-1]
+            self.archive.extract(member, self.path)
+
 
 class PathArchivator(Base):
     path = None
@@ -90,3 +119,17 @@ class PathArchivator(Base):
         assert self.path
         assert self.name
         self.archive.add(self.path, self.name)
+
+    def pre_restore_check(self):
+        members = list(archivate.filter_members(self.archive, self.name))
+        if os.path.isfile(self.path) and len(members) > 1:
+            raise Exception("try to restore in file more than 1 member")
+
+    def restore(self):
+        for member in archivate.filter_members(self.archive, self.name):
+            if os.path.isfile(self.path):
+                path, member.name = os.path.split(self.path)
+            else:
+                member.name = member.name.split("/", 1)[-1]
+                path = self.path
+            self.archive.extract(member, path)
