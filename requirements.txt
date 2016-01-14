@@ -1,19 +1,19 @@
 # NOTE: These requirements *must* match those of libs installed on Fuel master
 # To verify them, use command like "rpm -q --whatrequires python-cliff" and
 # examine requirements of software listed there.
-pbr>=0.6,!=0.7,<1.0
+pbr==0.11.1
 
 # Cap versions of libs pulled by python-keystoneclient
-stevedore<1.4.0,>=1.1.0
-oslo.config<1.10.0  # the last version with namespace package
+stevedore==1.5.0
+oslo.config==2.4.0  # the last version with namespace package
 
 # python-fuelclient needs these versions, python-keystoneclient pulls newer ones
 # (taken from requirements.txt in python-fuelclient)
 argparse==1.2.1
-requests>=2.1.0,!=2.4.0,<=2.2.1
+requests>=2.7.0
 six>=1.7.0,<=1.9.0
 
-python-keystoneclient<=0.11.1  # the last version without too fresh requirements
-python-fuelclient>=6.1
-cliff>=1.7.0,<=1.9.0  # should already be pulled by python-fuelclient
-paramiko==1.13.0
+python-keystoneclient==1.7.2
+python-fuelclient==8.0.0
+cliff==1.14.0
+paramiko==1.15.2
