@@ -11,12 +11,16 @@
 # under the License.
 
 import contextlib
+import io
+import logging
 import os.path
 import shutil
 import tarfile
 import tempfile
 
 from octane.util import subprocess
+
+LOG = logging.getLogger(__name__)
 
 
 def in_container(container, args, **popen_kwargs):
@@ -60,18 +64,24 @@ def find_files(source_dir):
             yield os.path.join(cur_dir, f), os.path.join(new_dir, f)
 
 
-def put_files_to_docker(container, prefix, source_dir):
-    """Put all files in source_dir to prefix dir in container"""
-    source_dir = os.path.abspath(source_dir)
+@contextlib.contextmanager
+def open_tar_to_docker(container, directory):
     with in_container(
             container,
-            ["tar", "-xv", "--overwrite", "-f", "-", "-C", prefix],
+            ["tar", "-xv", "--overwrite", "-f", "-", "-C", directory],
             stdin=subprocess.PIPE,
             ) as proc:
         tar = tarfile.open(fileobj=proc.stdin, mode='w|')
-        with contextlib.closing(tar):  # On 2.6 TarFile isn't context manager
-            for local_filename, docker_filename in find_files(source_dir):
-                tar.add(local_filename, docker_filename)
+        with contextlib.closing(tar):
+            yield tar
+
+
+def put_files_to_docker(container, prefix, source_dir):
+    """Put all files in source_dir to prefix dir in container"""
+    source_dir = os.path.abspath(source_dir)
+    with open_tar_to_docker(container, prefix) as container_dir:
+        for local_filename, docker_filename in find_files(source_dir):
+            container_dir.add(local_filename, docker_filename)
     for local_filename, docker_filename in find_files(source_dir):
         docker_filename = os.path.join(prefix, docker_filename)
         if not compare_files(container, local_filename, docker_filename):
@@ -79,6 +89,16 @@ def put_files_to_docker(container, prefix, source_dir):
                 "Contents of {0} differ from contents of {1} in container {2}"
                 .format(local_filename, docker_filename, container)
             )
+
+
+def write_data_in_docker_file(container, path, data):
+    prefix, filename = path.rsplit("/", 1)
+    info = tarfile.TarInfo(filename)
+    info.size = len(data)
+    dump = io.BytesIO(data)
+    run_in_container(container, ["mkdir", "-p", prefix])
+    with open_tar_to_docker(container, prefix) as directory:
+        directory.addfile(info, dump)
 
 
 def get_files_from_docker(container, files, destination_dir):
@@ -148,3 +168,36 @@ def apply_patches(container, prefix, *patches, **kwargs):
         put_files_to_docker(container, "/", tempdir)
     finally:
         shutil.rmtree(tempdir)
+
+
+def get_docker_container_names(**filtering):
+    cmd = [
+        "docker",
+        "ps",
+        '--format="{{.Names}}"',
+    ]
+    for key, value in filtering.iteritems():
+        cmd.append("--filter")
+        cmd.append("{0}={1}".format(key, value))
+    return subprocess.call(cmd, stdout=subprocess.PIPE)[0].strip()
+
+
+def get_docker_container_name(container, **extra_filtering):
+    extra_filtering['name'] = container
+    return get_docker_container_names(**extra_filtering)
+
+
+def stop_container(container):
+    name = get_docker_container_name(container)
+    if name:
+        subprocess.call(["dockerctl", "stop", name])
+        return
+    LOG.warn("Nothing to stop, container not found")
+
+
+def start_container(container):
+    name = get_docker_container_name(container)
+    if name:
+        subprocess.call(["dockerctl", "start", name])
+        return
+    LOG.warn("Nothing to start, container not found")
