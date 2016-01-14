@@ -12,8 +12,15 @@
 
 from octane.handlers.backup_restore import base
 
+from octane.util import docker
+
 
 class CobblerArchivator(base.ContainerArchivator):
     backup_directory = "/var/lib/cobbler/config/systems.d/"
     banned_files = ["default.json"]
     container = "cobbler"
+
+    def post_restore_action(self, *args, **kwargs):
+        docker.run_in_container("cobbler", ["cobbler", "sync"])
+        docker.stop_container("cobbler")
+        docker.start_container("cobbler")

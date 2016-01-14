@@ -10,9 +10,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
+from logging import getLogger
+import requests
 import six
+import urlparse
+import yaml
+
+from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
+from octane import magic_consts
+from octane.util import docker
+from octane.util import subprocess
+
+
+LOG = getLogger(__name__)
 
 
 class PostgresArchivatorMeta(type):
@@ -30,10 +43,69 @@ class PostgresArchivatorMeta(type):
 class PostgresArchivator(base.CmdArchivator):
     db = None
 
+    def sync_db(self):
+        pass
+
+    def restore(self):
+        dump = self.archive.extractfile(self.filename)
+        subprocess.call([
+            "systemctl", "stop", "docker-{0}.service".format(self.db)
+        ])
+        docker.stop_container(self.db)
+        docker.run_in_container(
+            "postgres",
+            ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
+        )
+        with docker.in_container("postgres",
+                                 ["sudo", "-u", "postgres", "psql"],
+                                 stdin=subprocess.PIPE) as process:
+            process.stdin.write(dump.read())
+        subprocess.call([
+            "systemctl", "start", "docker-{0}.service".format(self.db)
+        ])
+        docker.start_container(self.db)
+        self.sync_db()
+
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
 
+    def sync_db(self):
+        docker.run_in_container("nailgun", ["nailgun_syncdb"])
+
+    def __post_data_to_nailgun(self, url, data, password):
+        ksclient = keystoneclient(
+            auth_url=urlparse.urljoin(magic_consts.KEYSTONE_URL, "v2.0"),
+            username=magic_consts.KEYSTONE_USERNAME,
+            password=password,
+            tenant_name=magic_consts.KEYSTONE_TENANT_NAME,
+        )
+        resp = requests.post(
+            urlparse.urljoin(magic_consts.NAILGUN_URL, url),
+            json.dumps(data),
+            headers={
+                "X-Auth-Token": ksclient.auth_token,
+                "Content-Type": "application/json"
+            })
+        LOG.debug(resp.content)
+        return resp
+
+    def post_restore_action(self, context):
+        data, _ = docker.run_in_container(
+            "nailgun",
+            ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
+            stdout=subprocess.PIPE)
+        fixtures = yaml.load(data)
+        base_release_fields = fixtures[0]['fields']
+        for fixture in fixtures[1:]:
+            release = base_release_fields.copy()
+            release.update(fixture['fields'])
+            self.__post_data_to_nailgun(
+                "/api/v1/releases/", release, context.password)
+
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+
+    def sync_db(self):
+        docker.run_in_container("keystone", ["keystone-manage", "db_sync"])
