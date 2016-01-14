@@ -11,7 +11,6 @@
 # under the License.
 
 import contextlib
-import datetime
 import logging
 import os
 import tarfile
@@ -23,29 +22,38 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def backup_admin_node(path_to_backup_dir):
-    now_str = datetime.datetime.now().strftime("%Y_%m_%H_%M_%S")
-    backup_name = "backup_{0}.tar.gz".format(now_str)
-    backup_path = os.path.join(path_to_backup_dir, backup_name)
-    with contextlib.closing(tarfile.open(backup_path, "w:gz")) as archive:
+def restore_admin_node(path_to_backup, password):
+    with contextlib.closing(tarfile.open(path_to_backup)) as archive:
         for manager in backup_restore.ARCHIVATORS:
-            manager(archive).backup()
+            manager(archive).restore()
+    for action in backup_restore.POST_RESTORE_ACTIONS:
+        action(password=password)
 
 
-class BackupCommand(command.Command):
+class RestoreCommand(command.Command):
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BackupCommand, self).get_parser(*args, **kwargs)
+        parser = super(RestoreCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
-            "--to",
+            "--from",
             type=str,
             action="store",
             dest="path",
             required=True,
             help="path to backup dir")
+
+        parser.add_argument(
+            "-p",
+            "--password",
+            type=str,
+            action="store",
+            dest="password",
+            required=True,
+            help="Nailgun password")
+
         return parser
 
     def take_action(self, parsed_args):
-        if not os.path.isdir(parsed_args.path):
-            raise ValueError("Invalid path to cakup dir")
-        backup_admin_node(parsed_args.path)
+        if not os.path.isfile(parsed_args.path):
+            raise ValueError("Invalid path to backup file")
+        restore_admin_node(parsed_args.path, parsed_args.password)

@@ -10,19 +10,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from octane.handlers.backup_restore import base
-from octane.util import docker
+
+class BaseBackupAndResoreException(Exception):
+    pass
 
 
-class NailgunArchivator(base.PostgresArchivator):
-    db = "nailgun"
-
-    def post_restore_hook(self):
-        docker.run_in_container("nailgun", ["nailgun_syncdb"])
+class BackupException(BaseBackupAndResoreException):
+    pass
 
 
-class KeystoneArchivator(base.PostgresArchivator):
-    db = "keystone"
-
-    def post_restore_hook(self):
-        docker.run_in_container("keystone", ["keystone-manage", "db_sync"])
+class RestoreException(BaseBackupAndResoreException):
+    pass

@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from octane.handlers.backup_restore import actions
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -21,7 +22,7 @@ from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 
 
-MANAGERS = [
+ARCHIVATORS = [
     astute.AstuteArchivator,
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
@@ -32,4 +33,8 @@ MANAGERS = [
     puppet.PuppetArchivator,
     ssh.SshArchivator,
     version.VersionArchivator,
+]
+
+POST_RESTORE_ACTIONS = [
+    actions.add_releases,
 ]
