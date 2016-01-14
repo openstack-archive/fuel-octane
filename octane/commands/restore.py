@@ -12,7 +12,7 @@
 
 import contextlib
 import logging
-import sys
+import os
 import tarfile
 
 from cliff import command
@@ -22,31 +22,40 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def backup_admin_node(path_to_backup):
-    if path_to_backup:
-        backup_format = path_to_backup.rsplit(".", 1)[-1]
-        if backup_format not in ["gz", "bz2"]:
-            backup_format = ""
-        tar_obj = tarfile.open(path_to_backup, "w|{0}".format(backup_format))
-    else:
-        tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
-    with contextlib.closing(tar_obj) as archive:
+def restore_admin_node(path_to_backup, password):
+    with contextlib.closing(tarfile.open(path_to_backup)) as archive:
         for manager in backup_restore.ARCHIVATORS:
-            manager(archive).backup()
+            manager(archive).restore()
+    context = backup_restore.actions.Context(
+        password=password)
+    for action in backup_restore.POST_RESTORE_ACTIONS:
+        action(context)
 
 
-class BackupCommand(command.Command):
+class RestoreCommand(command.Command):
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BackupCommand, self).get_parser(*args, **kwargs)
+        parser = super(RestoreCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
-            "--to",
+            "--from",
             type=str,
             action="store",
             dest="path",
-            required=False,
+            required=True,
             help="path to backup dir")
+
+        parser.add_argument(
+            "-p",
+            "--password",
+            type=str,
+            action="store",
+            dest="password",
+            required=True,
+            help="Nailgun password")
+
         return parser
 
     def take_action(self, parsed_args):
-        backup_admin_node(parsed_args.path)
+        if not os.path.isfile(parsed_args.path):
+            raise ValueError("Invalid path to backup file")
+        restore_admin_node(parsed_args.path, parsed_args.password)
