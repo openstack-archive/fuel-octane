@@ -11,6 +11,7 @@
 # under the License.
 
 import os.path
+import urlparse
 
 PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
 PATCHES = [("nailgun", "/usr/lib/python2.6/site-packages/nailgun/extensions"
@@ -36,3 +37,25 @@ VERSIONS = {
     '5.1.1': 'icehouse',
     '5.1': 'icehouse',
 }
+
+NAILGUN_URL = "http://127.0.0.1:8000"
+KEYSTONE_URL = "http://127.0.0.1:5000"
+KEYSTONE_API_URL = urlparse.urljoin(KEYSTONE_URL, "v2.0")
+KEYSTONE_USERNAME = "admin"
+KEYSTONE_TENANT_NAME = "admin"
+
+SYNC_CONTAINERS = []
+
+RUNNING_REQUIRED_CONTAINERS = [
+    "postgres",
+    "rabbitmq",
+    "keystone",
+    "rsync",
+    "astute",
+    "rsyslog",
+    "nailgun",
+    "ostf",
+    "nginx",
+    "cobbler",
+    "mcollective",
+]

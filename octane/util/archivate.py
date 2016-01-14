@@ -55,3 +55,9 @@ def archivate_container_cmd_output(archive, container, cmd, filename):
     dump.write(data)
     dump.seek(0)
     archive.addfile(info, dump)
+
+
+def filter_members(archive, dir_name):
+    if '/' not in dir_name:
+        dir_name = "{0}/".format(dir_name)
+    return (m for m in archive if m.isfile() and m.name.startswith(dir_name))
