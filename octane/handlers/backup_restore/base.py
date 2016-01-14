@@ -59,6 +59,22 @@ class ContainerArchivator(Base):
                 "{0}/{1}".format(self.CONTAINER, filename)
             )
 
+    def restore(self):
+        assert self.CONTAINER
+        assert self.BACKUP_DIRECTORY
+        for member in self.archive:
+            if not member.name.startswith(self.CONTAINER):
+                continue
+            if not member.isfile():
+                continue
+            dump = self.archive.extractfile(member.name).read()
+            name = member.name.split("/", 1)[-1]
+            docker.write_data_in_docker_file(
+                self.CONTAINER,
+                os.path.join(self.BACKUP_DIRECTORY, name),
+                dump
+            )
+
 
 class CmdArchivator(Base):
 
@@ -84,6 +100,15 @@ class DirsArchivator(Base):
         assert self.TAG
         archivate.archive_dirs(self.archive, self.PATH, self.TAG)
 
+    def restore(self):
+        assert self.PATH
+        assert self.TAG
+        for member in self.archive:
+            if not (member.name.startswith(self.TAG) and member.isfile()):
+                continue
+            member.name = member.name.split("/", 1)[1]
+            self.archive.extract(member, self.PATH)
+
 
 class PathArchivator(Base):
     PATH = None
@@ -93,6 +118,19 @@ class PathArchivator(Base):
         assert self.PATH
         assert self.NAME
         self.archive.add(self.PATH, self.NAME)
+
+    def restore(self):
+        assert self.PATH
+        assert self.NAME
+        for member in self.archive:
+            if not (member.name.startswith(self.NAME) and member.isfile()):
+                continue
+            if os.path.isdir(self.PATH):
+                member.name = member.name.rsplit("/", 1)[-1]
+                path = self.PATH
+            elif os.path.isfile(self.PATH):
+                path, member.name = member.rsplit("/", 1)
+            self.archive.extract(member, path)
 
 
 class PostgresArchivatorMeta(type):
