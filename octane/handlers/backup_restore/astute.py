@@ -10,9 +10,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+import yaml
+
 from octane.handlers.backup_restore import base
 
 
 class AstuteArchivator(base.PathArchivator):
     PATH = "/etc/fuel/astute.yaml"
     NAME = "astute/astute.yaml"
+
+    def restore(self):
+        dump = self.archive.extractfile(self.NAME)
+        if not os.path.exists(self.PATH):
+            raise Exception("no astute etc file")
+        backup_yaml = yaml.load(dump)
+        with open(self.PATH, "r") as current:
+            current_yaml = yaml.load(current)
+        new_yaml = backup_yaml.copy()
+        new_yaml['BOOTSTRAP'] = current_yaml['BOOTSTRAP']
+        with open(self.PATH, "w") as new:
+            yaml.safe_dump(new_yaml, new, default_flow_style=False)
