@@ -35,3 +35,8 @@ VERSIONS = {
     '5.1.1': 'icehouse',
     '5.1': 'icehouse',
 }
+
+NAILGUN_URL = "http://127.0.0.1:8000"
+KEYSTONE_URL = "http://127.0.0.1:5000"
+KEYSTONE_USERNAME = "admin"
+KEYSTONE_TENANT_NAME = "admin"
