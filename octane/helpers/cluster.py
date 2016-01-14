@@ -119,6 +119,12 @@ class NailgunClient(object):
             release_id))
         return requests.get(endpoint, headers=self.headers)
 
+    def create_release(self, release):
+        return requests.post(
+            '{url}/api/v1/releases/'.format(url=self.url),
+            json.dumps(release),
+            headers=self.headers)
+
 
 def dump_cluster(cluster_id, fuel_node, user="admin", password="admin",
                  tenant="admin"):
