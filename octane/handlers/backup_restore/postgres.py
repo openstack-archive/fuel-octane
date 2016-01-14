@@ -13,6 +13,8 @@
 import six
 
 from octane.handlers.backup_restore import base
+from octane.util import docker
+from octane.util import subprocess
 
 
 class PostgresArchivatorMeta(type):
@@ -30,10 +32,39 @@ class PostgresArchivatorMeta(type):
 class PostgresArchivator(base.CmdArchivator):
     db = None
 
+    def post_restore_hook(self):
+        pass
+
+    def restore(self):
+        dump = self.archive.extractfile(self.filename)
+        subprocess.call([
+            "systemctl", "stop", "docker-{0}.service".format(self.db)
+        ])
+        docker.stop_container(self.db)
+        docker.run_in_container(
+            "postgres",
+            ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
+        )
+        with docker.in_container("postgres",
+                                 ["sudo", "-u", "postgres", "psql"],
+                                 stdin=subprocess.PIPE) as process:
+            process.stdin.write(dump.read())
+        subprocess.call([
+            "systemctl", "start", "docker-{0}.service".format(self.db)
+        ])
+        docker.start_container(self.db)
+        self.post_restore_hook()
+
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
 
+    def post_restore_hook(self):
+        docker.run_in_container("nailgun", ["nailgun_syncdb"])
+
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+
+    def post_restore_hook(self):
+        docker.run_in_container("keystone", ["keystone-manage", "db_sync"])
