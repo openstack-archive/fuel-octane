@@ -28,9 +28,10 @@ def in_container(container, args, **popen_kwargs):
 
 def run_in_container(container, args, **popen_kwargs):
     """Run command defined by list args in container and fail if it fails"""
-    subprocess.call(["dockerctl", "shell", container] + args,
-                    name=args[0],
-                    **popen_kwargs)
+    return subprocess.call(
+        ["dockerctl", "shell", container] + args,
+        name=args[0],
+        **popen_kwargs)
 
 
 def compare_files(container, local_filename, docker_filename):
