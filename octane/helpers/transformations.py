@@ -15,7 +15,7 @@ import os
 import re
 import yaml
 
-from distutils.version import LooseVersion
+from distutils.version import StrictVersion
 from octane import magic_consts
 
 
@@ -147,8 +147,9 @@ def get_admin_iface(actions):
 
 def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
-    version = LooseVersion(host_config.get('openstack_version'))
-    if version < LooseVersion('2014.2.2-6.1'):
+    version = host_config.get('openstack_version')
+    _, _, fuel_version = version.rpartition('-')
+    if StrictVersion(fuel_version) < StrictVersion('6.1'):
         provider = 'ovs'
     else:
         provider = get_bridge_provider(actions, bridge)
