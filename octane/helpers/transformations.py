@@ -147,8 +147,9 @@ def get_admin_iface(actions):
 
 def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
-    version = LooseVersion(host_config.get('openstack_version'))
-    if version < LooseVersion('2014.2.2-6.1'):
+    # Use Fuel version instead of MOS version
+    version = LooseVersion(host_config.get('openstack_version').split('-')[1])
+    if version < LooseVersion('6.1'):
         provider = 'ovs'
     else:
         provider = get_bridge_provider(actions, bridge)
