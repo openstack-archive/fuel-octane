@@ -41,6 +41,14 @@ def test_find_node_deployment_info_none():
     assert res is None
 
 
+def test_get_one_node_of(mocker):
+    get_nodes = mocker.patch('octane.util.env.get_nodes')
+    get_nodes.return_value = iter(['node1', 'node2'])
+
+    node = env_util.get_one_node_of(mock.Mock(), 'controller')
+    assert node == 'node1'
+
+
 DEPLOYMENT_INFO = [{
     'uid': '1',
     'role': 'primary-controller',
