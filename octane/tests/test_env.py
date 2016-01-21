@@ -25,6 +25,11 @@ def mock_os_path(mocker):
     return res
 
 
+@pytest.fixture
+def env():
+    return mock.Mock()
+
+
 def test_find_node_deployment_info():
     roles = ['controller', 'primary-controller']
     node = mock.Mock()
@@ -39,6 +44,14 @@ def test_find_node_deployment_info_none():
     node.id = 2
     res = env_util.find_node_deployment_info(node, roles, DEPLOYMENT_INFO)
     assert res is None
+
+
+def test_get_one_node_of(mocker):
+    get_nodes = mocker.patch('octane.util.env.get_nodes')
+    get_nodes.return_value = iter(['node1', 'node2'])
+
+    node = env_util.get_one_node_of(env(), 'controller')
+    assert node == 'node1'
 
 
 DEPLOYMENT_INFO = [{

@@ -26,7 +26,7 @@ from octane.util import maintenance
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_db(orig_id, seed_id):
+def upgrade_db(orig_id, seed_id, db_role_name):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
     env_util.delete_fuel_resources(seed_env)
@@ -45,7 +45,7 @@ def upgrade_db(orig_id, seed_id):
     LOG.info('Will dump tables: %s', ', '.join(dbs))
 
     fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
-    db.mysqldump_from_env(orig_env, dbs, fname)
+    db.mysqldump_from_env(orig_env, db_role_name, dbs, fname)
 
     fname2 = os.path.join(
         magic_consts.FUEL_CACHE,
@@ -53,7 +53,7 @@ def upgrade_db(orig_id, seed_id):
     )
     shutil.copy(fname, fname2)
 
-    db.mysqldump_restore_to_env(seed_env, fname)
+    db.mysqldump_restore_to_env(seed_env, db_role_name, fname)
     db.db_sync(seed_env)
 
 
@@ -68,7 +68,13 @@ class UpgradeDBCommand(cmd.Command):
         parser.add_argument(
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
+
+        parser.add_argument(
+            '--db_role_name', type=str, metavar='DB_ROLE_NAME',
+            default="controller", help="Set not standard role name for DB")
+
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_db(parsed_args.orig_id, parsed_args.seed_id)
+        upgrade_db(parsed_args.orig_id, parsed_args.seed_id,
+                   parsed_args.db_role_name)
