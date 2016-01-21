@@ -25,13 +25,13 @@ def test_mysqldump_from_env(mocker, mock_open, mock_subprocess, mock_ssh_popen,
 
     mock_open.return_value.write.side_effect = buf.write
 
-    get_one_controller = mocker.patch('octane.util.env.get_one_controller')
-    get_one_controller.return_value = node
+    get_one_node_of = mocker.patch('octane.util.env.get_one_node_of')
+    get_one_node_of.return_value = node
 
     proc = mock_ssh_popen.return_value.__enter__.return_value
     proc.stdout = io.BytesIO(test_contents)
 
-    db.mysqldump_from_env('env', ['db1'], 'filename')
+    db.mysqldump_from_env('env', 'controller', ['db1'], 'filename')
 
     assert not mock_subprocess.called
     mock_ssh_popen.assert_called_once_with(
@@ -47,13 +47,13 @@ def test_mysqldump_restore_to_env(mocker, mock_open, mock_subprocess,
 
     mock_open.return_value = io.BytesIO(test_contents)
 
-    get_one_controller = mocker.patch('octane.util.env.get_one_controller')
-    get_one_controller.return_value = node
+    get_one_node_of = mocker.patch('octane.util.env.get_one_node_of')
+    get_one_node_of.return_value = node
 
     proc = mock_ssh_popen.return_value.__enter__.return_value
     proc.stdin.write.side_effect = buf.write
 
-    db.mysqldump_restore_to_env('env', 'filename')
+    db.mysqldump_restore_to_env('env', 'controller', 'filename')
 
     assert not mock_subprocess.called
     mock_ssh_popen.assert_called_once_with(
