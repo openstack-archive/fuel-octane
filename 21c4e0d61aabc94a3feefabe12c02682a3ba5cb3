@@ -1,0 +1,11 @@
+Code-Review+1: sryabin <sryabin@mirantis.com>
+Code-Review+2: Yuriy Taraday <yorik.sar@gmail.com>
+Code-Review+1: Artem Silenkov <asilenkov@mirantis.com>
+Code-Review+2: Ilya Kharin <akscram@gmail.com>
+Workflow+1: Ilya Kharin <akscram@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 21 Jan 2016 16:41:25 +0000
+Reviewed-on: https://review.openstack.org/270718
+Project: openstack/fuel-octane
+Branch: refs/heads/stable/8.0
