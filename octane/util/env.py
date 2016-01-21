@@ -51,6 +51,10 @@ def get_one_controller(env):
     return next(get_controllers(env))
 
 
+def get_one_node_of(env, role):
+    return next(get_nodes(env, [role]))
+
+
 def get_env_networks(env):
     network_data = env.get_network_data()
     return network_data['networks']
