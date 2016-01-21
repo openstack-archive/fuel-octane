@@ -26,8 +26,8 @@ def get_databases(env):
     return out.splitlines()
 
 
-def mysqldump_from_env(env, dbs, fname):
-    node = env_util.get_one_controller(env)
+def mysqldump_from_env(env, role_name, dbs, fname):
+    node = env_util.get_one_node_of(env, role_name)
     cmd = [
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
@@ -40,8 +40,8 @@ def mysqldump_from_env(env, dbs, fname):
             shutil.copyfileobj(proc.stdout, local_file)
 
 
-def mysqldump_restore_to_env(env, fname):
-    node = env_util.get_one_controller(env)
+def mysqldump_restore_to_env(env, role_name, fname):
+    node = env_util.get_one_node_of(env, role_name)
     with open(fname, 'rb') as local_file:
         with ssh.popen(['sh', '-c', 'zcat | mysql'],
                        stdin=ssh.PIPE, node=node) as proc:
