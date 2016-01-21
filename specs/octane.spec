@@ -1,13 +1,13 @@
 %define name fuel-octane
-%{!?version: %define version 1.0.0}
+%{!?version: %define version 8.0.0}
 %{!?release: %define release 1}
 
 Name: %{name}
 Version: %{version}
 Release: %{release}
 Source0: %{name}-%{version}.tar.gz
-Summary: MOS upgrade tool
-URL:     https://github.com/Mirantis/octane
+Summary: Fuel/MOS upgrade tool
+URL:     https://github.com/openstack/fuel-octane
 License: Apache
 Group: Applications/System
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
@@ -26,7 +26,8 @@ Requires:    python-fuelclient
 Requires:    python-cliff
 
 %description
-Project is aimed to validate if more or less simple upgrade of MOS 5.1+
+Project is aimed to provide tools to upgrade the Fuel Admin node and OpenStack
+installations to version 8.0.
 
 %prep
 %setup -cq -n %{name}-%{version}
