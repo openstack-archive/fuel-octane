@@ -149,9 +149,8 @@ def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
     version = host_config.get('openstack_version')
     _, _, fuel_version = version.rpartition('-')
-    if StrictVersion(fuel_version) < StrictVersion('6.1'):
-        provider = 'ovs'
-    else:
+    provider = 'ovs'
+    if StrictVersion(fuel_version) >= StrictVersion('6.1'):
         provider = get_bridge_provider(actions, bridge)
     for action in actions:
         if provider == 'ovs' and action.get('action') == 'add-patch':
