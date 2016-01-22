@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
+
 from octane.helpers import transformations as ts
 
 
@@ -75,3 +77,80 @@ DEPLOYMENT_INFO = {
         }
     }
 }
+
+DEFAULT_OVS_ACTION = {
+    'action': 'add-patch',
+    'bridges': ['test-br']
+}
+DEFAULT_LNX_ACTION = {
+    'action': 'add-port',
+    'bridge': 'test-br'
+}
+OVS_ACTION = {
+    'action': 'add-patch',
+    'bridges': ['test-br'],
+    'provider': 'ovs'
+}
+LNX_ACTION = {
+    'action': 'add-port',
+    'bridge': 'test-br',
+    'provider': 'lnx'
+}
+ADD_LNX_BR_ACTION = {
+    'action': 'add-br',
+    'provider': 'lnx',
+    'name': 'test-br'
+}
+ADD_OVS_BR_ACTION = {
+    'action': 'add-br',
+    'provider': 'ovs',
+    'name': 'test-br'
+}
+HOST_CONFIG_6_0 = {
+    'openstack_version': '2014.2-6.0',
+    'network_scheme': {
+        'transformations': [
+            DEFAULT_LNX_ACTION,
+            DEFAULT_OVS_ACTION
+        ]
+    }
+}
+HOST_CONFIG_6_0_1 = {
+    'openstack_version': 'fake-6.0.1',
+    'network_scheme': {
+        'transformations': [
+            DEFAULT_LNX_ACTION,
+            DEFAULT_OVS_ACTION
+        ]
+    }
+}
+HOST_CONFIG_6_1 = {
+    'openstack_version': '2014.2.2-6.1',
+    'network_scheme': {
+        'transformations': [
+            DEFAULT_LNX_ACTION,
+        ]
+    }
+}
+HOST_CONFIG_7_0 = {
+    'openstack_version': '2015.1.0-7.0',
+    'network_scheme': {
+        'transformations': [
+            OVS_ACTION,
+            DEFAULT_OVS_ACTION,
+            ADD_OVS_BR_ACTION
+        ]
+    }
+}
+
+
+@pytest.mark.parametrize('host_config,expected_action', [
+    (HOST_CONFIG_6_0, DEFAULT_OVS_ACTION),
+    (HOST_CONFIG_6_0_1, DEFAULT_OVS_ACTION),
+    (HOST_CONFIG_6_1, DEFAULT_LNX_ACTION),
+    (HOST_CONFIG_7_0, OVS_ACTION)])
+def test_patch_port_action(host_config, expected_action):
+    bridge = 'test-br'
+
+    res, _ = ts.get_patch_port_action(host_config, bridge)
+    assert res == expected_action
