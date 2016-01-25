@@ -28,6 +28,7 @@ DEFAULT_DISKS = True
 DEFAULT_NETS = True
 ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
 VERSIONS = {
+    '8.0': 'liberty',
     '7.0': 'kilo',
     '6.1': 'juno',
     '6.0': 'juno',
