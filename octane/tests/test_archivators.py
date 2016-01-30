@@ -17,6 +17,7 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
+from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
@@ -116,3 +117,17 @@ def test_dirs_archivator(mocker, cls, path, tag):
     archive_mock = mocker.patch("octane.util.archivate.archive_dirs")
     cls(test_archive).backup()
     archive_mock.assert_called_once_with(test_archive, path, tag)
+
+
+@pytest.mark.parametrize("path_exists", [(True, ), (False, )])
+def test_nailgun_plugins_backup(mocker, path_exists):
+    test_archive = mocker.Mock()
+    path = "/var/www/nailgun/plugins"
+    name = "nailgun_plugins"
+    path_exists_mock = mocker.patch("os.path.exists", return_value=path_exists)
+    nailgun_plugins.NailgunPluginsArchivator(test_archive).backup()
+    path_exists_mock.assert_called_once_with(path)
+    if path_exists:
+        test_archive.add.assert_called_once_with(path, name)
+    else:
+        assert not test_archive.add.called
