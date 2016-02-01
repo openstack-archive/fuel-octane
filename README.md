@@ -58,6 +58,7 @@ We will refer to it as <SEED_ID> later on.
 
 Choose added controller nodes from the list of unallocated nodes:
 
+TESTESTEST
 ```
 [root@fuel bin]# fuel node | grep discover
 ```
