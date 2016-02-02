@@ -13,7 +13,7 @@
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_db.upgrade_db')
-    octane_app.run(["upgrade-db", "1", "2"])
+    octane_app.run(["upgrade-db", "1", "2", "--db_role_name", "3"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, 2)
+    m.assert_called_once_with(1, 2, '3')
