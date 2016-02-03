@@ -26,7 +26,7 @@ def test_parser(mocker, octane_app, params, call_params, is_file):
     restore_mock = mocker.patch('octane.commands.restore.restore_admin_node')
     mocker.patch("os.path.isfile", return_value=is_file)
     try:
-        octane_app.run(["restore"] + params)
+        octane_app.run(["fuel-restore"] + params)
     except Exception:
         assert not restore_mock.called
         assert call_params is None
