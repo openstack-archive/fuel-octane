@@ -18,7 +18,7 @@ from octane.commands import backup
 def test_parser_empty(mocker, octane_app):
     m1 = mocker.patch('octane.commands.backup.backup_admin_node')
     m1.return_value = 2
-    octane_app.run(["backup"])
+    octane_app.run(["fuel-backup"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m1.assert_called_once_with(None)
@@ -27,7 +27,7 @@ def test_parser_empty(mocker, octane_app):
 def test_parser_not_empty(mocker, octane_app):
     m1 = mocker.patch('octane.commands.backup.backup_admin_node')
     m1.return_value = 2
-    octane_app.run(["backup", "--to", "backup_file"])
+    octane_app.run(["fuel-backup", "--to", "backup_file"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m1.assert_called_once_with("backup_file")
