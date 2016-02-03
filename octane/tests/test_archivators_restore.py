@@ -9,7 +9,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import json
 import mock
 import os
 import pytest
@@ -387,15 +386,29 @@ def test_post_restore_action_astute(mocker):
     assert not stopped
 
 
-def test_post_restore_nailgun(mocker):
-    data = yaml.dump([
-        {"fields": {"k": 1, "p": 2}},
-        {"fields": {}},
-        {"fields": {"k": 3}},
-    ])
-
+@pytest.mark.parametrize("dump, calls", [
+    (
+        [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
+        [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
+    ),
+    (
+        [
+            {"fields": {"k": 1, "p": 2, "c": {"k": 1, "p": {"a": 1}}}},
+            {"fields": {}},
+            {"fields": {"k": 3, "c": {"k": 3, "p": {"c": 4}}}},
+        ],
+        [
+            {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
+            {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
+        ]
+    ),
+])
+def test_post_restore_nailgun(mocker, dump, calls):
+    data = yaml.dump(dump)
+    mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
+    json_mock = mocker.patch("json.dumps")
     token = "123"
 
     def mock_init(self, *args, **kwargs):
@@ -411,10 +424,10 @@ def test_post_restore_nailgun(mocker):
         "Content-Type": "application/json"
     }
     post_url = 'http://127.0.0.1:8000/api/v1/releases/'
-    post_data.assert_has_calls(
-        [
-            mock.call(post_url, json.dumps({"p": 2, "k": 1}), headers=headers),
-            mock.call(post_url, json.dumps({"p": 2, "k": 3}), headers=headers),
-        ],
-        any_order=True
-    )
+    post_call = mock.call(post_url, json_mock.return_value, headers=headers)
+    for call in post_data.call_args_list:
+        assert post_call == call
+    json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
+    assert json_mock.call_count == 2
+    mock_subprocess_call.assert_called_once_with([
+        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
