@@ -393,7 +393,7 @@ def test_post_restore_nailgun(mocker):
         {"fields": {}},
         {"fields": {"k": 3}},
     ])
-
+    mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
     token = "123"
@@ -418,3 +418,5 @@ def test_post_restore_nailgun(mocker):
         ],
         any_order=True
     )
+    mock_subprocess_call.assert_called_once_with([
+        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
