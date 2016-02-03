@@ -22,6 +22,7 @@ from keystoneclient.v2_0 import Client as keystoneclient
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import helpers
 from octane.util import subprocess
 
 
@@ -91,8 +92,8 @@ class NailgunArchivator(PostgresArchivator):
         fixtures = yaml.load(data)
         base_release_fields = fixtures[0]['fields']
         for fixture in fixtures[1:]:
-            release = base_release_fields.copy()
-            release.update(fixture['fields'])
+            release = helpers.merge_dicts(
+                base_release_fields, fixture['fields'])
             self.__post_data_to_nailgun(
                 "/api/v1/releases/", release, context.password)
         subprocess.call([
