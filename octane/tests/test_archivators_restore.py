@@ -338,8 +338,8 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
             dump_dict[key] = "dump_val"
             current_dict[key] = "current_val"
         else:
-            dump_dict[key] = {s: "dump_val" for s in seq}
-            current_dict[key] = {s: "current_val" for s in seq}
+            dump_dict[key] = dict((s, "dump_val") for s in seq)
+            current_dict[key] = dict((s, "current_val") for s in seq)
         if key in required_keys:
             dict_to_restore[key] = dump_dict[key]
         else:
@@ -387,12 +387,25 @@ def test_post_restore_action_astute(mocker):
     assert not stopped
 
 
-def test_post_restore_nailgun(mocker):
-    data = yaml.dump([
-        {"fields": {"k": 1, "p": 2}},
-        {"fields": {}},
-        {"fields": {"k": 3}},
-    ])
+@pytest.mark.parametrize("dump, calls", [
+    (
+        [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
+        [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
+    ),
+    (
+        [
+            {"fields": {"k": 1, "p": 2, "c": {"k": 1, "p": {"a": 1}}}},
+            {"fields": {}},
+            {"fields": {"k": 3, "c": {"k": 3, "p": {"c": 4}}}},
+        ],
+        [
+            {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
+            {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
+        ]
+    ),
+])
+def test_post_restore_nailgun(mocker, dump, calls):
+    data = yaml.dump(dump)
 
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -412,9 +425,5 @@ def test_post_restore_nailgun(mocker):
     }
     post_url = 'http://127.0.0.1:8000/api/v1/releases/'
     post_data.assert_has_calls(
-        [
-            mock.call(post_url, json.dumps({"p": 2, "k": 1}), headers=headers),
-            mock.call(post_url, json.dumps({"p": 2, "k": 3}), headers=headers),
-        ],
-        any_order=True
-    )
+        [mock.call(post_url, json.dumps(d), headers=headers) for d in calls],
+        any_order=True)

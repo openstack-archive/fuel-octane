@@ -90,6 +90,15 @@ class NailgunArchivator(PostgresArchivator):
         LOG.debug(resp.content)
         return resp
 
+    def __merge_dicts(self, base_dict, update_dict):
+        result = base_dict.copy()
+        for key, val in update_dict.iteritems():
+            if key not in result or not isinstance(result[key], dict):
+                result[key] = val
+                continue
+            result[key] = self.__merge_dicts(result[key], val)
+        return result
+
     def post_restore_action(self, context):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -98,8 +107,8 @@ class NailgunArchivator(PostgresArchivator):
         fixtures = yaml.load(data)
         base_release_fields = fixtures[0]['fields']
         for fixture in fixtures[1:]:
-            release = base_release_fields.copy()
-            release.update(fixture['fields'])
+            release = self.__merge_dicts(
+                base_release_fields.copy(), fixture['fields'])
             self.__post_data_to_nailgun(
                 "/api/v1/releases/", release, context.password)
 
