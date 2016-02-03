@@ -28,9 +28,10 @@ ARCHIVATORS = [
     cobbler.CobblerArchivator,
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
-    postgres.KeystoneArchivator,
-    postgres.NailgunArchivator,
     puppet.PuppetArchivator,
+    postgres.KeystoneArchivator,
+    # Nailgun restore should be after puppet restore
+    postgres.NailgunArchivator,
     ssh.SshArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
