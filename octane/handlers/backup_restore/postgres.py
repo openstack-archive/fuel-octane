@@ -95,6 +95,13 @@ class NailgunArchivator(PostgresArchivator):
             release.update(fixture['fields'])
             self.__post_data_to_nailgun(
                 "/api/v1/releases/", release, context.password)
+        subprocess.call([
+            "fuel",
+            "release",
+            "--sync-deployment-tasks",
+            "--dir",
+            "/etc/puppet/",
+        ])
 
 
 class KeystoneArchivator(PostgresArchivator):
