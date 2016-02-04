@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from distutils import version
 import json
 import logging
 import requests
@@ -22,6 +23,7 @@ from keystoneclient.v2_0 import Client as keystoneclient
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import fuel
 from octane.util import subprocess
 
 
@@ -43,14 +45,17 @@ class PostgresArchivatorMeta(type):
 class PostgresArchivator(base.CmdArchivator):
     db = None
 
+    is_80_version = version.StrictVersion("8.0") == version.StrictVersion(
+        fuel.get_version())
+
     def sync_db(self):
         pass
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
+        if self.is_80_version:
+            subprocess.call([
+                "systemctl", "stop", "docker-{0}.service".format(self.db)])
         docker.stop_container(self.db)
         docker.run_in_container(
             "postgres",
@@ -60,9 +65,9 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
+        if self.is_80_version:
+            subprocess.call([
+                "systemctl", "start", "docker-{0}.service".format(self.db)])
         docker.start_container(self.db)
         self.sync_db()
 
@@ -91,6 +96,8 @@ class NailgunArchivator(PostgresArchivator):
         return resp
 
     def post_restore_action(self, context):
+        if not self.is_80_version:
+            return
         data, _ = docker.run_in_container(
             "nailgun",
             ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
