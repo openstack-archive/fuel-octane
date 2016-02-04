@@ -154,6 +154,7 @@ def test_container_archivator(mocker, cls, path, container, members):
     (postgres.KeystoneArchivator, "keystone", ["keystone-manage", "db_sync"]),
 ])
 def test_postgres_restore(mocker, cls, db, sync_db_cmd):
+    cls.is_80_version = True
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
     actions = []
@@ -338,8 +339,8 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
             dump_dict[key] = "dump_val"
             current_dict[key] = "current_val"
         else:
-            dump_dict[key] = {s: "dump_val" for s in seq}
-            current_dict[key] = {s: "current_val" for s in seq}
+            dump_dict[key] = dict((s, "dump_val") for s in seq)
+            current_dict[key] = dict((s, "current_val") for s in seq)
         if key in required_keys:
             dict_to_restore[key] = dump_dict[key]
         else:
@@ -393,6 +394,8 @@ def test_post_restore_nailgun(mocker):
         {"fields": {}},
         {"fields": {"k": 3}},
     ])
+    cls = postgres.NailgunArchivator
+    cls.is_80_version = True
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
