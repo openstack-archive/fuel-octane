@@ -148,11 +148,25 @@ def test_container_archivator(mocker, cls, path, container, members):
         ])
 
 
-@pytest.mark.parametrize("cls,db,sync_db_cmd", [
-    (postgres.NailgunArchivator, "nailgun", ["nailgun_syncdb"]),
-    (postgres.KeystoneArchivator, "keystone", ["keystone-manage", "db_sync"]),
+@pytest.mark.parametrize("cls,db,sync_db_cmd, is_80", [
+    (postgres.NailgunArchivator, "nailgun", ["nailgun_syncdb"], True),
+    (postgres.NailgunArchivator, "nailgun", ["nailgun_syncdb"], False),
+    (
+        postgres.KeystoneArchivator,
+        "keystone",
+        ["keystone-manage", "db_sync"],
+        True,
+    ),
+    (
+        postgres.KeystoneArchivator,
+        "keystone",
+        ["keystone-manage", "db_sync"],
+        False,
+    ),
 ])
-def test_postgres_restore(mocker, cls, db, sync_db_cmd):
+def test_postgres_restore(mocker, cls, db, sync_db_cmd, is_80):
+    check_version = mocker.patch(
+        "octane.util.fuel.equal_to", return_value=is_80)
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
     actions = []
@@ -181,13 +195,17 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
                  side_effect=foo("start_container"))
     cls(archive).restore()
     member.assert_extract()
-    assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container", "run_in_container"] == actions
-
-    call_mock.assert_has_calls([
-        mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
-        mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
-    ])
+    if is_80:
+        assert ["call", "stop_container", "run_in_container", "in_container",
+                "call", "start_container", "run_in_container"] == actions
+        call_mock.assert_has_calls([
+            mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
+            mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
+        ])
+    else:
+        assert not call_mock.called
+        assert ["stop_container", "run_in_container", "in_container",
+                "start_container", "run_in_container"] == actions
     in_container_mock.assert_called_once_with(
         "postgres",
         ["sudo", "-u", "postgres", "psql"],
@@ -200,6 +218,7 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
     ])
     side_effect_in_container.return_value.stdin.write.assert_called_once_with(
         member.dump)
+    check_version.assert_called_once_with("8.0")
 
 
 @pytest.mark.parametrize("keys_in_dump_file,restored", [
@@ -405,6 +424,8 @@ def test_post_restore_action_astute(mocker):
 ])
 def test_post_restore_nailgun(mocker, dump, calls):
     data = yaml.dump(dump)
+    check_version = mocker.patch(
+        "octane.util.fuel.equal_to", return_value=True)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -431,3 +452,4 @@ def test_post_restore_nailgun(mocker, dump, calls):
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+    check_version.assert_called_once_with("8.0")
