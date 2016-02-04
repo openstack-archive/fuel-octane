@@ -22,6 +22,7 @@ from keystoneclient.v2_0 import Client as keystoneclient
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import fuel
 from octane.util import helpers
 from octane.util import subprocess
 
@@ -44,14 +45,18 @@ class PostgresArchivatorMeta(type):
 class PostgresArchivator(base.CmdArchivator):
     db = None
 
+    def __init__(self, *args, **kwargs):
+        super(PostgresArchivator, self).__init__(*args, **kwargs)
+        self.is_80_version = fuel.equal_to("8.0")
+
     def sync_db(self):
         pass
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
+        if self.is_80_version:
+            subprocess.call([
+                "systemctl", "stop", "docker-{0}.service".format(self.db)])
         docker.stop_container(self.db)
         docker.run_in_container(
             "postgres",
@@ -61,9 +66,9 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
+        if self.is_80_version:
+            subprocess.call([
+                "systemctl", "start", "docker-{0}.service".format(self.db)])
         docker.start_container(self.db)
         self.sync_db()
 
@@ -92,10 +97,12 @@ class NailgunArchivator(PostgresArchivator):
         return resp
 
     def post_restore_action(self, context):
+        if self.is_80_version:
+            path = magic_consts.NAILGUN_FIXTURES_80
+        else:
+            path = magic_consts.NAILGUN_FIXTURES_70
         data, _ = docker.run_in_container(
-            "nailgun",
-            ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
-            stdout=subprocess.PIPE)
+            "nailgun", ["cat", path], stdout=subprocess.PIPE)
         fixtures = yaml.load(data)
         base_release_fields = fixtures[0]['fields']
         for fixture in fixtures[1:]:
