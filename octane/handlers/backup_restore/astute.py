@@ -18,6 +18,7 @@ from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
 from octane.util import puppet
+from octane.util import systemd
 
 
 LOG = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class AstuteArchivator(base.PathArchivator):
         puppet.apply_host()
         # restart all running containers
         for name in magic_consts.RUNNING_REQUIRED_CONTAINERS:
-            docker.stop_container(name)
+            systemd.stop_container(name)
             # FIXME: when astute container restart corrent this may be removed
             if "astute" == name:
                 try:
@@ -122,4 +123,4 @@ class AstuteArchivator(base.PathArchivator):
                     docker.stop_container(name)
                 else:
                     continue
-            docker.start_container(name)
+            systemd.start_container(name)
