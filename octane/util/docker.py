@@ -171,26 +171,22 @@ def apply_patches(container, prefix, *patches, **kwargs):
 
 
 def get_docker_container_names(**filtering):
-    cmd = [
-        "docker",
-        "ps",
-        '--all',
-        '--format="{{.Names}}"',
-    ]
+    cmd = ["docker", "ps", '--all']
     for key, value in filtering.iteritems():
         cmd.append("--filter")
         cmd.append("{0}={1}".format(key, value))
-
     stdout, _ = subprocess.call(cmd, stdout=subprocess.PIPE)
-    full_names = stdout.strip().split()
-    return [n.rsplit("-", 1)[-1] for n in full_names]
+    lines = stdout.strip().split("\n")
+    name_idx = lines[0].index("NAMES")
+    for line in lines[1:]:
+        yield line[name_idx:].split(' ', 1)[0].rsplit("-", 1)[-1]
 
 
 def get_docker_container_name(container, **extra_filtering):
     extra_filtering['name'] = container
     try:
-        return get_docker_container_names(**extra_filtering)[0]
-    except IndexError:
+        return next(get_docker_container_names(**extra_filtering))
+    except StopIteration:
         raise Exception("Container {0} not found".format(container))
 
 
