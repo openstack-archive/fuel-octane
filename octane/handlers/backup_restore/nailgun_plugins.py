@@ -14,6 +14,7 @@ import logging
 import os
 
 from octane.handlers.backup_restore import base
+from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
 
@@ -27,3 +28,7 @@ class NailgunPluginsArchivator(base.PathArchivator):
             return super(NailgunPluginsArchivator, self).backup()
         LOG.warning(
             "Path {0} doesn't exists, nothing to backup".format(self.path))
+
+    def post_restore_action(self, *args, **kwargs):
+        if os.path.exists(self.path):
+            subprocess.call(["fuel", "plugins", "--sync"])
