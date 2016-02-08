@@ -17,6 +17,7 @@ import yaml
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import systemd
 
 
 LOG = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ class AstuteArchivator(base.PathArchivator):
     def post_restore_action(self, *args, **kwargs):
         # restart all running containers
         for name in magic_consts.RUNNING_REQUIRED_CONTAINERS:
-            docker.stop_container(name)
+            systemd.stop_service(name)
             # FIXME: when astute container restart corrent this may be removed
             if "astute" == name:
                 try:
@@ -119,4 +120,4 @@ class AstuteArchivator(base.PathArchivator):
                     docker.stop_container(name)
                 else:
                     continue
-            docker.start_container(name)
+            systemd.start_service(name)
