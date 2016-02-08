@@ -24,6 +24,7 @@ from octane import magic_consts
 from octane.util import docker
 from octane.util import helpers
 from octane.util import subprocess
+from octane.util import systemd
 
 
 LOG = logging.getLogger(__name__)
@@ -43,15 +44,14 @@ class PostgresArchivatorMeta(type):
 @six.add_metaclass(PostgresArchivatorMeta)
 class PostgresArchivator(base.CmdArchivator):
     db = None
+    timeout = "0"
 
     def sync_db(self):
         pass
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
+        systemd.set_service_timeout(self.db, self.timeout)
         docker.stop_container(self.db)
         docker.run_in_container(
             "postgres",
@@ -61,15 +61,14 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
         docker.start_container(self.db)
         self.sync_db()
+        systemd.unset_service_timeout(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
+    timeout = "10m"
 
     def sync_db(self):
         docker.run_in_container("nailgun", ["nailgun_syncdb"])
@@ -114,6 +113,7 @@ class NailgunArchivator(PostgresArchivator):
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+    timeout = "10m"
 
     def sync_db(self):
         docker.run_in_container("keystone", ["keystone-manage", "db_sync"])

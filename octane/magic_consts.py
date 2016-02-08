@@ -19,6 +19,7 @@ PATCHES = [("nailgun", "/usr/lib/python2.6/site-packages/nailgun/extensions"
 CWD = os.path.dirname(__file__)  # FIXME
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/2015.1.0-7.0/modules"
+SYSTEMD_DIR = "/etc/systemd/system/"
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
