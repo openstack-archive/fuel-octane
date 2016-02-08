@@ -166,8 +166,6 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
         mock_foo.return_value = return_mock_object
         return mock_foo
 
-    call_mock = mocker.patch("octane.util.subprocess.call",
-                             side_effect=foo("call"))
     in_container_mock = mocker.patch("octane.util.docker.in_container")
     side_effect_in_container = foo("in_container")
     in_container_mock.return_value.__enter__.side_effect = \
@@ -181,13 +179,9 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
                  side_effect=foo("start_container"))
     cls(archive).restore()
     member.assert_extract()
-    assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container", "run_in_container"] == actions
+    assert ["stop_container", "run_in_container", "in_container",
+            "start_container", "run_in_container"] == actions
 
-    call_mock.assert_has_calls([
-        mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
-        mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
-    ])
     in_container_mock.assert_called_once_with(
         "postgres",
         ["sudo", "-u", "postgres", "psql"],
@@ -379,10 +373,12 @@ def test_post_restore_action_astute(mocker):
                          side_effect=stopped.remove)
     stop = mocker.patch("octane.util.docker.stop_container",
                         side_effect=stopped.append)
+    set_timeout = mocker.patch("octane.util.systemd.set_service_timeout")
 
     astute.AstuteArchivator(None).post_restore_action()
     assert start.called
     assert stop.called
+    assert set_timeout.called
     assert not stopped
 
 
