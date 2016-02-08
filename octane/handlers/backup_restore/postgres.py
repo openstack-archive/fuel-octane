@@ -49,9 +49,6 @@ class PostgresArchivator(base.CmdArchivator):
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
         docker.stop_container(self.db)
         docker.run_in_container(
             "postgres",
@@ -61,9 +58,6 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
         docker.start_container(self.db)
         self.sync_db()
 
