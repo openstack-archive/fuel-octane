@@ -17,6 +17,7 @@ import yaml
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import puppet
 
 
 LOG = logging.getLogger(__name__)
@@ -105,6 +106,8 @@ class AstuteArchivator(base.PathArchivator):
                     ", ".join(containers)))
 
     def post_restore_action(self, *args, **kwargs):
+        # run 'puppet apply' in the host system
+        puppet.apply_host()
         # restart all running containers
         for name in magic_consts.RUNNING_REQUIRED_CONTAINERS:
             docker.stop_container(name)
