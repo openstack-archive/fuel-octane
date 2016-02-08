@@ -166,8 +166,6 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
         mock_foo.return_value = return_mock_object
         return mock_foo
 
-    call_mock = mocker.patch("octane.util.subprocess.call",
-                             side_effect=foo("call"))
     in_container_mock = mocker.patch("octane.util.docker.in_container")
     side_effect_in_container = foo("in_container")
     in_container_mock.return_value.__enter__.side_effect = \
@@ -175,19 +173,20 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
     run_in_container = mocker.patch(
         "octane.util.docker.run_in_container",
         side_effect=foo("run_in_container"))
-    mocker.patch("octane.util.docker.stop_container",
-                 side_effect=foo("stop_container"))
-    mocker.patch("octane.util.docker.start_container",
-                 side_effect=foo("start_container"))
+    mocker.patch("octane.util.systemd.stop_service",
+                 side_effect=foo("stop_service"))
+    mocker.patch("octane.util.systemd.start_service",
+                 side_effect=foo("start_service"))
+    mocker.patch("octane.util.systemd.set_systemctl_start_timeout",
+                 side_effect=foo("set_timeout"))
+    mocker.patch("octane.util.systemd.unset_systemctl_start_timeout",
+                 side_effect=foo("unset_timeout"))
     cls(archive).restore()
     member.assert_extract()
-    assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container", "run_in_container"] == actions
+    assert ["set_timeout", "stop_service", "run_in_container",
+            "in_container", "start_service", "unset_timeout",
+            "run_in_container"] == actions
 
-    call_mock.assert_has_calls([
-        mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
-        mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
-    ])
     in_container_mock.assert_called_once_with(
         "postgres",
         ["sudo", "-u", "postgres", "psql"],
@@ -369,21 +368,25 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
 
 
 def test_post_restore_action_astute(mocker):
-
     stopped = []
     mocker.patch(
         "octane.util.docker.get_docker_container_names",
-        return_value=["container_1", "container_2"]
+        return_value=["astute", "container_1", "container_2"]
     )
-    start = mocker.patch("octane.util.docker.start_container",
-                         side_effect=stopped.remove)
-    stop = mocker.patch("octane.util.docker.stop_container",
+    start_service = mocker.patch("octane.util.systemd.start_service",
+                                 side_effect=stopped.remove)
+    stop_service = mocker.patch("octane.util.systemd.stop_service",
+                                side_effect=stopped.append)
+    start_docker = mocker.patch("octane.util.docker.start_container",
+                         side_effect=Exception())
+    stop_docker = mocker.patch("octane.util.docker.stop_container",
                         side_effect=stopped.append)
 
     astute.AstuteArchivator(None).post_restore_action()
-    assert start.called
-    assert stop.called
-    assert not stopped
+    assert start_service.called
+    assert stop_service.called
+    assert start_docker.called
+    assert stopped == ['astute']
 
 
 @pytest.mark.parametrize("dump, calls", [
