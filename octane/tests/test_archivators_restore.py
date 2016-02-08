@@ -338,8 +338,8 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
             dump_dict[key] = "dump_val"
             current_dict[key] = "current_val"
         else:
-            dump_dict[key] = {s: "dump_val" for s in seq}
-            current_dict[key] = {s: "current_val" for s in seq}
+            dump_dict[key] = dict((s, "dump_val") for s in seq)
+            current_dict[key] = dict((s, "current_val") for s in seq)
         if key in required_keys:
             dict_to_restore[key] = dump_dict[key]
         else:
