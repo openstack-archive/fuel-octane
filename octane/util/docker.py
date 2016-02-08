@@ -170,20 +170,41 @@ def apply_patches(container, prefix, *patches, **kwargs):
         shutil.rmtree(tempdir)
 
 
-def get_docker_container_names(**filtering):
-    cmd = [
-        "docker",
-        "ps",
-        '--all',
-        '--format="{{.Names}}"',
-    ]
+def get_docker_container_names_without_format(**filtering):
+    cmd = ["docker", "ps", '--all']
     for key, value in filtering.iteritems():
         cmd.append("--filter")
         cmd.append("{0}={1}".format(key, value))
+    stdout, _ = subprocess.call(cmd, stdout=subprocess.PIPE)
+    lines = stdout.strip().split("\n")
+    name_idx = lines[0].index("NAMES")
+    results = []
+    for line in lines[1:]:
+        results.append(line[name_idx:].split(' ', 1)[0].rsplit("-", 1)[-1])
+    return results
 
+
+def get_docker_container_names_with_format(**filtering):
+    cmd = ["docker", "ps", '--all', '--format="{{.Names}}"']
+    for key, value in filtering.iteritems():
+        cmd.append("--filter")
+        cmd.append("{0}={1}".format(key, value))
     stdout, _ = subprocess.call(cmd, stdout=subprocess.PIPE)
     full_names = stdout.strip().split()
     return [n.rsplit("-", 1)[-1] for n in full_names]
+
+
+def get_docker_container_names(**filtering):
+    try:
+        if get_docker_container_names.i_use_without:
+            raise Exception("not use with")
+        return get_docker_container_names_with_format(**filtering)
+    except Exception:
+        get_docker_container_names.i_use_without = True
+        return get_docker_container_names_without_format(**filtering)
+
+
+get_docker_container_names.i_use_without = False
 
 
 def get_docker_container_name(container, **extra_filtering):
