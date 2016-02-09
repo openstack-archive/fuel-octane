@@ -44,9 +44,6 @@ class PostgresArchivatorMeta(type):
 class PostgresArchivator(base.CmdArchivator):
     db = None
 
-    def sync_db(self):
-        pass
-
     def restore(self):
         dump = self.archive.extractfile(self.filename)
         subprocess.call([
@@ -65,14 +62,10 @@ class PostgresArchivator(base.CmdArchivator):
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
         docker.start_container(self.db)
-        self.sync_db()
 
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
-
-    def sync_db(self):
-        docker.run_in_container("nailgun", ["nailgun_syncdb"])
 
     def __post_data_to_nailgun(self, url, data, password):
         ksclient = keystoneclient(
@@ -114,6 +107,3 @@ class NailgunArchivator(PostgresArchivator):
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
-
-    def sync_db(self):
-        docker.run_in_container("keystone", ["keystone-manage", "db_sync"])
