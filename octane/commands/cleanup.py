@@ -38,7 +38,7 @@ def cleanup_environment(env_id):
 
     with ssh.tempdir(controller) as tempdir:
         script_src_filename = os.path.join(
-            magic_consts.CWD, "helpers", script_filename)
+            magic_consts.CWD, "bin", script_filename)
         script_dst_filename = os.path.join(tempdir, script_filename)
         sftp.put(script_src_filename, script_dst_filename)
 

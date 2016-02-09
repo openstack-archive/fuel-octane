@@ -108,7 +108,7 @@ def delete_fuel_resources(env):
     node = get_one_controller(env)
     sftp = ssh.sftp(node)
     sftp.put(
-        os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
+        os.path.join(magic_consts.CWD, "bin", "delete_fuel_resources.py"),
         "/tmp/delete_fuel_resources.py",
     )
     ssh.call(

@@ -8,7 +8,6 @@ build
 .eggs
 eggs
 parts
-bin
 var
 sdist
 develop-eggs
