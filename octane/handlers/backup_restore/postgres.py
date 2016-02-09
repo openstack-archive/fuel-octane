@@ -65,7 +65,6 @@ class PostgresArchivator(base.CmdArchivator):
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
         docker.start_container(self.db)
-        self.sync_db()
 
 
 class NailgunArchivator(PostgresArchivator):
