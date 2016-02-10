@@ -182,13 +182,10 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
                  side_effect=foo("start_container"))
     cls(archive).restore()
     member.assert_extract()
-    assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container", "run_in_container"] == actions
+    assert ["stop_container", "run_in_container", "in_container",
+            "start_container", "run_in_container"] == actions
 
-    call_mock.assert_has_calls([
-        mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
-        mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
-    ])
+    assert not call_mock.called
     in_container_mock.assert_called_once_with(
         "postgres",
         ["sudo", "-u", "postgres", "psql"],
