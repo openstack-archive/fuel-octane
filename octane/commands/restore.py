@@ -14,21 +14,40 @@ import contextlib
 import logging
 import os
 import tarfile
+import tempfile
 
 from cliff import command
 
 from octane.handlers import backup_restore
+from octane.util import encryption
 
 LOG = logging.getLogger(__name__)
 
 
-def restore_data(path_to_backup, archivators):
-    with contextlib.closing(tarfile.open(path_to_backup)) as archive:
+def _restore(io_arch, archivators):
+    with contextlib.closing(tarfile.open(fileobj=io_arch)) as archive:
         archivators = [cls(archive) for cls in archivators]
         for archivator in archivators:
             archivator.pre_restore_check()
         for archivator in archivators:
             archivator.restore()
+
+
+def restore(path_to_backup, archivators, password):
+
+    with open(path_to_backup) as input_io:
+        if not password:
+            _restore(input_io, archivators)
+        else:
+            abs_path_to_backup = os.path.abspath(path_to_backup)
+            prefix = ".{0}.".format(os.path.basename(path_to_backup))
+            dirname = os.path.dirname(abs_path_to_backup)
+            with tempfile.NamedTemporaryFile(
+                    dir=dirname, prefix=prefix) as temp:
+                with encryption.decrypt_io(password, input_io, temp):
+                    pass
+                temp.seek(0)
+                _restore(temp, archivators)
 
 
 class BaseRestoreCommand(command.Command):
@@ -47,13 +66,17 @@ class BaseRestoreCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        super(BaseRestoreCommand, self).take_action(parsed_args)
         assert self.archivators
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
-        restore_data(parsed_args.path, self.archivators)
+        restore(
+            parsed_args.path,
+            self.archivators,
+            getattr(parsed_args, "password", None))
 
 
-class RestoreCommand(BaseRestoreCommand):
+class RestoreCommand(BaseRestoreCommand, encryption.EncryptCommandMixin):
 
     archivators = backup_restore.ARCHIVATORS
 

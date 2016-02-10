@@ -22,37 +22,77 @@ from octane.handlers import backup_restore
     ("path", False),
     ("path", True),
 ])
-@pytest.mark.parametrize("command, archivators", [
-    ("fuel-restore", backup_restore.ARCHIVATORS),
-    ("fuel-repo-restore", backup_restore.REPO_ARCHIVATORS),
+@pytest.mark.parametrize("command, archivators, encrypted", [
+    ("fuel-restore", backup_restore.ARCHIVATORS, True),
+    ("fuel-repo-restore", backup_restore.REPO_ARCHIVATORS, False),
 ])
-def test_parser(mocker, octane_app, path, is_file, command, archivators):
-    restore_mock = mocker.patch('octane.commands.restore.restore_data')
+@pytest.mark.parametrize("password", ["password", None])
+@pytest.mark.parametrize("getpass", ["getpassword", None])
+def test_parser(
+        mocker, mock_open,
+        octane_app, path,
+        is_file, command,
+        archivators, password,
+        encrypted, getpass):
+    restore_mock = mocker.patch('octane.commands.restore.restore')
     mocker.patch("os.path.isfile", return_value=is_file)
+    getpass_mock = mocker.patch("getpass.getpass", return_value=getpass)
     params = [command]
     if path:
         params += ["--from", path]
+    if password and encrypted:
+        params += ["--password", password]
     try:
         octane_app.run(params)
     except AssertionError:  # parse error, app returns 2
         assert not restore_mock.called
-        assert path is None
+        assert path is None or (password is None and encrypted)
     except ValueError:  # Invalid path to backup file
         assert not restore_mock.called
         assert not is_file
+    except Exception as exc:
+        if encrypted and not password:
+            assert "Password required for encrypted backup" == exc.message
+        elif not encrypted and password:
+            assert "Password not required for not encrypted backup" == \
+                exc.message
     else:
-        restore_mock.assert_called_once_with(path, archivators)
+        if encrypted and password:
+            assert not getpass_mock.called
+            restore_mock.assert_called_once_with(path, archivators, password)
+        elif encrypted:
+            getpass_mock.assert_called_once_with()
+            restore_mock.assert_called_once_with(path, archivators, getpass)
+        else:
+            restore_mock.assert_called_once_with(path, archivators, None)
         assert path is not None
         assert is_file
 
 
-def test_restore_data(mocker):
+@pytest.mark.parametrize("password", ["password", None])
+def test_restore_data(mocker, mock_open, password):
     tar_mock = mocker.patch("tarfile.open")
+    tmp_mock = mocker.patch("tempfile.NamedTemporaryFile")
+    tmp_mock.return_value.__enter__.return_value = tmp_mock
+    enc_mock = mocker.patch("octane.util.encryption.decrypt_io")
     archivator_mock_1 = mocker.Mock()
     archivator_mock_2 = mocker.Mock()
     path = "path"
-    restore.restore_data(path, [archivator_mock_1, archivator_mock_2])
-    tar_mock.assert_called_once_with(path)
+    path_dir = "/abs"
+    mocker.patch("os.path.dirname", return_value=path_dir)
+    restore.restore(path, [archivator_mock_1, archivator_mock_2], password)
+    if password:
+        tar_mock.assert_called_once_with(fileobj=tmp_mock)
+        mock_open.assert_called_once_with(path)
+        tmp_mock.assert_called_once_with(
+            dir=path_dir, prefix=".{0}.".format(path))
+        enc_mock.assert_called_once_with(
+            password, mock_open.return_value, tmp_mock)
+    else:
+        tar_mock.assert_called_once_with(fileobj=mock_open.return_value)
+        mock_open.assert_called_once_with(path)
+        assert not tmp_mock.called
+        assert not enc_mock.called
     for arch_mock in [archivator_mock_1, archivator_mock_2]:
         arch_mock.assert_has_calls([
             mock.call(tar_mock.return_value),

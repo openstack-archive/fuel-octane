@@ -20,11 +20,21 @@ import tempfile
 from cliff import command
 
 from octane.handlers import backup_restore
+from octane.util import encryption
 
 LOG = logging.getLogger(__name__)
 
 
-def backup(path_to_backup, archivators):
+def _backup(fileobj, archivators, ext):
+    tar_obj = tarfile.open(fileobj=fileobj, mode="w|{0}".format(ext))
+    with contextlib.closing(tar_obj) as archive:
+        for manager in archivators:
+            manager(archive).backup()
+        if not archive.getmembers():
+            raise Exception("Nothing to backup")
+
+
+def backup(path_to_backup, archivators, password):
     _, ext = os.path.splitext(path_to_backup)
     if ext in [".gz", ".bz2"]:
         ext = ext[1:]
@@ -34,12 +44,11 @@ def backup(path_to_backup, archivators):
     prefix = ".{0}.".format(os.path.basename(abs_path_to_backup))
     dirname = os.path.dirname(abs_path_to_backup)
     with tempfile.NamedTemporaryFile(dir=dirname, prefix=prefix) as temp:
-        tar_obj = tarfile.open(fileobj=temp, mode="w|{0}".format(ext))
-        with contextlib.closing(tar_obj) as archive:
-            for manager in archivators:
-                manager(archive).backup()
-            if not archive.getmembers():
-                raise Exception("Nothing to backup")
+        if password:
+            with encryption.encrypt_io(password, output_io=temp) as res:
+                _backup(res[0], archivators, ext)
+        else:
+            _backup(temp, archivators, ext)
         shutil.move(temp.name, abs_path_to_backup)
         temp.delete = False
 
@@ -60,10 +69,14 @@ class BaseBackupCommand(command.Command):
 
     def take_action(self, parsed_args):
         assert self.archivators
-        backup(parsed_args.path, self.archivators)
+        super(BaseBackupCommand, self).take_action(parsed_args)
+        backup(
+            parsed_args.path,
+            self.archivators,
+            getattr(parsed_args, "password", None))
 
 
-class BackupCommand(BaseBackupCommand):
+class BackupCommand(BaseBackupCommand, encryption.EncryptCommandMixin):
 
     archivators = backup_restore.ARCHIVATORS
 
