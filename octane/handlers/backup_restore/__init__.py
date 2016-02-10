@@ -24,17 +24,17 @@ from octane.handlers.backup_restore import version
 
 
 ARCHIVATORS = [
-    astute.AstuteArchivator,
-    cobbler.CobblerArchivator,
-    fuel_keys.FuelKeysArchivator,
-    fuel_uuid.FuelUUIDArchivator,
-    puppet.PuppetArchivator,
-    postgres.KeystoneArchivator,
-    # Nailgun restore should be after puppet restore
-    postgres.NailgunArchivator,
-    ssh.SshArchivator,
-    version.VersionArchivator,
-    nailgun_plugins.NailgunPluginsArchivator,
+   #  astute.AstuteArchivator,
+   #  cobbler.CobblerArchivator,
+   #  fuel_keys.FuelKeysArchivator,
+   #  fuel_uuid.FuelUUIDArchivator,
+   puppet.PuppetArchivator,
+   #  postgres.KeystoneArchivator,
+   #  # Nailgun restore should be after puppet restore
+   postgres.NailgunArchivator,
+   #  ssh.SshArchivator,
+   version.VersionArchivator,
+   #  nailgun_plugins.NailgunPluginsArchivator,
 ]
 
 
