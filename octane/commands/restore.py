@@ -14,16 +14,18 @@ import contextlib
 import logging
 import os
 import tarfile
+import tempfile
 
 from cliff import command
 
 from octane.handlers import backup_restore
+from octane.util import encryption
 
 LOG = logging.getLogger(__name__)
 
 
-def restore_data(path_to_backup, archivators):
-    with contextlib.closing(tarfile.open(path_to_backup)) as archive:
+def _restore(io_arch, archivators):
+    with contextlib.closing(tarfile.open(fileobj=io_arch)) as archive:
         archivators = [cls(archive) for cls in archivators]
         for archivator in archivators:
             archivator.pre_restore_check()
@@ -31,9 +33,22 @@ def restore_data(path_to_backup, archivators):
             archivator.restore()
 
 
+def restore(path_to_backup, archivators, password):
+    if password:
+        with contextlib.closing(tempfile.TemporaryFile()) as temp_file:
+            with open(path_to_backup) as input_io:
+                encryption.decrypt_io(input_io, temp_file, password)
+            temp_file.seek(0)
+            _restore(temp_file, archivators)
+    else:
+        with open(path_to_backup) as io_file:
+            _restore(io_file, archivators)
+
+
 class BaseRestoreCommand(command.Command):
 
     archivators = None
+    encrypted = False
 
     def get_parser(self, *args, **kwargs):
         parser = super(BaseRestoreCommand, self).get_parser(*args, **kwargs)
@@ -44,18 +59,39 @@ class BaseRestoreCommand(command.Command):
             dest="path",
             required=True,
             help="path to backup file")
+
+        if self.encrypted:
+            parser.add_argument(
+                "--password",
+                type=str,
+                dest="password",
+                help="")
+            parser.add_argument(
+                '--encrypted',
+                dest='encrypted',
+                action='store_true')
+            parser.add_argument(
+                '--not-encrypted',
+                dest='encrypted',
+                action='store_false')
+            parser.set_defaults(encrypted=True)
         return parser
 
     def take_action(self, parsed_args):
         assert self.archivators
+        password = None
+        if self.encrypted and parsed_args.encrypted:
+            password = parsed_args.password
+            raise ValueError("password argument required")
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
-        restore_data(parsed_args.path, self.archivators)
+        restore(parsed_args.path, self.archivators, password)
 
 
 class RestoreCommand(BaseRestoreCommand):
 
     archivators = backup_restore.ARCHIVATORS
+    encrypted = True
 
 
 class RestoreRepoCommand(BaseRestoreCommand):
