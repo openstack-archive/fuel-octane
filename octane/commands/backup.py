@@ -21,11 +21,12 @@ import tempfile
 from cliff import command
 
 from octane.handlers import backup_restore
+from octane.util import encryption
 
 LOG = logging.getLogger(__name__)
 
 
-def backup(path_to_backup, archivators):
+def backup(path_to_backup, archivators, password):
     _, ext = os.path.splitext(path_to_backup)
     if ext in [".gz", ".bz2"]:
         ext = ext[1:]
@@ -37,13 +38,19 @@ def backup(path_to_backup, archivators):
             for manager in archivators:
                 manager(archive).backup()
             assert archive.getmembers(), "Nothing to backup"
-        temp.delete = False
-        shutil.move(temp.name, path_to_backup)
+        if password:
+            with open(path_to_backup, "w") as backup_io:
+                temp.seek(0)
+                encryption.encrypt_io(temp, backup_io, password)
+        else:
+            temp.delete = False
+            shutil.move(temp.name, path_to_backup)
 
 
 class BaseBackupCommand(command.Command):
 
     archivators = None
+    encrypted = False
 
     def get_parser(self, *args, **kwargs):
         parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
@@ -53,16 +60,38 @@ class BaseBackupCommand(command.Command):
             dest="path",
             required=True,
             help="Path to tarball file with the backup information.")
+        if self.encrypted:
+            parser.add_argument(
+                "--password",
+                type=str,
+                dest="password",
+                help="")
+            parser.add_argument(
+                '--encrypted',
+                dest='encrypted',
+                action='store_true')
+            parser.add_argument(
+                '--not-encrypted',
+                dest='encrypted',
+                action='store_false')
+            parser.set_defaults(encrypted=True)
         return parser
 
     def take_action(self, parsed_args):
         assert self.archivators
-        backup(parsed_args.path, self.archivators)
+        password = None
+        if self.encrypted:
+            if parsed_args.encrypted != bool(parsed_args.password):
+                raise AssertionError("Password required for encrypted backup")
+            if parsed_args.encrypted:
+                password = parsed_args.password
+        backup(parsed_args.path, self.archivators, password)
 
 
 class BackupCommand(BaseBackupCommand):
 
     archivators = backup_restore.ARCHIVATORS
+    encrypted = True
 
 
 class BackupRepoCommand(BaseBackupCommand):
