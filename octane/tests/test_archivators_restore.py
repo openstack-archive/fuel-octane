@@ -212,7 +212,6 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
             "interface",
             "ipaddress",
             "netmask",
-            "mac",
             "dhcp_pool_start",
             "dhcp_pool_end",
             "dhcp_gateway",
@@ -251,7 +250,6 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
         ("DNS_UPSTREAM", None),
         ("ADMIN_NETWORK", [
             "interface",
-            "mac",
             "dhcp_pool_start",
             "dhcp_pool_end",
             "dhcp_gateway",
@@ -295,7 +293,6 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
             "interface",
             "ipaddress",
             "netmask",
-            "mac",
             "dhcp_pool_start",
             "dhcp_pool_end",
             "dhcp_gateway",
