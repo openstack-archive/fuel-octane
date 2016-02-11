@@ -35,7 +35,6 @@ class AstuteArchivator(base.PathArchivator):
             "interface",
             "ipaddress",
             "netmask",
-            "mac",
             "dhcp_pool_start",
             "dhcp_pool_end",
             "dhcp_gateway",
