@@ -23,7 +23,7 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def backup_admin_node(path_to_backup):
+def backup(path_to_backup, archivators):
     if path_to_backup:
         _, ext = os.path.splitext(path_to_backup)
         if ext in [".gz", ".bz2"]:
@@ -34,14 +34,16 @@ def backup_admin_node(path_to_backup):
     else:
         tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
     with contextlib.closing(tar_obj) as archive:
-        for manager in backup_restore.ARCHIVATORS:
+        for manager in archivators:
             manager(archive).backup()
 
 
-class BackupCommand(command.Command):
+class BaseBackupCommand(command.Command):
+
+    archivators = None
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BackupCommand, self).get_parser(*args, **kwargs)
+        parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
             "--to",
             type=str,
@@ -50,4 +52,15 @@ class BackupCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        backup_admin_node(parsed_args.path)
+        assert self.archivators
+        backup(parsed_args.path, self.archivators)
+
+
+class BackupCommand(BaseBackupCommand):
+
+    archivators = backup_restore.ARCHIVATORS
+
+
+class BackupRepoCommand(BaseBackupCommand):
+
+    archivators = backup_restore.REPO_ARCHIVATORS
