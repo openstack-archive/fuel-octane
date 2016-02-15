@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
 import os
 import pytest
 
@@ -17,6 +18,7 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
+from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
@@ -131,3 +133,116 @@ def test_nailgun_plugins_backup(mocker, path_exists):
         test_archive.add.assert_called_once_with(path, name)
     else:
         assert not test_archive.add.called
+
+
+@pytest.mark.parametrize(
+    "cls, name, sql, ipaddr, sql_output, archive_add_list",
+    [
+        (
+            mirrors.MirrorsBackup,
+            "mirrors",
+            "select editable from attributes;",
+            "127.0.0.1",
+            '{"repo_setup": {"repos": {"value": ['
+            '{"uri": "http://127.0.0.1:8080/test_fest"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+            ']}}}',
+            ["test_fest", "test_fest_2"]
+        ),
+        (
+            mirrors.MirrorsBackup,
+            "mirrors",
+            "select editable from attributes;",
+            "127.0.0.1",
+            '{"repo_setup": {"repos": {"value": ['
+            '{"uri": "http://127.0.0.1:8080/test_fest"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+            ']}}}\n'
+            '{"repo_setup": {"repos": {"value": ['
+            '{"uri": "http://127.0.0.1:8080/test_fest"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
+            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+            ']}}}',
+            ["test_fest", "test_fest_2", "test_fest_3"]
+        ),
+        (
+            mirrors.MirrorsBackup,
+            "mirrors",
+            "select editable from attributes;",
+            "127.0.0.1",
+            '',
+            []
+        ),
+        (
+            mirrors.RepoBackup,
+            "repos",
+            "select generated from attributes;",
+            "127.0.0.1",
+            '{"provision": {"image_data": {'
+            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+            '}}}',
+            ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
+        ),
+        (
+            mirrors.RepoBackup,
+            "repos",
+            "select generated from attributes;",
+            "127.0.0.1",
+            '{"provision": {"image_data": {'
+            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+            '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
+            '}}}\n'
+            '{"provision": {"image_data": {'
+            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+            '}}}',
+            ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
+        ),
+        (
+            mirrors.RepoBackup,
+            "repos",
+            "select generated from attributes;",
+            "127.0.0.1",
+            '',
+            []
+        ),
+    ]
+)
+def test_repos_backup(
+        mocker, mock_open, cls, name, sql, ipaddr,
+        sql_output, archive_add_list):
+    yaml_mocker = mocker.patch(
+        "yaml.load",
+        return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
+    docker_mock = mocker.patch("octane.util.docker.run_in_container")
+    test_archive = mocker.Mock()
+    path = "/var/www/nailgun/"
+    docker_mock.return_value = sql_output, None
+    cls(test_archive).backup()
+    yaml_mocker.assert_called_once_with(mock_open.return_value)
+    docker_mock.assert_called_once_with(
+        "postgres", [
+            "sudo",
+            "-u",
+            "postgres",
+            "psql",
+            "nailgun",
+            "--tuples-only",
+            "-c",
+            sql
+        ],
+        stdout=subprocess.PIPE
+    )
+    test_archive.add.assert_has_calls(
+        [mock.call(os.path.join(path, i), name) for i in archive_add_list],
+        any_order=True)
+    assert test_archive.add.call_count == len(archive_add_list)
