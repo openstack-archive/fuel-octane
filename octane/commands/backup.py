@@ -23,7 +23,7 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def backup_admin_node(path_to_backup):
+def backup_smth(path_to_backup, archivators):
     if path_to_backup:
         _, ext = os.path.splitext(path_to_backup)
         if ext in [".gz", ".bz2"]:
@@ -34,14 +34,22 @@ def backup_admin_node(path_to_backup):
     else:
         tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
     with contextlib.closing(tar_obj) as archive:
-        for manager in backup_restore.ARCHIVATORS:
+        for manager in archivators:
             manager(archive).backup()
 
 
-class BackupCommand(command.Command):
+def backup_admin_node(path_to_backup):
+    backup_smth(path_to_backup, backup_restore.ARCHIVATORS)
+
+
+def backup_repo(path_to_backup):
+    backup_smth(path_to_backup, backup_restore.REPO_ARCHIVATORS)
+
+
+class BaseBackupCommand(command.Command):
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BackupCommand, self).get_parser(*args, **kwargs)
+        parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
             "--to",
             type=str,
@@ -49,5 +57,14 @@ class BackupCommand(command.Command):
             help="Path to tarball file with the backup information.")
         return parser
 
+
+class BackupCommand(BaseBackupCommand):
+
     def take_action(self, parsed_args):
         backup_admin_node(parsed_args.path)
+
+
+class BackupRepoCommand(BaseBackupCommand):
+
+    def take_action(self, parsed_args):
+        backup_repo(parsed_args.path)
