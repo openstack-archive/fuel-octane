@@ -14,6 +14,7 @@ import mock
 import pytest
 
 from octane.commands import restore
+from octane.handlers import backup_restore
 
 
 @pytest.mark.parametrize("path,is_file", [
@@ -21,10 +22,14 @@ from octane.commands import restore
     ("path", False),
     ("path", True),
 ])
-def test_parser(mocker, octane_app, path, is_file):
-    restore_mock = mocker.patch('octane.commands.restore.restore_admin_node')
+@pytest.mark.parametrize("command, archivators", [
+    ("fuel-restore", backup_restore.ARCHIVATORS),
+    ("fuel-repo-restore", backup_restore.REPO_ARCHIVATORS),
+])
+def test_parser(mocker, octane_app, path, is_file, command, archivators):
+    restore_mock = mocker.patch('octane.commands.restore.restore_data')
     mocker.patch("os.path.isfile", return_value=is_file)
-    params = ["fuel-restore"]
+    params = [command]
     if path:
         params += ["--from", path]
     try:
@@ -36,21 +41,17 @@ def test_parser(mocker, octane_app, path, is_file):
         assert not restore_mock.called
         assert not is_file
     else:
-        restore_mock.assert_called_once_with(path)
+        restore_mock.assert_called_once_with(path, archivators)
         assert path is not None
         assert is_file
 
 
-def test_restore_admin_node(mocker):
+def test_restore_data(mocker):
     tar_mock = mocker.patch("tarfile.open")
     archivator_mock_1 = mocker.Mock()
     archivator_mock_2 = mocker.Mock()
-    mocker.patch(
-        "octane.handlers.backup_restore.ARCHIVATORS",
-        new=[archivator_mock_1, archivator_mock_2]
-    )
     path = "path"
-    restore.restore_admin_node(path)
+    restore.restore_data(path, [archivator_mock_1, archivator_mock_2])
     tar_mock.assert_called_once_with(path)
     for arch_mock in [archivator_mock_1, archivator_mock_2]:
         arch_mock.assert_has_calls([

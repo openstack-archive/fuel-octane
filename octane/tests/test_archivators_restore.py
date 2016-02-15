@@ -20,6 +20,7 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
+from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
@@ -113,6 +114,24 @@ class TestArchive(object):
         fuel_uuid.FuelUUIDArchivator, "/etc/fuel/fuel-uuid", [
             ("fuel_uuid/fuel-uuid", True, True),
         ]
+    ),
+    (
+        mirrors.MirrorsBackup,
+        "/var/www/nailgun/",
+        [
+            ("mirrors/", False, False),
+            ("mirrors/data.txt", True, True),
+            ("mirrors/subdir/data.txt", True, True),
+        ],
+    ),
+    (
+        mirrors.RepoBackup,
+        "/var/www/nailgun/",
+        [
+            ("repos/", False, False),
+            ("repos/data.txt", True, True),
+            ("repos/subdir/data.txt", True, True),
+        ],
     ),
 ])
 def test_path_restore(mocker, cls, path, members):
