@@ -13,24 +13,24 @@ import pytest
 import sys
 
 from octane.commands import backup
+from octane.handlers import backup_restore
 
 
-def test_parser_empty(mocker, octane_app):
-    m1 = mocker.patch('octane.commands.backup.backup_admin_node')
+@pytest.mark.parametrize("cmd,archivators", [
+    ("fuel-backup", backup_restore.ARCHIVATORS),
+    ("fuel-repo-backup", backup_restore.REPO_ARCHIVATORS),
+])
+@pytest.mark.parametrize("path", [None, "backup_file"])
+def test_parser_empty(mocker, octane_app, cmd, archivators, path):
+    m1 = mocker.patch('octane.commands.backup.backup')
     m1.return_value = 2
-    octane_app.run(["fuel-backup"])
+    params = [cmd]
+    if path:
+        params += ["--to", path]
+    octane_app.run(params)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with(None)
-
-
-def test_parser_not_empty(mocker, octane_app):
-    m1 = mocker.patch('octane.commands.backup.backup_admin_node')
-    m1.return_value = 2
-    octane_app.run(["fuel-backup", "--to", "backup_file"])
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with("backup_file")
+    m1.assert_called_once_with(path, archivators)
 
 
 @pytest.mark.parametrize("path,mode", [
@@ -40,14 +40,32 @@ def test_parser_not_empty(mocker, octane_app):
     ("path.hz2", "w|"),
     (None, "w|"),
 ])
-def test_backup_admin_node_backup_file(mocker, path, mode):
+@pytest.mark.parametrize("empty", [True, False])
+def test_backup_admin_node_backup_file(mocker, path, mode, empty):
     manager = mocker.Mock()
-    mocker.patch('octane.handlers.backup_restore.ARCHIVATORS', new=[manager])
     tar_obj = mocker.patch("tarfile.open")
-    backup.backup_admin_node(path)
+    if empty:
+        tar_obj.return_value.getmembers.return_value = []
+    tmp_file = mocker.patch("tempfile.NamedTemporaryFile")
+    unlink_mock = mocker.patch("os.unlink")
+    copy_mock = mocker.patch("shutil.copy")
+    try:
+        backup.backup(path, [manager])
+    except AssertionError as exc:
+        assert "backup is empty" == exc.msg and empty
     manager.assert_called_once_with(tar_obj.return_value)
     manager.return_value.backup.assert_called_once_with()
     if path is not None:
-        tar_obj.assert_called_once_with(path, mode)
+        tmp_file.assert_called_once_with(delete=False)
+        tar_obj.assert_called_once_with(
+            fileobj=tmp_file.return_value, mode=mode)
+        unlink_mock.assert_called_once_with(tmp_file.return_value.name)
+        if empty:
+            assert not copy_mock.called
+        else:
+            copy_mock.assert_called_once_with(tmp_file.return_value.name, path)
     else:
         tar_obj.assert_called_once_with(fileobj=sys.stdout, mode=mode)
+        assert not tmp_file.called
+        assert not unlink_mock.called
+        assert not copy_mock.called

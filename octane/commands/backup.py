@@ -13,8 +13,10 @@
 import contextlib
 import logging
 import os
+import shutil
 import sys
 import tarfile
+import tempfile
 
 from cliff import command
 
@@ -23,25 +25,36 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def backup_admin_node(path_to_backup):
+def backup(path_to_backup, archivators):
+    ext = ""
     if path_to_backup:
-        _, ext = os.path.splitext(path_to_backup)
-        if ext in [".gz", ".bz2"]:
-            ext = ext[1:]
-        else:
-            ext = ""
-        tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
+        temp = tempfile.NamedTemporaryFile(delete=False)
+        fileobj = temp
+        _, i_ext = os.path.splitext(path_to_backup)
+        if i_ext in [".gz", ".bz2"]:
+            ext = i_ext[1:]
     else:
-        tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
-    with contextlib.closing(tar_obj) as archive:
-        for manager in backup_restore.ARCHIVATORS:
-            manager(archive).backup()
+        fileobj = sys.stdout
+    tar_obj = tarfile.open(fileobj=fileobj, mode="w|{0}".format(ext))
+    try:
+        with contextlib.closing(tar_obj) as archive:
+            for manager in archivators:
+                manager(archive).backup()
+        if not archive.getmembers():
+            raise AssertionError("backup is empty")
+        if path_to_backup:
+            shutil.copy(temp.name, path_to_backup)
+    finally:
+        if path_to_backup:
+            os.unlink(temp.name)
 
 
-class BackupCommand(command.Command):
+class BaseBackupCommand(command.Command):
+
+    archivators = None
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BackupCommand, self).get_parser(*args, **kwargs)
+        parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
             "--to",
             type=str,
@@ -50,4 +63,15 @@ class BackupCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        backup_admin_node(parsed_args.path)
+        assert self.archivators
+        backup(parsed_args.path, self.archivators)
+
+
+class BackupCommand(BaseBackupCommand):
+
+    archivators = backup_restore.ARCHIVATORS
+
+
+class BackupRepoCommand(BaseBackupCommand):
+
+    archivators = backup_restore.REPO_ARCHIVATORS
