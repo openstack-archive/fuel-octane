@@ -35,6 +35,7 @@ ARCHIVATORS = [
     ssh.SshArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
+    puppet.PuppetApplyHost,
 ]
 
 
