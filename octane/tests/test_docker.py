@@ -66,3 +66,26 @@ def test_get_container_names_with_format(mocker):
     sub_mock.assert_called_once_with(
         ["docker", "ps", '--all', '--format="{{.Names}}"'],
         stdout=subprocess.PIPE)
+
+
+def test_wait_for_container(mocker):
+    mock_sleep = mocker.patch('time.sleep')
+    mock_popen = mocker.patch('octane.util.subprocess.popen')
+    mock_popen.mock_add_spec(['__enter__', '__exit__'], spec_set=True)
+    proc = mock_popen.return_value.__enter__.return_value
+    proc.mock_add_spec(
+        subprocess.BasePopen('name', ['cmd'], {'popen': 'kwargs'}),
+        spec_set=True)
+    proc.communicate.side_effect = [
+        ("ActiveState=activating\n\n", None),
+        ("ActiveState=active\n\n", None),
+    ]
+
+    mock_subprocess_call = mocker.patch('octane.util.subprocess.call')
+    mock_subprocess_call.side_effect = [
+        None, subprocess.CalledProcessError(1, "test_error")
+    ]
+    pytest.set_trace()
+    docker.wait_for_container('test_container')
+    assert 2 == proc.communicate.call_count \
+        == mock_subprocess_call.call_count == mock_sleep.call_count
