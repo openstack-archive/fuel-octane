@@ -17,6 +17,7 @@ import os.path
 import shutil
 import tarfile
 import tempfile
+import time
 
 from octane.util import subprocess
 
@@ -213,3 +214,31 @@ def stop_container(container):
 
 def start_container(container):
     _container_action(container, "start")
+
+
+def wait_for_container(container):
+    unit_state_cmd = ['systemctl',
+                      '-o', 'ActiveState',
+                      'show', 'start-container.service']
+    while True:
+        with in_container(container, unit_state_cmd,
+                          stdout=subprocess.PIPE) as proc:
+            output, _ = proc.communicate()
+        lines = output.splitlines()
+        _, _, state = lines[0].partition('=')
+        if state == "active":
+            LOG.info("Container %s is started")
+            break
+        else:
+            LOG.debug("Container %s is starting, waiting 5 seconds")
+            time.sleep(5)
+
+    while True:
+        try:
+            run_in_container(container, ["pgrep", "puppet"])
+        except subprocess.CalledProcessError:
+            LOG.info("Container %s: completed puppet apply")
+            break
+        else:
+            LOG.debug("Waiting for puppet apply to complete")
+            time.sleep(5)
