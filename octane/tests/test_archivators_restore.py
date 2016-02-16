@@ -182,7 +182,7 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
     cls(archive).restore()
     member.assert_extract()
     assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container"] == actions
+            "start_container", "call"] == actions
 
     call_mock.assert_has_calls([
         mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),

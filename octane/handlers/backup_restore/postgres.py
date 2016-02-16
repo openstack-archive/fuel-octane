@@ -58,10 +58,10 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
+        docker.start_container(self.db)
         subprocess.call([
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
-        docker.start_container(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
