@@ -11,8 +11,15 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import puppet
 
 
 class PuppetArchivator(base.DirsArchivator):
     path = "/etc/puppet"
     tag = "puppet"
+
+
+class PuppetApplyHost(base.Base):
+
+    def restore(self):
+        puppet.apply_host()
