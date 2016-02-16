@@ -179,10 +179,12 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
                  side_effect=foo("stop_container"))
     mocker.patch("octane.util.docker.start_container",
                  side_effect=foo("start_container"))
+    mocker.patch("octane.util.docker.wait_for_container",
+                 side_effect=foo("wait_for_container"))
     cls(archive).restore()
     member.assert_extract()
     assert ["call", "stop_container", "run_in_container", "in_container",
-            "call", "start_container"] == actions
+            "start_container", "wait_for_container", "call"] == actions
 
     call_mock.assert_has_calls([
         mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
