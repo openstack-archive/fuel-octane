@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 def apply_host():
-    cmd = ['puppet', 'apply', '-d', '-v', '--detailed-exitcodes']
+    cmd = ['puppet', 'apply', '-d', '-v']
     path = os.path.join(magic_consts.PUPPET_DIR,
                         'nailgun',
                         'examples',
