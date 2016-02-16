@@ -14,6 +14,7 @@ import json
 import logging
 import requests
 import six
+import time
 import urlparse
 import yaml
 
@@ -58,10 +59,16 @@ class PostgresArchivator(base.CmdArchivator):
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
+        docker.start_container(self.db)
+        # FIXME(ogelbukh): Add appropriate way to check that container is
+        # ready (i.e. puppet agent run is finished)
+        # Wait for puppet agent to start inside the container, otherwise
+        # systemctl reports the container is ready before db migrations
+        # complete and upload of new releases will fail.p
+        time.sleep(5)
         subprocess.call([
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
-        docker.start_container(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
