@@ -378,12 +378,10 @@ def test_post_restore_action_astute(mocker):
                          side_effect=stopped.remove)
     stop = mocker.patch("octane.util.docker.stop_container",
                         side_effect=stopped.append)
-    puppet = mocker.patch("octane.util.puppet.apply_host")
 
     astute.AstuteArchivator(None).post_restore_action()
     assert start.called
     assert stop.called
-    assert puppet.called
     assert not stopped
 
 
@@ -432,3 +430,9 @@ def test_post_restore_nailgun(mocker, dump, calls):
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+
+
+def test_post_restore_puppet_apply_host(mocker):
+    mock_apply = mocker.patch("octane.util.puppet.apply_host")
+    puppet.PuppetApplyHost(None).post_restore_action()
+    assert mock_apply.called
