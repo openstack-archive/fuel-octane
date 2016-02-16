@@ -66,3 +66,28 @@ def test_get_container_names_with_format(mocker):
     sub_mock.assert_called_once_with(
         ["docker", "ps", '--all', '--format="{{.Names}}"'],
         stdout=subprocess.PIPE)
+
+
+test_container = "test_container"
+attempts = 2
+delay = 0
+
+
+def test_wait_for_start_container(mocker, mock_subprocess):
+    proc = mock_subprocess.return_value.__enter__.return_value
+    proc.communicate.side_effect = [
+        ("ActiveState=activating\n\n", None),
+        ("ActiveState=active\n\n", None),
+    ]
+
+    docker._wait_for_start_container(test_container, attempts, delay)
+    assert 2 == mock_subprocess.call_count
+
+
+def test_wait_for_puppet_in_container(mocker, mock_subprocess):
+    mock_subprocess.side_effect = [
+        mock.DEFAULT,
+        subprocess.CalledProcessError(1, 'test_error')
+    ]
+    docker._wait_for_puppet_in_container(test_container, attempts, delay)
+    assert 2 == mock_subprocess.call_count
