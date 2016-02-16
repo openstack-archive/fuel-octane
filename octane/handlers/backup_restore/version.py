@@ -11,8 +11,12 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import puppet
 
 
 class VersionArchivator(base.DirsArchivator):
     path = "/etc/fuel"
     tag = "version"
+
+    def post_restore_action(self, *args, **kwargs):
+        puppet.apply_host()

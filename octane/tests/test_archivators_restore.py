@@ -378,12 +378,10 @@ def test_post_restore_action_astute(mocker):
                          side_effect=stopped.remove)
     stop = mocker.patch("octane.util.docker.stop_container",
                         side_effect=stopped.append)
-    puppet = mocker.patch("octane.util.puppet.apply_host")
 
     astute.AstuteArchivator(None).post_restore_action()
     assert start.called
     assert stop.called
-    assert puppet.called
     assert not stopped
 
 
