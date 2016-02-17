@@ -9,6 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import pytest
 
 from octane.commands import restore
@@ -27,14 +28,16 @@ def test_parser(mocker, octane_app, params, call_params, is_file):
     mocker.patch("os.path.isfile", return_value=is_file)
     try:
         octane_app.run(["fuel-restore"] + params)
-    except Exception:
+    except AssertionError:  # parse error, app returns 2
         assert not restore_mock.called
         assert call_params is None
+    except ValueError:  # Invalid path to backup file
+        assert not restore_mock.called
+        assert not is_file
     else:
-        if is_file:
-            restore_mock.assert_called_once_with(*call_params)
-        else:
-            assert not restore_mock.called
+        restore_mock.assert_called_once_with(*call_params)
+        assert call_params is not None
+        assert is_file
 
 
 def test_restore_admin_node(mocker):
