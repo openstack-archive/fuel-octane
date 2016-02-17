@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
-
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -36,14 +34,3 @@ ARCHIVATORS = [
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
 ]
-
-
-# Context class for executing actions, each action should
-# work with instance of this class
-Context = collections.namedtuple(
-    "Context",
-    # set up new context fields here
-    [
-        "password",
-    ]
-)

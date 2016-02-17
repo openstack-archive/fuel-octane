@@ -106,7 +106,7 @@ class AstuteArchivator(base.PathArchivator):
                 "Required running containers: {0}".format(
                     ", ".join(containers)))
 
-    def post_restore_action(self, *args, **kwargs):
+    def post_restore_action(self):
         # run 'puppet apply' in the host system
         puppet.apply_host()
         # restart all running containers
