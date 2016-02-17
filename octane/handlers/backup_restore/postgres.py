@@ -67,10 +67,10 @@ class PostgresArchivator(base.CmdArchivator):
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
 
-    def __post_data_to_nailgun(self, url, data, password):
+    def __post_data_to_nailgun(self, url, data, user, password):
         ksclient = keystoneclient(
             auth_url=magic_consts.KEYSTONE_API_URL,
-            username=magic_consts.KEYSTONE_USERNAME,
+            username=user,
             password=password,
             tenant_name=magic_consts.KEYSTONE_TENANT_NAME,
         )
@@ -84,7 +84,15 @@ class NailgunArchivator(PostgresArchivator):
         LOG.debug(resp.content)
         return resp
 
-    def post_restore_action(self, context):
+    def restore(self):
+        super(NailgunArchivator, self).restore()
+        self._post_restore_action()
+
+    def _post_restore_action(self):
+        with open("/etc/fuel/astute.yaml") as astute_conf:
+            data_dict = yaml.load(astute_conf.read())["FUEL_ACCESS"]
+        user = data_dict["user"]
+        password = data_dict["password"]
         data, _ = docker.run_in_container(
             "nailgun",
             ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
@@ -95,7 +103,7 @@ class NailgunArchivator(PostgresArchivator):
             release = helpers.merge_dicts(
                 base_release_fields, fixture['fields'])
             self.__post_data_to_nailgun(
-                "/api/v1/releases/", release, context.password)
+                "/api/v1/releases/", release, user, password)
         subprocess.call([
             "fuel",
             "release",
