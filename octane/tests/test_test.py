@@ -13,6 +13,12 @@
 import pytest
 
 
+def test_octane_app_not_exception_return_value(mocker, octane_app):
+    mocker.patch('octane.app.OctaneApp.run', return_value=2)
+    with pytest.raises(AssertionError):
+        octane_app.run([])
+
+
 def test_octane_app_pass_exceptions_through(mocker, octane_app):
     mocker.patch.object(octane_app.command_manager, 'find_command',
                         side_effect=ValueError)
