@@ -22,6 +22,12 @@ from octane.util import subprocess
 
 
 class SafeOctaneApp(app.OctaneApp):
+    def build_option_parser(self, description, version, argparse_kwargs=None):
+        parser = super(SafeOctaneApp, self).build_option_parser(
+            description, version, argparse_kwargs)
+        parser.set_defaults(debug=True)
+        return parser
+
     def run(self, argv):
         try:
             super(SafeOctaneApp, self).run(argv)
