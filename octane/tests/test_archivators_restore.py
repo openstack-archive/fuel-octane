@@ -18,7 +18,6 @@ from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
-from octane.handlers.backup_restore import Context
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
 from octane.handlers.backup_restore import postgres
@@ -124,7 +123,7 @@ def test_path_restore(mocker, cls, path, members):
         member.assert_extract(path)
 
 
-@pytest.mark.parametrize("cls,path,container,members", [
+@pytest.mark.parametrize("cls,path,container,members, mock_actions", [
     (
         cobbler.CobblerArchivator,
         "/var/lib/cobbler/config/systems.d/",
@@ -133,10 +132,16 @@ def test_path_restore(mocker, cls, path, members):
             ("cobbler/file", True, True),
             ("cobbler/dir/file", True, True),
         ],
+        [
+            ("octane.util.docker.stop_container", "cobbler"),
+            ("octane.util.docker.start_container", "cobbler")
+        ]
     ),
 ])
-def test_container_archivator(mocker, cls, path, container, members):
+def test_container_archivator(
+        mocker, cls, path, container, members, mock_actions):
     docker = mocker.patch("octane.util.docker.write_data_in_docker_file")
+    extra_mocks = [(mocker.patch(n), p) for n, p in mock_actions]
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     cls(archive).restore()
@@ -146,13 +151,27 @@ def test_container_archivator(mocker, cls, path, container, members):
         docker.assert_has_calls([
             mock.call(container, os.path.join(path, path_restor), member.dump)
         ])
+    for extra_mock, param in extra_mocks:
+        extra_mock.assert_called_once_with(param)
 
 
-@pytest.mark.parametrize("cls,db,sync_db_cmd", [
-    (postgres.NailgunArchivator, "nailgun", ["nailgun_syncdb"]),
-    (postgres.KeystoneArchivator, "keystone", ["keystone-manage", "db_sync"]),
+@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
+    (
+        postgres.NailgunArchivator,
+        "nailgun",
+        ["nailgun_syncdb"],
+        "_post_restore_action",
+    ),
+    (
+        postgres.KeystoneArchivator,
+        "keystone",
+        ["keystone-manage", "db_sync"],
+        None
+    ),
 ])
-def test_postgres_restore(mocker, cls, db, sync_db_cmd):
+def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
+    if mocked_action_name:
+        mocked_action = mocker.patch.object(cls, mocked_action_name)
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
     actions = []
@@ -199,6 +218,8 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd):
     ])
     side_effect_in_container.return_value.stdin.write.assert_called_once_with(
         member.dump)
+    if mocked_action_name:
+        mocked_action.assert_called_once_with()
 
 
 @pytest.mark.parametrize("keys_in_dump_file,restored", [
@@ -346,15 +367,18 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
     move_mock = mocker.patch("shutil.move")
     cls = astute.AstuteArchivator
     archive = TestArchive([member], cls)
+    post_restore_mock = mocker.patch.object(cls, "_post_restore_action")
     try:
         cls(archive).restore()
     except Exception as exc:
         if restored:
             raise
         assert str(exc).startswith("Not found values in backup for keys: ")
+        assert not post_restore_mock.called
     else:
         assert restored
         member.assert_extract()
+        post_restore_mock.assert_called_once_with()
         copy_mock.assert_called_once_with(
             "/etc/fuel/astute.yaml", "/etc/fuel/astute.yaml.old")
         move_mock.assert_called_once_with(
@@ -377,7 +401,7 @@ def test_post_restore_action_astute(mocker):
                         side_effect=stopped.append)
     puppet = mocker.patch("octane.util.puppet.apply_host")
 
-    astute.AstuteArchivator(None).post_restore_action()
+    astute.AstuteArchivator(None)._post_restore_action()
     assert start.called
     assert stop.called
     assert puppet.called
@@ -401,8 +425,10 @@ def test_post_restore_action_astute(mocker):
         ]
     ),
 ])
-def test_post_restore_nailgun(mocker, dump, calls):
+def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     data = yaml.dump(dump)
+    mock_open.return_value.read.return_value = yaml.dump(
+        {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -414,8 +440,7 @@ def test_post_restore_nailgun(mocker, dump, calls):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
-    postgres.NailgunArchivator(None).post_restore_action(
-        Context(password="pwd"))
+    postgres.NailgunArchivator(None)._post_restore_action()
 
     headers = {
         "X-Auth-Token": token,

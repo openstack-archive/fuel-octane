@@ -66,6 +66,14 @@ class AstuteArchivator(base.PathArchivator):
         ("FUEL_ACCESS", ["user", "password"]),
     ]
 
+    def pre_restore_check(self):
+        names = docker.get_docker_container_names(status="running")
+        containers = set(magic_consts.RUNNING_REQUIRED_CONTAINERS) - set(names)
+        if containers:
+            raise Exception(
+                "Required running containers: {0}".format(
+                    ", ".join(containers)))
+
     def restore(self):
         dump = self.archive.extractfile(self.name)
         backup_yaml = yaml.load(dump)
@@ -96,16 +104,9 @@ class AstuteArchivator(base.PathArchivator):
         with open(new_path_name, "w") as new:
             yaml.safe_dump(current_yaml, new, default_flow_style=False)
         shutil.move(new_path_name, self.path)
+        self._post_restore_action()
 
-    def pre_restore_check(self):
-        names = docker.get_docker_container_names(status="running")
-        containers = set(magic_consts.RUNNING_REQUIRED_CONTAINERS) - set(names)
-        if containers:
-            raise Exception(
-                "Required running containers: {0}".format(
-                    ", ".join(containers)))
-
-    def post_restore_action(self, *args, **kwargs):
+    def _post_restore_action(self):
         # run 'puppet apply' in the host system
         puppet.apply_host()
         # restart all running containers
