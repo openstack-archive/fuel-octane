@@ -19,6 +19,6 @@ class CobblerArchivator(base.ContainerArchivator):
     banned_files = ["default.json"]
     container = "cobbler"
 
-    def post_restore_action(self, *args, **kwargs):
+    def post_restore_action(self):
         docker.stop_container("cobbler")
         docker.start_container("cobbler")

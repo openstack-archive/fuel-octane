@@ -28,7 +28,7 @@ class Base(object):
     def restore(self):
         raise NotImplemented
 
-    def post_restore_action(self, context):
+    def post_restore_action(self):
         pass
 
     def pre_restore_check(self):
