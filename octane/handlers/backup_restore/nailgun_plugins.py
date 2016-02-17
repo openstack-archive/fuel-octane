@@ -29,6 +29,7 @@ class NailgunPluginsArchivator(base.PathArchivator):
         LOG.warning(
             "Path {0} doesn't exists, nothing to backup".format(self.path))
 
-    def post_restore_action(self, *args, **kwargs):
+    def restore(self):
+        super(NailgunPluginsArchivator, self).restore()
         if os.path.exists(self.path):
             subprocess.call(["fuel", "plugins", "--sync"])
