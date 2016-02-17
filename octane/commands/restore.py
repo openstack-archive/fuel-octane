@@ -22,15 +22,14 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def restore_admin_node(path_to_backup, password):
-    context = backup_restore.Context(password=password)
+def restore_admin_node(path_to_backup):
     with contextlib.closing(tarfile.open(path_to_backup)) as archive:
         archivators = [cls(archive) for cls in backup_restore.ARCHIVATORS]
         for archivator in archivators:
             archivator.pre_restore_check()
         for archivator in archivators:
             archivator.restore()
-            archivator.post_restore_action(context)
+            archivator.post_restore_action()
 
 
 class RestoreCommand(command.Command):
@@ -44,19 +43,9 @@ class RestoreCommand(command.Command):
             dest="path",
             required=True,
             help="path to backup file")
-
-        parser.add_argument(
-            "-p",
-            "--password",
-            type=str,
-            action="store",
-            dest="password",
-            required=True,
-            help="Nailgun password")
-
         return parser
 
     def take_action(self, parsed_args):
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
-        restore_admin_node(parsed_args.path, parsed_args.password)
+        restore_admin_node(parsed_args.path)

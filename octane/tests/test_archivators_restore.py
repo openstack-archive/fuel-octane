@@ -18,7 +18,6 @@ from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
-from octane.handlers.backup_restore import Context
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
 from octane.handlers.backup_restore import postgres
@@ -401,8 +400,10 @@ def test_post_restore_action_astute(mocker):
         ]
     ),
 ])
-def test_post_restore_nailgun(mocker, dump, calls):
+def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     data = yaml.dump(dump)
+    mock_open.return_value.read.return_value = yaml.dump(
+        {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -414,8 +415,7 @@ def test_post_restore_nailgun(mocker, dump, calls):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
-    postgres.NailgunArchivator(None).post_restore_action(
-        Context(password="pwd"))
+    postgres.NailgunArchivator(None).post_restore_action()
 
     headers = {
         "X-Auth-Token": token,
