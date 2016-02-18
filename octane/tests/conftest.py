@@ -30,9 +30,10 @@ class SafeOctaneApp(app.OctaneApp):
 
     def run(self, argv):
         try:
-            super(SafeOctaneApp, self).run(argv)
+            exit_code = super(SafeOctaneApp, self).run(argv)
         except SystemExit as e:
-            assert e.code == 0
+            exit_code = e.code
+        assert exit_code == 0
 
 
 @pytest.fixture
