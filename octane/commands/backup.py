@@ -10,11 +10,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
 import contextlib
 import logging
 import os
+import shutil
 import sys
 import tarfile
+import tempfile
 
 from cliff import command
 
@@ -24,18 +27,27 @@ LOG = logging.getLogger(__name__)
 
 
 def backup(path_to_backup, archivators):
+    ext = ""
     if path_to_backup:
-        _, ext = os.path.splitext(path_to_backup)
-        if ext in [".gz", ".bz2"]:
-            ext = ext[1:]
-        else:
-            ext = ""
-        tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
+        temp = tempfile.NamedTemporaryFile(delete=False)
+        fileobj = temp
+        _, i_ext = os.path.splitext(path_to_backup)
+        if i_ext in [".gz", ".bz2"]:
+            ext = i_ext[1:]
     else:
-        tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
-    with contextlib.closing(tar_obj) as archive:
-        for manager in archivators:
-            manager(archive).backup()
+        fileobj = sys.stdout
+    tar_obj = tarfile.open(fileobj=fileobj, mode="w|{0}".format(ext))
+    try:
+        with contextlib.closing(tar_obj) as archive:
+            for manager in archivators:
+                manager(archive).backup()
+            if not archive.getmembers():
+                raise AssertionError("backup is empty")
+        if path_to_backup:
+            shutil.move(temp.name, path_to_backup)
+    finally:
+        if path_to_backup and os.path.isfile(temp.name):
+            os.unlink(temp.name)
 
 
 class BaseBackupCommand(command.Command):
