@@ -13,7 +13,6 @@
 import contextlib
 import logging
 import os
-import sys
 import tarfile
 
 from cliff import command
@@ -24,15 +23,11 @@ LOG = logging.getLogger(__name__)
 
 
 def backup(path_to_backup, archivators):
-    if path_to_backup:
-        _, ext = os.path.splitext(path_to_backup)
-        if ext in [".gz", ".bz2"]:
-            ext = ext[1:]
-        else:
-            ext = ""
-        tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
-    else:
-        tar_obj = tarfile.open(fileobj=sys.stdout, mode="w|")
+    ext = ""
+    _, i_ext = os.path.splitext(path_to_backup)
+    if i_ext in [".gz", ".bz2"]:
+        ext = i_ext[1:]
+    tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
     with contextlib.closing(tar_obj) as archive:
         for manager in archivators:
             manager(archive).backup()
@@ -48,6 +43,7 @@ class BaseBackupCommand(command.Command):
             "--to",
             type=str,
             dest="path",
+            required=True,
             help="Path to tarball file with the backup information.")
         return parser
 
