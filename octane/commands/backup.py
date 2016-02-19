@@ -14,7 +14,6 @@ import contextlib
 import logging
 import os
 import shutil
-import sys
 import tarfile
 import tempfile
 
@@ -27,14 +26,11 @@ LOG = logging.getLogger(__name__)
 
 def backup(path_to_backup, archivators):
     ext = ""
-    if path_to_backup:
-        temp = tempfile.NamedTemporaryFile(delete=False)
-        fileobj = temp
-        _, i_ext = os.path.splitext(path_to_backup)
-        if i_ext in [".gz", ".bz2"]:
-            ext = i_ext[1:]
-    else:
-        fileobj = sys.stdout
+    temp = tempfile.NamedTemporaryFile(delete=False)
+    fileobj = temp
+    _, i_ext = os.path.splitext(path_to_backup)
+    if i_ext in [".gz", ".bz2"]:
+        ext = i_ext[1:]
     tar_obj = tarfile.open(fileobj=fileobj, mode="w|{0}".format(ext))
     try:
         with contextlib.closing(tar_obj) as archive:
@@ -42,10 +38,9 @@ def backup(path_to_backup, archivators):
                 manager(archive).backup()
             if not archive.getmembers():
                 raise AssertionError("backup is empty")
-        if path_to_backup:
-            shutil.move(temp.name, path_to_backup)
+        shutil.move(temp.name, path_to_backup)
     finally:
-        if path_to_backup and os.path.isfile(temp.name):
+        if os.path.isfile(temp.name):
             os.unlink(temp.name)
 
 
@@ -59,6 +54,7 @@ class BaseBackupCommand(command.Command):
             "--to",
             type=str,
             dest="path",
+            required=True,
             help="Path to tarball file with the backup information.")
         return parser
 
