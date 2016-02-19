@@ -21,5 +21,8 @@ class PuppetArchivator(base.DirsArchivator):
 
 class PuppetApplyHost(base.Base):
 
+    def backup(self):
+        pass
+
     def restore(self):
         puppet.apply_host()
