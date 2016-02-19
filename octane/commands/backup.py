@@ -13,7 +13,9 @@
 import contextlib
 import logging
 import os
+import shutil
 import tarfile
+import tempfile
 
 from cliff import command
 
@@ -28,10 +30,15 @@ def backup(path_to_backup, archivators):
         ext = ext[1:]
     else:
         ext = ""
-    tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
-    with contextlib.closing(tar_obj) as archive:
-        for manager in archivators:
-            manager(archive).backup()
+    with tempfile.NamedTemporaryFile() as temp:
+        tar_obj = tarfile.open(fileobj=temp, mode="w|{0}".format(ext))
+        with contextlib.closing(tar_obj) as archive:
+            for manager in archivators:
+                manager(archive).backup()
+            if not archive.getmembers():
+                raise Exception("Nothing to backup")
+        shutil.move(temp.name, path_to_backup)
+        temp.delete = False
 
 
 class BaseBackupCommand(command.Command):
