@@ -82,7 +82,7 @@ def patch_subprocess_popen(mocker, func, expected_kwargs):
     return popen
 
 ALL_POPEN_KWARGS = set([
-    'stdin', 'stdout', 'stderr', 'shell', 'cwd',
+    'stdin', 'stdout', 'stderr', 'shell', 'cwd', 'name',
 ])
 
 
