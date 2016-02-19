@@ -10,10 +10,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
 import contextlib
 import logging
 import os
+import shutil
 import tarfile
+import tempfile
 
 from cliff import command
 
@@ -27,10 +30,13 @@ def backup(path_to_backup, archivators):
     _, i_ext = os.path.splitext(path_to_backup)
     if i_ext in [".gz", ".bz2"]:
         ext = i_ext[1:]
-    tar_obj = tarfile.open(path_to_backup, "w|{0}".format(ext))
-    with contextlib.closing(tar_obj) as archive:
-        for manager in archivators:
-            manager(archive).backup()
+    with tempfile.NamedTemporaryFile() as temp:
+        tar_obj = tarfile.open(fileobj=temp, mode="w|{0}".format(ext))
+        with contextlib.closing(tar_obj) as archive:
+            for manager in archivators:
+                manager(archive).backup()
+            assert archive.getmembers(), "Nothing to backup"
+        shutil.move(temp.name, path_to_backup)
 
 
 class BaseBackupCommand(command.Command):
