@@ -43,13 +43,29 @@ def test_parser_empty(mocker, octane_app, cmd, archivators, path):
     ("path.bz2", "w|bz2"),
     ("path.hz2", "w|"),
 ])
-def test_backup_admin_node_backup_file(mocker, path, mode):
+@pytest.mark.parametrize("empty", [True, False])
+def test_backup_admin_node_backup_file(mocker, path, mode, empty):
     manager = mocker.Mock()
     tar_obj = mocker.patch("tarfile.open")
-    backup.backup(path, [manager])
+    if empty:
+        tar_obj.return_value.getmembers.return_value = []
+    tmp_file = mocker.patch(
+        "tempfile.NamedTemporaryFile").return_value.__enter__.return_value
+    mocker.patch("os.path.isfile", return_value=True)
+    move_mock = mocker.patch("shutil.move")
+    try:
+        backup.backup(path, [manager])
+    except AssertionError as exc:
+        assert "Nothing to backup" == exc.msg
+        assert empty
     manager.assert_called_once_with(tar_obj.return_value)
     manager.return_value.backup.assert_called_once_with()
     if path is not None:
-        tar_obj.assert_called_once_with(path, mode)
+        tar_obj.assert_called_once_with(fileobj=tmp_file, mode=mode)
+        if empty:
+            assert not move_mock.called
+        else:
+            move_mock.assert_called_once_with(tmp_file.name, path)
     else:
         tar_obj.assert_called_once_with(fileobj=sys.stdout, mode=mode)
+        assert not move_mock.called
