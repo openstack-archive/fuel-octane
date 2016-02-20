@@ -89,7 +89,7 @@ class NailgunArchivator(PostgresArchivator):
         password = data_dict["password"]
         data, _ = docker.run_in_container(
             "nailgun",
-            ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
+            ["cat", magic_consts.OPENSTACK_FIXTURES],
             stdout=subprocess.PIPE)
         fixtures = yaml.load(data)
         base_release_fields = fixtures[0]['fields']

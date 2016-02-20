@@ -55,3 +55,5 @@ RUNNING_REQUIRED_CONTAINERS = [
     "cobbler",
     "mcollective",
 ]
+
+OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
