@@ -55,3 +55,6 @@ RUNNING_REQUIRED_CONTAINERS = [
     "cobbler",
     "mcollective",
 ]
+
+OPENSTACK_FIXTURES = \
+    "/usr/lib/python2.6/site-packages/nailgun/fixtures/openstack.yaml"
