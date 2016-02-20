@@ -46,9 +46,6 @@ class PostgresArchivator(base.CmdArchivator):
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
         docker.stop_container(self.db)
         docker.run_in_container(
             "postgres",
@@ -59,10 +56,6 @@ class PostgresArchivator(base.CmdArchivator):
                                  stdin=subprocess.PIPE) as process:
             process.stdin.write(dump.read())
         docker.start_container(self.db)
-        docker.wait_for_container(self.db)
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
 
 
 class NailgunArchivator(PostgresArchivator):
@@ -96,7 +89,7 @@ class NailgunArchivator(PostgresArchivator):
         password = data_dict["password"]
         data, _ = docker.run_in_container(
             "nailgun",
-            ["cat", "/usr/share/fuel-openstack-metadata/openstack.yaml"],
+            ["cat", magic_consts.OPENSTACK_FIXTURES],
             stdout=subprocess.PIPE)
         fixtures = yaml.load(data)
         base_release_fields = fixtures[0]['fields']
