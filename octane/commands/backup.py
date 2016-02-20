@@ -51,19 +51,34 @@ def backup(path_to_backup, archivators, password):
             temp.delete = False
 
 
-class BaseBackupCommand(command.Command):
+def _restore(io_arch, archivators):
+    with contextlib.closing(tarfile.open(fileobj=io_arch)) as archive:
+        archivators = [cls(archive) for cls in archivators]
+        for archivator in archivators:
+            archivator.pre_restore_check()
+        for archivator in archivators:
+            archivator.restore()
+
+
+def restore(path_to_backup, archivators, password):
+    if password:
+        with contextlib.closing(tempfile.TemporaryFile()) as temp_file:
+            with open(path_to_backup) as input_io:
+                encryption.decrypt_io(input_io, temp_file, password)
+            temp_file.seek(0)
+            _restore(temp_file, archivators)
+    else:
+        with open(path_to_backup) as io_file:
+            _restore(io_file, archivators)
+
+
+class BaseCommand(command.Command):
 
     archivators = None
     encrypted = False
 
     def get_parser(self, *args, **kwargs):
-        parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
-        parser.add_argument(
-            "--to",
-            type=str,
-            dest="path",
-            required=True,
-            help="Path to tarball file with the backup information.")
+        parser = super(BaseCommand, self).get_parser(*args, **kwargs)
         if self.encrypted:
             parser.add_argument(
                 "--password",
@@ -82,6 +97,9 @@ class BaseBackupCommand(command.Command):
             enc_group.set_defaults(encrypted=True)
         return parser
 
+    def call_action(self, path, password):
+        raise NotImplementedError
+
     def take_action(self, parsed_args):
         assert self.archivators
         password = None
@@ -91,7 +109,42 @@ class BaseBackupCommand(command.Command):
                 raise Exception("Password required for encrypted backup")
         elif getattr(parsed_args, "password", None):
             raise Exception("Password not required for not encrypted backup")
-        backup(parsed_args.path, self.archivators, password)
+        self.call_action(parsed_args.path, password)
+
+
+class BaseBackupCommand(BaseCommand):
+
+    def get_parser(self, *args, **kwargs):
+        parser = super(BaseBackupCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            "--to",
+            type=str,
+            dest="path",
+            required=True,
+            help="Path to tarball file with the backup information.")
+        return parser
+
+    def call_action(self, path, password):
+        backup(path, self.archivators, password)
+
+
+class BaseRestoreCommand(BaseCommand):
+
+    def get_parser(self, *args, **kwargs):
+        parser = super(BaseRestoreCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            "--from",
+            type=str,
+            action="store",
+            dest="path",
+            required=True,
+            help="path to backup file")
+        return parser
+
+    def call_action(self, path, password):
+        if not os.path.isfile(path):
+            raise ValueError("Invalid path to backup file")
+        restore(path, self.archivators, password)
 
 
 class BackupCommand(BaseBackupCommand):
@@ -101,5 +154,16 @@ class BackupCommand(BaseBackupCommand):
 
 
 class BackupRepoCommand(BaseBackupCommand):
+
+    archivators = backup_restore.REPO_ARCHIVATORS
+
+
+class RestoreCommand(BaseRestoreCommand):
+
+    archivators = backup_restore.ARCHIVATORS
+    encrypted = True
+
+
+class RestoreRepoCommand(BaseRestoreCommand):
 
     archivators = backup_restore.REPO_ARCHIVATORS
