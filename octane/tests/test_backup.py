@@ -25,12 +25,16 @@ def test_parser_empty(mocker, octane_app, cmd, archivators, path):
     m1 = mocker.patch('octane.commands.backup.backup')
     m1.return_value = 2
     params = [cmd]
+
     if path:
         params += ["--to", path]
-    octane_app.run(params)
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with(path, archivators)
+        octane_app.run(params)
+        assert not octane_app.stdout.getvalue()
+        assert not octane_app.stderr.getvalue()
+        m1.assert_called_once_with(path, archivators)
+    else:
+        with pytest.raises(AssertionError):
+            octane_app.run(params)
 
 
 @pytest.mark.parametrize("path,mode", [
@@ -38,7 +42,6 @@ def test_parser_empty(mocker, octane_app, cmd, archivators, path):
     ("path.gz", "w|gz"),
     ("path.bz2", "w|bz2"),
     ("path.hz2", "w|"),
-    (None, "w|"),
 ])
 def test_backup_admin_node_backup_file(mocker, path, mode):
     manager = mocker.Mock()
