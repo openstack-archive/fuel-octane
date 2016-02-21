@@ -22,19 +22,21 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def restore_admin_node(path_to_backup):
+def restore_data(path_to_backup, archivators):
     with contextlib.closing(tarfile.open(path_to_backup)) as archive:
-        archivators = [cls(archive) for cls in backup_restore.ARCHIVATORS]
+        archivators = [cls(archive) for cls in archivators]
         for archivator in archivators:
             archivator.pre_restore_check()
         for archivator in archivators:
             archivator.restore()
 
 
-class RestoreCommand(command.Command):
+class BaseRestoreCommand(command.Command):
+
+    archivators = None
 
     def get_parser(self, *args, **kwargs):
-        parser = super(RestoreCommand, self).get_parser(*args, **kwargs)
+        parser = super(BaseRestoreCommand, self).get_parser(*args, **kwargs)
         parser.add_argument(
             "--from",
             type=str,
@@ -45,6 +47,17 @@ class RestoreCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        assert self.archivators
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
-        restore_admin_node(parsed_args.path)
+        restore_data(parsed_args.path, self.archivators)
+
+
+class RestoreCommand(BaseRestoreCommand):
+
+    archivators = backup_restore.ARCHIVATORS
+
+
+class RestoreRepoCommand(BaseRestoreCommand):
+
+    archivators = backup_restore.REPO_ARCHIVATORS
