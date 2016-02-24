@@ -62,7 +62,7 @@ class NaigunWWWBackup(base.PathArchivator):
                         continue
                     already_backuped.add(dir_name)
                     path = os.path.join(self.path, dir_name)
-                    self.archive.add(path, self.name)
+                    self.archive.add(path, os.path.join(self.name, dir_name))
 
 
 class MirrorsBackup(NaigunWWWBackup):

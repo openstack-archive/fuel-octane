@@ -243,6 +243,9 @@ def test_repos_backup(
         stdout=subprocess.PIPE
     )
     test_archive.add.assert_has_calls(
-        [mock.call(os.path.join(path, i), name) for i in archive_add_list],
+        [
+            mock.call(os.path.join(path, i), os.path.join(name, i))
+            for i in archive_add_list
+        ],
         any_order=True)
     assert test_archive.add.call_count == len(archive_add_list)
