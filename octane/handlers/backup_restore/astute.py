@@ -64,6 +64,15 @@ class AstuteArchivator(base.PathArchivator):
         ("FUEL_ACCESS", ["user", "password"]),
     ]
 
+    @property
+    def backup_dict(self):
+        return yaml.load(self.archive.extractfile(self.name))
+
+    @property
+    def current_dict(self):
+        with open(self.path, "r") as current:
+            return yaml.load(current)
+
     def pre_restore_check(self):
         names = docker.get_docker_container_names(status="running")
         containers = set(magic_consts.RUNNING_REQUIRED_CONTAINERS) - set(names)
@@ -71,12 +80,16 @@ class AstuteArchivator(base.PathArchivator):
             raise Exception(
                 "Required running containers: {0}".format(
                     ", ".join(containers)))
+        backup_ip = self.backup_dict["ADMIN_NETWORK"]["ipaddress"]
+        current_ip = self.current_dict["ADMIN_NETWORK"]["ipaddress"]
+        if backup_ip != current_ip:
+            raise Exception(
+                "Restore allowed on machine with same ipaddress. "
+                "Use fuel-menu to set up ipaddress to {0}".format(backup_ip))
 
     def restore(self):
-        dump = self.archive.extractfile(self.name)
-        backup_yaml = yaml.load(dump)
-        with open(self.path, "r") as current:
-            current_yaml = yaml.load(current)
+        backup_yaml = self.backup_dict
+        current_yaml = self.current_dict
         not_found_keys = []
         for key, subkeys in self.keys_to_restore:
             if not subkeys and key not in backup_yaml:
