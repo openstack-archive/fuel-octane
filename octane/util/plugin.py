@@ -23,3 +23,7 @@ def is_enabled(env, plugin_name):
     if plugin_name not in settings['editable']:
         return False
     return settings['editable'][plugin_name]['metadata']['enabled']
+
+
+def is_contrail_plugin_enabled(env):
+    return is_enabled(env, 'contrail')
