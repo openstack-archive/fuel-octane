@@ -22,6 +22,7 @@ from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
+from octane.util import plugin
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -80,6 +81,11 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
         self.env.update_deployment_tasks(tasks)
+
+        if plugin.is_contrail_plugin_enabled(self.env):
+            tasks = self.env.get_deployment_tasks()
+            tasks_helpers.skip_tasks(tasks, tasks_helpers.SKIP_CONTRAIL_TASKS)
+            self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):
         # From neutron_update_admin_tenant_id
