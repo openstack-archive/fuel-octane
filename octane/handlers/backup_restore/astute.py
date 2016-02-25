@@ -72,6 +72,14 @@ class AstuteArchivator(base.PathArchivator):
             raise Exception(
                 "Required running containers: {0}".format(
                     ", ".join(containers)))
+        dump = self.archive.extractfile(self.name)
+        backup_ip = yaml.load(dump)["ADMIN_NETWORK"]["ipaddress"]
+        with open(self.path, "r") as current:
+            current_ip = yaml.load(current)["ADMIN_NETWORK"]["ipaddress"]
+        if backup_ip != current_ip:
+            raise Exception(
+                "Restore allowed on machine with same ipaddress."
+                "Set ipaddress to {0}".format(backup_ip))
 
     def restore(self):
         dump = self.archive.extractfile(self.name)
