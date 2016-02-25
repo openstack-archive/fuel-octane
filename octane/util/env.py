@@ -25,6 +25,7 @@ from fuelclient.objects import task as task_obj
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import plugin
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -107,8 +108,11 @@ def delete_fuel_resources(env):
         os.path.join(magic_consts.CWD, "helpers/delete_fuel_resources.py"),
         "/tmp/delete_fuel_resources.py",
     )
+    command = ". /root/openrc; python /tmp/delete_fuel_resources.py"
+    if plugin.is_contrail_plugin_enabled(env):
+        command += " --skip-neutron"
     ssh.call(
-        ["sh", "-c", ". /root/openrc; python /tmp/delete_fuel_resources.py"],
+        ["sh", "-c", command],
         node=node,
     )
 
