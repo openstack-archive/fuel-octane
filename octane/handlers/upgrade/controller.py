@@ -22,9 +22,15 @@ from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
+from octane.util import plugin
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
+
+
+# Prevents Contrail plugin from creating default networks
+SKIP_CONTRAIL_TASKS = ["controller-hiera-pre", "controller-hiera-post",
+                       "openstack-controller-provision"]
 
 
 class ControllerUpgrade(upgrade.UpgradeHandler):
@@ -78,7 +84,10 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.env.upload_facts('deployment', deployment_info)
 
         tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
+        tasks_helpers.skip_tasks(tasks, tasks_helpers.SKIP_TASKS)
+
+        if plugin.is_contrail_plugin_enabled(self.env):
+            tasks_helpers.skip_tasks(tasks, SKIP_CONTRAIL_TASKS)
         self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):

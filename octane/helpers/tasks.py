@@ -34,8 +34,7 @@ def get_parser():
     return parser
 
 
-def skip_tasks(tasks_config):
-
+def skip_tasks(tasks_config, tasks_to_skip):
     def skip_task(tasks_config, task_id):
         for task in tasks_config:
             task_requires = task.get("requires", [])
@@ -48,7 +47,7 @@ def skip_tasks(tasks_config):
                 tasks_config.remove(task)
         return tasks_config
 
-    for task_id in SKIP_TASKS:
+    for task_id in tasks_to_skip:
         tasks_config = skip_task(tasks_config, task_id)
     return tasks_config
 
@@ -57,7 +56,7 @@ def update_env_deployment_tasks(dirname, action, *args):
     filename = "deployment_tasks.yaml"
     tasks_file = os.path.join(dirname, filename)
     tasks_config = transformations.load_yaml_file(tasks_file)
-    tasks_config = action(tasks_config)
+    tasks_config = action(tasks_config, SKIP_TASKS)
     transformations.dump_yaml_file(tasks_config, tasks_file)
 
 
