@@ -32,7 +32,6 @@ class AstuteArchivator(base.PathArchivator):
         ("DNS_SEARCH", None),
         ("DNS_UPSTREAM", None),
         ("ADMIN_NETWORK", [
-            "interface",
             "ipaddress",
             "netmask",
             "dhcp_pool_start",
