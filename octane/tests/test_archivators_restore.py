@@ -250,7 +250,6 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
         ("DNS_SEARCH", None),
         ("DNS_UPSTREAM", None),
         ("ADMIN_NETWORK", [
-            "interface",
             "ipaddress",
             "netmask",
             "dhcp_pool_start",
