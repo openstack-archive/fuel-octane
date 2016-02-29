@@ -12,6 +12,7 @@
 
 import json
 import logging
+import os
 import requests
 import six
 import urlparse
@@ -86,8 +87,18 @@ class NailgunArchivator(PostgresArchivator):
         return resp
 
     def restore(self):
-        super(NailgunArchivator, self).restore()
-        self._post_restore_action()
+        subprocess.call(["yum", "install", "-y", "patch"])
+        args = [
+            "nailgun",
+            "/etc/puppet/modules/nailgun/manifests/",
+            os.path.join(magic_consts.CWD, "patches/timeout.patch"),
+        ]
+        docker.apply_patches(*args)
+        try:
+            super(NailgunArchivator, self).restore()
+            self._post_restore_action()
+        finally:
+            docker.apply_patches(*args, revert=True)
 
     def _post_restore_action(self):
         with open("/etc/fuel/astute.yaml") as astute_conf:

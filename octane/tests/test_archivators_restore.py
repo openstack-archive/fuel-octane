@@ -25,6 +25,7 @@ from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
+from octane import magic_consts
 from octane.util import subprocess
 
 
@@ -189,6 +190,7 @@ def test_container_archivator(
     ),
 ])
 def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
+    patch_mock = mocker.patch("octane.util.docker.apply_patches")
     if mocked_action_name:
         mocked_action = mocker.patch.object(cls, mocked_action_name)
     member = TestMember("postgres/{0}.sql".format(db), True, True)
@@ -221,8 +223,26 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
                  side_effect=foo("wait_for_container"))
     cls(archive).restore()
     member.assert_extract()
-    assert ["call", "stop_container", "run_in_container", "in_container",
-            "start_container", "wait_for_container", "call"] == actions
+    args = ["call", "stop_container", "run_in_container", "in_container",
+            "start_container", "wait_for_container", "call"]
+    if cls is postgres.NailgunArchivator:
+        assert ["call"] + args == actions
+        assert [
+            mock.call(
+                'nailgun',
+                '/etc/puppet/modules/nailgun/manifests/',
+                os.path.join(magic_consts.CWD, "patches/timeout.patch")
+            ),
+            mock.call(
+                'nailgun',
+                '/etc/puppet/modules/nailgun/manifests/',
+                os.path.join(magic_consts.CWD, "patches/timeout.patch"),
+                revert=True
+            ),
+        ] == patch_mock.call_args_list
+    else:
+        assert args == actions
+        assert not patch_mock.called
 
     call_mock.assert_has_calls([
         mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
