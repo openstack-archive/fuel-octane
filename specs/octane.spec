@@ -18,6 +18,7 @@ BuildRequires: python-pbr
 BuildArch: noarch
 
 Requires:    git
+Requires:    patch
 Requires:    python
 Requires:    python-setuptools
 Requires:    python-paramiko
