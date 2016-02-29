@@ -79,8 +79,14 @@ class NailgunArchivator(PostgresArchivator):
         return resp
 
     def restore(self):
-        super(NailgunArchivator, self).restore()
-        self._post_restore_action()
+        for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
+            docker.apply_patches(*args)
+        try:
+            super(NailgunArchivator, self).restore()
+            self._post_restore_action()
+        finally:
+            for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
+                docker.apply_patches(*args, revert=True)
 
     def _post_restore_action(self):
         with open("/etc/fuel/astute.yaml") as astute_conf:
