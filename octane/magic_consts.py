@@ -16,6 +16,14 @@ PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
 PATCHES = []
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
+
+NAILGUN_ARCHIVATOR_PATCHES = [
+    (
+        "nailgun",
+        "/etc/puppet/modules/nailgun/manifests/",
+        os.path.join(CWD, "patches/timeout.patch")
+    ),
+]
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"
