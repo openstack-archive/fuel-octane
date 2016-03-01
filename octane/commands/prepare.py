@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import os.path
 import shutil
 import tempfile
@@ -54,20 +55,44 @@ def revert_initramfs():
     os.rename(backup, magic_consts.BOOTSTRAP_INITRAMFS)
 
 
-def patch_initramfs():
-    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
-    chroot = tempfile.mkdtemp()
+@contextlib.contextmanager
+def unpack_img(dir_path=None):
+    tmp_dir = tempfile.mkdtemp(dir=dir_path)
     try:
-        os.rename(magic_consts.BOOTSTRAP_INITRAMFS, backup)
-        subprocess.call("gunzip -c {0} | cpio -id".format(backup),
-                        shell=True, cwd=chroot)
-        patch_fuel_agent(chroot)
-        with open(magic_consts.BOOTSTRAP_INITRAMFS, "wb") as f:
-            subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
-                            " | gzip -c", shell=True, stdout=f, cwd=chroot)
-        docker.run_in_container("cobbler", ["cobbler", "sync"])
+        with subprocess.popen(
+                ["gunzip", "-c", magic_consts.BOOTSTRAP_INITRAMFS],
+                stdout=subprocess.PIPE) as proc:
+            subprocess.call(
+                ["cpio", "-id"], stdin=proc.stdout, cwd=tmp_dir)
+        yield tmp_dir
+        tmp_dir_len = len(tmp_dir)
+        with tempfile.NamedTemporaryFile(dir=dir_path) as new_img:
+            with subprocess.popen(
+                    ["cpio", "--format", "newc", "-o"],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    cwd=tmp_dir) as cpio:
+                with subprocess.popen(
+                        ["gzip", "-c"],
+                        stdin=cpio.stdout,
+                        stdout=new_img,
+                        cwd=tmp_dir):
+                    for path, _, files in os.walk(tmp_dir):
+                        for f_name in files:
+                            f_path = os.path.join(path, f_name)
+                            f_path = ".{0}".format(f_path[tmp_dir_len:])
+                            cpio.stdin.write("{0}\n".format(f_path))
+                    cpio.stdin.close()
+            shutil.move(new_img.name, magic_consts.BOOTSTRAP_INITRAMFS)
+            new_img.delete = False
     finally:
-        shutil.rmtree(chroot)
+        shutil.rmtree(tmp_dir)
+
+
+def patch_initramfs():
+    with unpack_img() as chroot:
+        patch_fuel_agent(chroot)
+    docker.run_in_container("cobbler", ["cobbler", "sync"])
 
 
 def patch_fuel_agent(chroot):
