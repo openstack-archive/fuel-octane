@@ -17,6 +17,7 @@ from octane.util import subprocess
 class SshArchivator(base.PathArchivator):
     path = "/root/.ssh/"
     name = "ssh"
+    archivator_name = "ssh keys"
 
     def restore(self):
         super(SshArchivator, self).restore()

@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 class AstuteArchivator(base.PathArchivator):
     path = "/etc/fuel/astute.yaml"
     name = "astute/astute.yaml"
+    archivator_name = "astute"
 
     keys_to_restore = [
         ("HOSTNAME", None),

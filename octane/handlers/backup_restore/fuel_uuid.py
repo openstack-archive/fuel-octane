@@ -16,3 +16,5 @@ from octane.handlers.backup_restore import base
 class FuelUUIDArchivator(base.PathArchivator):
     path = "/etc/fuel/fuel-uuid"
     name = "fuel_uuid/fuel-uuid"
+
+    archivator_name = "fuel uuid"
