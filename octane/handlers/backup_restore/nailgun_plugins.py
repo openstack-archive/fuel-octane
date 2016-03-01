@@ -23,6 +23,8 @@ class NailgunPluginsArchivator(base.PathArchivator):
     path = "/var/www/nailgun/plugins"
     name = "nailgun_plugins"
 
+    archivator_name = "nailgun plugins"
+
     def backup(self):
         if os.path.exists(self.path):
             return super(NailgunPluginsArchivator, self).backup()

@@ -70,6 +70,8 @@ class MirrorsBackup(NaigunWWWBackup):
     name = "mirrors"
     sql = "select editable from attributes;"
 
+    archivator_name = "Mirrors"
+
     def _get_values_list(self, data):
         return data['repo_setup']['repos']['value']
 
@@ -78,6 +80,8 @@ class RepoBackup(NaigunWWWBackup):
 
     name = "repos"
     sql = "select generated from attributes;"
+
+    archivator_name = "repository"
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()

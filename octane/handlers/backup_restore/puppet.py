@@ -18,6 +18,8 @@ class PuppetArchivator(base.DirsArchivator):
     path = "/etc/puppet"
     tag = "puppet"
 
+    archivator_name = "puppet"
+
 
 class PuppetApplyHost(base.Base):
 

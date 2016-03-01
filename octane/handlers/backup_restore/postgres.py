@@ -68,6 +68,8 @@ class PostgresArchivator(base.CmdArchivator):
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
 
+    archivator_name = "nailgun db"
+
     def __post_data_to_nailgun(self, url, data, user, password):
         ksclient = keystoneclient(
             auth_url=magic_consts.KEYSTONE_API_URL,
@@ -116,3 +118,4 @@ class NailgunArchivator(PostgresArchivator):
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+    archivator_name = "keystone db"

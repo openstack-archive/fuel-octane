@@ -19,6 +19,10 @@ from octane.util import subprocess
 
 class Base(object):
 
+    @property
+    def archivator_name(self):
+        return self.__class__.__name__
+
     def __init__(self, archive):
         self.archive = archive
 
