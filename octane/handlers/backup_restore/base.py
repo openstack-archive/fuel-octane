@@ -11,6 +11,7 @@
 # under the License.
 
 import os
+import re
 
 from octane.util import archivate
 from octane.util import docker
@@ -18,6 +19,15 @@ from octane.util import subprocess
 
 
 class Base(object):
+
+    @property
+    def archivator_name(self):
+        name = re.sub(
+            '([A-Z])', r' \1', self.__class__.__name__
+        ).lower().strip()
+        if name.endswith(" archive"):
+            name = name[:-8]
+        return name
 
     def __init__(self, archive):
         self.archive = archive
