@@ -28,7 +28,9 @@ def restore_data(path_to_backup, archivators, context):
         for archivator in archivators:
             archivator.pre_restore_check()
         for archivator in archivators:
+            LOG.info("Start restore {0}".format(archivator.archivator_name))
             archivator.restore()
+            LOG.info("Finish restore {0}".format(archivator.archivator_name))
 
 
 class BaseRestoreCommand(command.Command):
