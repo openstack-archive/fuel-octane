@@ -16,3 +16,5 @@ from octane.handlers.backup_restore import base
 class VersionArchivator(base.DirsArchivator):
     path = "/etc/fuel"
     tag = "version"
+
+    archivator_name = "version"

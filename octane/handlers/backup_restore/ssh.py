@@ -16,3 +16,5 @@ from octane.handlers.backup_restore import base
 class SshArchivator(base.PathArchivator):
     path = "/root/.ssh/"
     name = "ssh"
+
+    archivator_name = "ssh keys"

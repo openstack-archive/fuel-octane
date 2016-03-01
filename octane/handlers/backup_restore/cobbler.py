@@ -18,6 +18,7 @@ class CobblerArchivator(base.ContainerArchivator):
     backup_directory = "/var/lib/cobbler/config/systems.d/"
     banned_files = ["default.json"]
     container = "cobbler"
+    archivator_name = "cobbler"
 
     def restore(self):
         super(CobblerArchivator, self).restore()

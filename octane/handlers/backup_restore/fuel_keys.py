@@ -16,3 +16,5 @@ from octane.handlers.backup_restore import base
 class FuelKeysArchivator(base.PathArchivator):
     path = "/var/lib/fuel/keys"
     name = "fuel_keys"
+
+    archivator_name = "fuel keys"
