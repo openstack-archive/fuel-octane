@@ -11,8 +11,15 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import docker
 
 
 class SshArchivator(base.PathArchivator):
     path = "/root/.ssh/"
     name = "ssh"
+
+    def restore(self):
+        super(SshArchivator, self).restore()
+        docker.run_in_container("cobbler",
+                                ['cp', '/root/.ssh/authorized_keys',
+                                 '/etc/cobbler/authorized_keys'])

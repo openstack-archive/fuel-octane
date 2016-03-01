@@ -82,7 +82,18 @@ class TestArchive(object):
             ("ssh/k1y123", True, True),
             ("ssh_old/k1y123", True, False),
         ],
-    ),
+    )])
+def test_ssh_restore(mocker, cls, path, members):
+    members = [TestMember(n, f, e) for n, f, e in members]
+    archive = TestArchive(members, cls)
+    mock_run = mocker.patch("octane.util.docker.run_in_container")
+    cls(archive).restore()
+    for member in members:
+        member.assert_extract(path)
+    assert mock_run.called
+
+
+@pytest.mark.parametrize("cls,path,members", [
     (
         fuel_keys.FuelKeysArchivator,
         "/var/lib/fuel/keys",
