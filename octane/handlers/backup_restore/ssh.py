@@ -11,8 +11,13 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import subprocess
 
 
 class SshArchivator(base.PathArchivator):
     path = "/root/.ssh/"
     name = "ssh"
+
+    def restore(self):
+        super(SshArchivator, self).restore()
+        subprocess.call(["fuel-bootstrap", "build", "--activate"])
