@@ -15,6 +15,7 @@ import os
 import pytest
 
 from octane.handlers.backup_restore import astute
+from octane.handlers.backup_restore import base
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
@@ -249,3 +250,15 @@ def test_repos_backup(
         ],
         any_order=True)
     assert test_archive.add.call_count == len(archive_add_list)
+
+
+@pytest.mark.parametrize("name, expected_name", [
+    ("TestArchivator", "test"),
+    ("TestBackup", "test"),
+    ("Test", "test"),
+    ("NotTestArchivator", "not test"),
+    ("NewBornTestCase", "new born test case"),
+])
+def test_archivator_name(mocker, name, expected_name):
+
+    assert expected_name == type(name, (base.Base, ), {})(None).archivator_name

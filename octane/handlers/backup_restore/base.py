@@ -11,6 +11,7 @@
 # under the License.
 
 import os
+import re
 
 from octane.util import archivate
 from octane.util import docker
@@ -22,6 +23,16 @@ class Base(object):
     def __init__(self, archive, context=None):
         self.archive = archive
         self.context = context
+
+    @property
+    def archivator_name(self):
+        name = re.sub(
+            '([A-Z]+)', r' \1', self.__class__.__name__
+        ).lower().strip()
+        for replacer in ["archivator", "backup"]:
+            if name.endswith(replacer):
+                name = name[:-len(replacer)].strip()
+        return name
 
     def backup(self):
         raise NotImplemented
