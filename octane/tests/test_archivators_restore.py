@@ -135,11 +135,17 @@ class TestArchive(object):
     ),
 ])
 def test_path_restore(mocker, cls, path, members):
+    subprocess_mock = mocker.patch("octane.util.subprocess.call")
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     cls(archive).restore()
     for member in members:
         member.assert_extract(path)
+    if cls is ssh.SshArchivator:
+        subprocess_mock.assert_called_once_with(
+            ["fuel-bootstrap", "build", "--activate"])
+    else:
+        assert not subprocess_mock.called
 
 
 @pytest.mark.parametrize("cls,path,container,members,mock_actions", [
