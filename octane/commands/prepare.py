@@ -11,12 +11,11 @@
 # under the License.
 
 import os.path
-import shutil
-import tempfile
 
 from cliff import command as cmd
 
 from octane import magic_consts
+from octane.util import archivate
 from octane.util import docker
 from octane.util import subprocess
 
@@ -55,19 +54,9 @@ def revert_initramfs():
 
 
 def patch_initramfs():
-    backup = magic_consts.BOOTSTRAP_INITRAMFS + '.bkup'
-    chroot = tempfile.mkdtemp()
-    try:
-        os.rename(magic_consts.BOOTSTRAP_INITRAMFS, backup)
-        subprocess.call("gunzip -c {0} | cpio -id".format(backup),
-                        shell=True, cwd=chroot)
+    with archivate.update_cpio(magic_consts.BOOTSTRAP_INITRAMFS) as chroot:
         patch_fuel_agent(chroot)
-        with open(magic_consts.BOOTSTRAP_INITRAMFS, "wb") as f:
-            subprocess.call("find | grep -v '^\.$' | cpio --format newc -o"
-                            " | gzip -c", shell=True, stdout=f, cwd=chroot)
-        docker.run_in_container("cobbler", ["cobbler", "sync"])
-    finally:
-        shutil.rmtree(chroot)
+    docker.run_in_container("cobbler", ["cobbler", "sync"])
 
 
 def patch_fuel_agent(chroot):
