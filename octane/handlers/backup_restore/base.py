@@ -11,6 +11,8 @@
 # under the License.
 
 import os
+import shutil
+import tempfile
 
 from octane.util import archivate
 from octane.util import docker
@@ -47,32 +49,39 @@ class ContainerArchivator(Base):
             ["find", self.backup_directory, "-type", "f"],
             stdout=subprocess.PIPE)
         filenames = stdout.strip().split()
-        for filename in filenames:
-            filename = filename[len(self.backup_directory):].lstrip("\/")
-            if filename in self.banned_files:
-                continue
-            if self.allowed_files is not None \
-                    and filename not in self.allowed_files:
-                continue
-            path = os.path.join(self.backup_directory, filename)
-            archivate.archivate_container_cmd_output(
-                self.archive,
-                self.container,
-                ["cat", path],
-                "{0}/{1}".format(self.container, filename)
-            )
+        temp_dir = tempfile.mkdtemp()
+        try:
+            files = []
+            for filename in filenames:
+                filename = filename[len(self.backup_directory):].lstrip("\/")
+                if filename in self.banned_files:
+                    continue
+                if self.allowed_files is not None \
+                        and filename not in self.allowed_files:
+                    continue
+                files.append(os.path.join(self.backup_directory, filename))
+            docker.get_files_from_docker(self.container, files, temp_dir)
+            if self.backup_directory[0] == "/":
+                back_dir = self.backup_directory[1:]
+            else:
+                back_dir = self.backup_directory
+            self.archive.add(os.path.join(temp_dir, back_dir), self.container)
+        finally:
+            shutil.rmtree(temp_dir)
 
     def restore(self):
         assert self.container
         assert self.backup_directory
-        for member in archivate.filter_members(self.archive, self.container):
-            dump = self.archive.extractfile(member.name).read()
-            name = member.name.split("/", 1)[-1]
-            docker.write_data_in_docker_file(
-                self.container,
-                os.path.join(self.backup_directory, name),
-                dump
-            )
+        temp_dir = tempfile.mkdtemp()
+        try:
+            for member in archivate.filter_members(
+                    self.archive, self.container):
+                member.name = member.name.split("/", 1)[-1]
+                self.archive.extract(member, temp_dir)
+            docker.put_files_to_docker(
+                self.container, self.backup_directory, temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
 
 
 class CmdArchivator(Base):
