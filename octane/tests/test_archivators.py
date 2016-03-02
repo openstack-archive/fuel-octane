@@ -63,35 +63,32 @@ def test_container_backup(
         "octane.util.docker.run_in_container",
         return_value=(data, None))
 
-    def foo(archive, container_name, cmd, backup_dir):
-        assert archive is test_archive
-        assert container == container_name
-        _, path = cmd
-        assert _ == "cat"
-        assert path[:len(backup_directory)] == backup_directory
-        assert backup_dir[:len(container)] == container
-        filename = path[len(backup_directory):].strip("\/")
-        backuped_files.add(path[len(backup_directory):])
-        assert filename == backup_dir[len(container):].strip("\/")
-
-    mocker.patch("octane.util.archivate.archivate_container_cmd_output",
-                 side_effect=foo)
+    get_docker_files_mock = mocker.patch(
+        "octane.util.docker.get_files_from_docker")
+    temp_d_mock = mocker.patch("tempfile.mkdtemp", return_value="/tmp/tmp_dir")
+    rm_tree_mock = mocker.patch("shutil.rmtree")
 
     files_to_archive = data_lst
 
-    files_to_archive = [d for d in files_to_archive
-                        if d in (allowed_files or [])]
+    if allowed_files is not None:
+        files_to_archive = [d for d in files_to_archive if d in allowed_files]
     files_to_archive = [d for d in files_to_archive
                         if d not in (banned_files or [])]
-    backuped_files = set()
     cls(test_archive).backup()
     docker_mock.assert_called_once_with(
         container,
         ["find", backup_directory, "-type", "f"],
         stdout=subprocess.PIPE
     )
-    for filename in files_to_archive:
-        assert filename in backuped_files
+    temp_d_mock.assert_called_once_with()
+    test_archive.add.assert_called_once_with(
+        temp_d_mock.return_value + backup_directory, container)
+    get_docker_files_mock.assert_called_once_with(
+        container,
+        [os.path.join(backup_directory, f) for f in files_to_archive],
+        temp_d_mock.return_value
+    )
+    rm_tree_mock.assert_called_once_with(temp_d_mock.return_value)
 
 
 @pytest.mark.parametrize("cls,db", [

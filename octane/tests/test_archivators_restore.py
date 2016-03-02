@@ -159,19 +159,21 @@ def test_path_restore(mocker, cls, path, members):
 ])
 def test_container_archivator(
         mocker, cls, path, container, members, mock_actions):
-    docker = mocker.patch("octane.util.docker.write_data_in_docker_file")
+    docker = mocker.patch("octane.util.docker.put_files_to_docker")
+    tmp_dir = "/tmp/tmp_dir"
+    mocker.patch("tempfile.mkdtemp", return_value=tmp_dir)
+    rm_tree_mock = mocker.patch("shutil.rmtree")
     extra_mocks = [(mocker.patch(n), p) for n, p in mock_actions]
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     cls(archive).restore()
     for member in members:
-        member.assert_extract()
+        member.assert_extract(tmp_dir)
         path_restor = member.name[len(container) + 1:]
-        docker.assert_has_calls([
-            mock.call(container, os.path.join(path, path_restor), member.dump)
-        ])
+    docker.assert_called_once_with(container, path, tmp_dir)
     for extra_mock, param in extra_mocks:
         extra_mock.assert_called_once_with(param)
+    rm_tree_mock.assert_called_once_with(tmp_dir)
 
 
 @pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
