@@ -24,6 +24,9 @@ from octane.handlers.backup_restore import version
 
 ARCHIVATORS = [
     astute.AstuteArchivator,
+    # SSH restore must go before Cobbler restore so it updates
+    # /etc/cobbler/authorized_keys file automatically
+    ssh.SshArchivator,
     cobbler.CobblerArchivator,
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
@@ -31,7 +34,6 @@ ARCHIVATORS = [
     postgres.KeystoneArchivator,
     # Nailgun restore should be after puppet restore
     postgres.NailgunArchivator,
-    ssh.SshArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
     puppet.PuppetApplyHost,
