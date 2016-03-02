@@ -3,7 +3,7 @@
 # examine requirements of software listed there.
 pbr>=0.6,!=0.7,<1.0
 
-python-fuelclient  # It pulls following libs:
+python-fuelclient>=7.0,<8.0  # It pulls following libs:
 #cliff
 #requests
 #stevedore
