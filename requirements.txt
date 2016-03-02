@@ -1,7 +1,7 @@
 # NOTE: These requirements *must* match those of libs installed on Fuel master
 # To verify them, use command like "rpm -q --whatrequires python-cliff" and
 # examine requirements of software listed there.
-pbr>=0.6,!=0.7,<1.0
+pbr>=1.6
 
 python-fuelclient  # It pulls following libs:
 #cliff
