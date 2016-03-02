@@ -28,6 +28,10 @@ class SafeOctaneApp(app.OctaneApp):
         parser.set_defaults(debug=True)
         return parser
 
+    def get_fuzzy_matches(self, cmd):
+        # Turn off guessing, we need exact failures in tests
+        return []
+
     def run(self, argv):
         try:
             exit_code = super(SafeOctaneApp, self).run(argv)
