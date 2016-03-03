@@ -11,6 +11,7 @@
 # under the License.
 
 import functools
+import json
 import logging
 import shutil
 import socket
@@ -18,6 +19,9 @@ import sys
 import time
 
 from distutils import version
+from octane import magic_consts
+from octane.util import env as env_util
+from octane.util import nova
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -173,3 +177,47 @@ def is_live_migration_supported(node):
                     and "VIR_MIGRATE_LIVE" in line:
                 return True
     return False
+
+
+def get_agent_data(node, router_id):
+    controller = env_util.get_one_controller(node.env)
+    stdout = nova.run_nova_cmd(
+        ["neutron", "l3-agent-list-hosting-router", router_id, "-f", "json"],
+        controller).strip()
+    return json.loads(stdout)
+
+
+def ban_l3_agent(node):
+    ssh.call(
+        ['pcs', 'resource', 'ban', 'p_neutron-l3-agent', node.data['fqdn']],
+        node=node)
+
+
+def wait_for_router_migration(node, router_id):
+    for i in range(0, 30):
+        agents = get_agent_data(node, router_id)
+        for agent in agents:
+            if agent['alive'] == magic_consts.OPENSTACK_SERVICE_STATE_UP:
+                if node.data['fqdn'] != agent['host']:
+                    return
+        time.sleep(3)
+    raise Exception("Timeout for router {0} migration".format(router_id))
+
+
+def router_list(node):
+    node_routers = []
+    controller = env_util.get_one_controller(node.env)
+    routers_stdout = nova.run_nova_cmd(
+        ["neutron", "router-list", "-f", "json"], controller)
+    env_routers = json.loads(routers_stdout)
+
+    for env_router in env_routers:
+        router_id = env_router['id']
+        agents = get_agent_data(node, router_id)
+
+        for agent in agents:
+            if agent['alive'] == magic_consts.OPENSTACK_SERVICE_STATE_UP:
+                if node.data['fqdn'] == agent['host']:
+                    node_routers.append(router_id)
+
+    return node_routers

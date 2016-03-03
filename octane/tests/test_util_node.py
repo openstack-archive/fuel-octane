@@ -11,9 +11,11 @@
 # under the License.
 
 import io
+import json
 import mock
 import pytest
 
+from octane import magic_consts
 from octane.tests import util as test_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -174,3 +176,45 @@ def test_get_nova_node_handle(mocker, node_data, fuel_version, expected_name):
     else:
         with pytest.raises(Exception):
             node_util.get_nova_node_handle(node)
+
+
+@pytest.mark.parametrize(
+    "agents_list,routers_list,expected_res,fqdn",
+    [(
+        (
+            [
+                {
+                    'alive': magic_consts.OPENSTACK_SERVICE_STATE_UP,
+                    'host': 'node-1'
+                },
+                {
+                    'alive': None,
+                    'host': 'node-1'
+                },
+                {
+                    'alive': magic_consts.OPENSTACK_SERVICE_STATE_UP,
+                    'host': 'node-2'
+                }
+            ],
+            [],
+        ),
+        '[{"id": "test-1"}, {"id": "test-2"}]',
+        ['test-1'],
+        "node-1"
+    )])
+def test_router_list(mocker, agents_list, routers_list, expected_res, fqdn):
+    env = mock.Mock()
+    node = mock.MagicMock(data={'fqdn': 'node-1'}, env=env)
+    controller = mock.Mock()
+    mock_get_one_controller = mocker.patch(
+        "octane.util.env.get_one_controller", return_value=controller)
+    mock_get_agent_data = mocker.patch(
+        "octane.util.node.get_agent_data", side_effect=agents_list)
+    mock_nova_call = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=routers_list)
+    assert expected_res == node_util.router_list(node)
+    mock_get_one_controller.assert_called_once_with(env)
+    for router in json.loads(routers_list):
+        mock_get_agent_data.assert_any_call(node, router['id'])
+    mock_nova_call.assert_called_once_with(
+        ["neutron", "router-list", "-f", "json"], controller)
