@@ -15,6 +15,7 @@ import io
 import mock
 import pytest
 
+from octane import magic_consts
 from octane.util import node as node_util
 from octane.util import ssh
 
@@ -183,3 +184,46 @@ def test_get_nova_node_handle(mocker, node_data, fuel_version, expected_name):
     else:
         with pytest.raises(Exception):
             node_util.get_nova_node_handle(node)
+
+
+def call_with_openrc(mocker, mock_ssh_call_output):
+    node = create_node('node-1')
+    cmd = ["test", "command", "'with quotes'"]
+    expected_res = {
+        'test': 'value'
+    }
+    mock_ssh_call_output.return_value = "{'test': 'value'}"
+    res = node_util.call_with_openrc(cmd, node)
+    assert res == expected_res
+
+
+def test_router_list(mocker):
+    node = create_node('node-1')
+    node.data = {
+        'fqdn': 'node-1'
+    }
+    mock_call = mocker.patch("octane.util.node.call_with_openrc")
+    router1 = {
+        'id': 'test-1',
+    }
+    router2 = {
+        'id': 'test-2',
+    }
+    agent1 = {
+        'alive': magic_consts.OPENSTACK_SERVICE_STATE_UP,
+        'host': 'node-1'
+    }
+    agent2 = {
+        'alive': None,
+        'host': 'node-1'
+    }
+    agent3 = {
+        'alive': magic_consts.OPENSTACK_SERVICE_STATE_UP,
+        'host': 'node-2'
+    }
+    agents_list = [agent1, agent2, agent3]
+    routers_list = [router1, router2]
+    expected_res = [router1['id']]
+    mock_call.side_effect = [routers_list, agents_list, []]
+    res = node_util.router_list(node)
+    assert res == expected_res
