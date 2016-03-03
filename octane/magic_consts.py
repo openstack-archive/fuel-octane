@@ -57,3 +57,5 @@ RUNNING_REQUIRED_CONTAINERS = [
 ]
 
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
+
+OPENSTACK_SERVICE_STATE_UP = ":-)"

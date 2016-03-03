@@ -37,6 +37,12 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.service_tenant_id = env_util.cache_service_tenant_id(
             self.env, self.node)
 
+        routers = node_util.router_list(self.node)
+        if (routers):
+            node_util.ban_l3_agent(self.node)
+            for i in xrange(0, len(routers)):
+                node_util.wait_for_router_migration(self.node, routers[i])
+
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
         deployment_info = env_util.get_deployment_info(self.env)

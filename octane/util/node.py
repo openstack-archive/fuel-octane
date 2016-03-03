@@ -11,13 +11,16 @@
 # under the License.
 
 import functools
+import json
 import logging
 import shutil
 import socket
+import subprocess
 import sys
 import time
 
 from distutils import version
+from octane import magic_consts
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -158,3 +161,60 @@ def is_live_migration_supported(node):
                     and "VIR_MIGRATE_LIVE" in line:
                 return True
     return False
+
+
+def router_data(node, router_id):
+
+    stdout, _ = ssh.call(["/bin/bash", "-c", ". /root/openrc &&"
+                          "neutron l3-agent-list-hosting-router "
+                          "{0} -f json".format(router_id)],
+                         stdout=subprocess.PIPE, node=node)
+
+    try:
+        return json.loads(stdout)[0]
+    except ValueError:
+        raise Exception("Invalid data "
+                        "for router {0}".format(router_id))
+
+
+def ban_l3_agent(node):
+    ssh.call(['pcs', 'resource', 'ban', 'p_neutron-l3-agent',
+              node.data['fqdn']], stdout=subprocess.PIPE,
+             node=node)
+
+
+def wait_for_router_migration(node, router_id):
+
+    for i in range(0, 30):
+        router = router_data(node, router_id)
+
+        if node.data['fqdn'] != router['host']:
+            if router['admin_state_up'] and \
+               router['alive'] == magic_consts.OPENSTACK_SERVICE_STATE_UP:
+                return
+
+        time.sleep(3)
+
+    raise Exception("Timeout for router {0} migration".format(router_id))
+
+
+def router_list(node):
+    node_routers = []
+
+    output, _ = ssh.call(["/bin/bash", "-c", ". /root/openrc &&"
+                         "neutron router-list -f json"],
+                         stdout=subprocess.PIPE, node=node)
+
+    try:
+        env_routers = json.loads(output)
+    except ValueError:
+        raise Exception("Invalid data from router list")
+
+    for i in range(0, len(env_routers)):
+        router_id = env_routers[i]['id']
+        router = router_data(node, router_id)
+
+        if (router['host'] == node.data['fqdn']):
+            node_routers.append(router_id)
+
+    return node_routers
