@@ -62,6 +62,7 @@ OSD_REPOS_UPDATE = [
     ),
 ]
 COBBLER_DROP_VERSION = "7.0"
+OPENSTACK_SERVICE_STATE_UP = ":-)"
 
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
