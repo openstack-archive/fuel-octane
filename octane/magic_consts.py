@@ -67,6 +67,7 @@ OSD_UPGADE_PREFERENCE_TEMPLATE = "Package: {packages}\n" \
 COBBLER_DROP_VERSION = "7.0"
 CEPH_UPSTART_VERSION = "7.0"
 
+OPENSTACK_SERVICE_STATE_UP = ":-)"
 
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
