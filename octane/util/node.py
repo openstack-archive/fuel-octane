@@ -11,13 +11,16 @@
 # under the License.
 
 import functools
+import json
 import logging
 import shutil
 import socket
+import subprocess
 import sys
 import time
 
 from distutils import version
+from octane import magic_consts
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -158,3 +161,61 @@ def is_live_migration_supported(node):
                     and "VIR_MIGRATE_LIVE" in line:
                 return True
     return False
+
+
+def router_data(node, router_id):
+    cmd = "neutron l3-agent-list-hosting-router {0} -f json".format(router_id)
+    stdout, _ = call_with_openrc(cmd, node)
+    try:
+        routers = json.loads(stdout)
+        filter(lambda x: x['id'] != router_id, routers)
+        return routers[0]
+    except KeyError:
+        LOG.error("Router %s not found, no output from command: %s",
+                  router_id,
+                  cmd)
+    except ValueError:
+        LOG.error("Invalid data for router %s", router_id)
+        raise Exception("Invalid data for router {0}".format(router_id))
+
+
+def ban_l3_agent(node):
+    ssh.call(
+        ['pcs', 'resource', 'ban', 'p_neutron-l3-agent', node.data['fqdn']],
+        node=node)
+
+
+def wait_for_router_migration(node, router_id):
+    for i in range(0, 30):
+        router = router_data(node, router_id)
+        if node.data['fqdn'] != router['host']:
+            if router['admin_state_up'] and \
+               router['alive'] == magic_consts.OPENSTACK_SERVICE_STATE_UP:
+                return
+        time.sleep(3)
+    raise Exception("Timeout for router {0} migration".format(router_id))
+
+
+def router_list(node):
+    node_routers = []
+    cmd = "neutron router-list -f json"
+    output, _ = call_with_openrc(cmd, node)
+    try:
+        env_routers = json.loads(output)
+    except ValueError:
+        raise Exception("Invalid data from router list")
+
+    for inx, env_router in enumerate(env_routers):
+        router_id = env_router['id']
+        router = router_data(node, router_id)
+
+        if router['host'] == node.data['fqdn']:
+            node_routers.append(router_id)
+
+    return node_routers
+
+
+def call_with_openrc(cmd, node):
+    return ssh.call(["/bin/bash", "-c", ". /root/openrc &&", cmd],
+                    stdout=subprocess.PIPE,
+                    node=node)

@@ -37,6 +37,13 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.service_tenant_id = env_util.cache_service_tenant_id(
             self.env, self.node)
 
+    def migrate_l3_agent(self):
+        routers = node_util.router_list(self.node)
+        if routers:
+            node_util.ban_l3_agent(self.node)
+            for router in routers:
+                node_util.wait_for_router_migration(self.node, router)
+
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
         deployment_info = env_util.get_deployment_info(self.env)
@@ -80,6 +87,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
         self.env.update_deployment_tasks(tasks)
+        self.migrate_l3_agent()
 
     def postdeploy(self):
         # From neutron_update_admin_tenant_id
