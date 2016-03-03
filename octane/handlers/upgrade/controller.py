@@ -34,6 +34,13 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.service_tenant_id = None
         self.gateway = None
 
+    def migrate_l3_agent(self):
+        routers = node_util.router_list(self.node)
+        if routers:
+            node_util.ban_l3_agent(self.node)
+        for router in routers:
+            node_util.wait_for_router_migration(self.node, router)
+
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
         deployment_info = env_util.get_deployment_info(self.env)
@@ -77,6 +84,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)
         self.env.update_deployment_tasks(tasks)
+        # Neutron agent migration only required for upgrade of primary CIC
+        if self.isolated:
+            self.migrate_l3_agent()
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]
