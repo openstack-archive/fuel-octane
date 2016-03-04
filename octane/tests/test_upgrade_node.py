@@ -10,10 +10,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
 
-def test_parser(mocker, octane_app):
+
+@pytest.mark.parametrize('cmd,env,nodes,provision,roles', [
+    (["upgrade-node", "--isolated", "1", "2", "3"], 1, [2, 3], True, None),
+    (["upgrade-node", "--isolated", "--no-provision", "4", "5"], 4, [5], False,
+     None),
+    (["upgrade-node", "--isolated", "--roles=role-a,role-b", "6", "7"], 6, [7],
+     True, ["role-a", "role-b"]),
+    (["upgrade-node", "--isolated", "--no-provision", "--roles=role-c,role-d",
+      "8", "9"], 8, [9], False, ["role-c", "role-d"]),
+])
+def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles):
     m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
+    octane_app.run(cmd)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None)
+    m.assert_called_once_with(env, nodes, isolated=True, network_template=None,
+                              provision=provision, roles=roles)
