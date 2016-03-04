@@ -25,17 +25,22 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
         parser.add_argument('env_id',
                             type=str,
                             help='ID of the environment.')
+        parser.add_argument('--roles', nargs='*',
+                            help='Reassign node with given roles without '
+                                 'reprovisioning.')
         return parser
 
     def take_action(self, parsed_args):
         # TODO(akscram): While the clone procedure is not a part of
         #                fuelclient.objects.Environment the connection
         #                will be called directly.
+        data = {'node_id': parsed_args.node_id}
+        if parsed_args.roles:
+            data['reprovision'] = False
+            data['roles'] = parsed_args.roles
         self.client._entity_wrapper.connection.post_request(
             "clusters/{0}/upgrade/assign".format(parsed_args.env_id),
-            {
-                'node_id': parsed_args.node_id,
-            }
+            data,
         )
         msg = ('Node {node_id} successfully relocated to the environment'
                ' {env_id}.\n'.format(

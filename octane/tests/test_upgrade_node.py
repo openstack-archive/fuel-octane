@@ -16,4 +16,14 @@ def test_parser(mocker, octane_app):
     octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None)
+    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None,
+                              roles=None)
+
+
+def test_parser_with_roles(mocker, octane_app):
+    m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
+    octane_app.run(["upgrade-node", "--isolated", "--roles=compute,ceph-osd", "1", "2", "3"])
+    assert not octane_app.stdout.getvalue()
+    assert not octane_app.stderr.getvalue()
+    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None,
+                              roles=['compute', 'ceph-osd'])
