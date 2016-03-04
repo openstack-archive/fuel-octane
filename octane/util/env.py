@@ -225,14 +225,18 @@ def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
         wait_for_node(node, status, timeout, check_freq)
 
 
-def move_nodes(env, nodes):
+def move_nodes(env, nodes, roles=None):
     env_id = env.data['id']
+    cmd = ["fuel2", "env", "move", "node"]
+    if roles:
+        cmd += ['--roles'] + roles
     for node in nodes:
         node_id = node.data['id']
-        subprocess.call(
-            ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
-    LOG.info("Nodes provision started. Please wait...")
-    wait_for_nodes(nodes, "provisioned")
+        cmd_move_node = cmd + [str(node_id), str(env_id)]
+        subprocess.call(cmd_move_node)
+    if roles:
+        LOG.info("Nodes provision started. Please wait...")
+        wait_for_nodes(nodes, "provisioned")
 
 
 def provision_nodes(env, nodes):
