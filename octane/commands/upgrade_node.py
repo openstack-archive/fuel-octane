@@ -27,7 +27,8 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
+                 roles=None):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
@@ -52,7 +53,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
     call_handlers('preupgrade')
     call_handlers('prepare')
-    env_util.move_nodes(env, nodes)
+    env_util.move_nodes(env, nodes, roles=roles)
     call_handlers('predeploy')
     if network_template:
         env_util.set_network_template(env, network_template)
@@ -91,6 +92,9 @@ class UpgradeNodeCommand(cmd.Command):
             '--template', type=str, metavar='TEMPLATE_FILE',
             help="Use network template from file")
         parser.add_argument(
+            '--roles', type=str, nargs='*',
+            help="Do not reprovision nodes just reassign with given roles.")
+        parser.add_argument(
             'env_id', type=int, metavar='ENV_ID',
             help="ID of target environment")
         parser.add_argument(
@@ -101,4 +105,5 @@ class UpgradeNodeCommand(cmd.Command):
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template)
+                     network_template=parsed_args.template,
+                     roles=parsed_args.roles)
