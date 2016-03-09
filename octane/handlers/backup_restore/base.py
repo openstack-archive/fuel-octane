@@ -19,8 +19,10 @@ from octane.util import subprocess
 
 class Base(object):
 
-    def __init__(self, archive):
+    def __init__(self, archive, admin_password=None, admin_user=None):
         self.archive = archive
+        self.admin_password = admin_password
+        self.admin_user = admin_user
 
     def backup(self):
         raise NotImplemented

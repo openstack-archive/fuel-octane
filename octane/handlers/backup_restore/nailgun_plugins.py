@@ -32,4 +32,12 @@ class NailgunPluginsArchivator(base.PathArchivator):
     def restore(self):
         super(NailgunPluginsArchivator, self).restore()
         if os.path.exists(self.path):
-            subprocess.call(["fuel", "plugins", "--sync"])
+            subprocess.call([
+                "fuel",
+                "plugins",
+                "--sync",
+                "--user",
+                self.admin_user,
+                "--password",
+                self.admin_password
+            ])

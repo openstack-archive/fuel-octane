@@ -96,10 +96,8 @@ class NailgunArchivator(PostgresArchivator):
                 docker.apply_patches(*args, revert=True)
 
     def _post_restore_action(self):
-        with open("/etc/fuel/astute.yaml") as astute_conf:
-            data_dict = yaml.load(astute_conf.read())["FUEL_ACCESS"]
-        user = data_dict["user"]
-        password = data_dict["password"]
+        user = self.admin_user
+        password = self.admin_password
         data, _ = docker.run_in_container(
             "nailgun",
             ["cat", magic_consts.OPENSTACK_FIXTURES],
@@ -117,6 +115,10 @@ class NailgunArchivator(PostgresArchivator):
             "--sync-deployment-tasks",
             "--dir",
             "/etc/puppet/",
+            "--user",
+            user,
+            "--password",
+            password
         ])
         sql_run_prams = [
             "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
