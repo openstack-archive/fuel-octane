@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
+import yaml
+
 from octane.handlers.backup_restore import base
 from octane.util import puppet
 
@@ -25,4 +28,12 @@ class PuppetApplyHost(base.Base):
         pass
 
     def restore(self):
+        with open("/etc/fuel/astute.yaml") as current:
+            current_yaml = yaml.load(current)
+        updated = copy.deepcopy(current_yaml)
+        updated["FUEL_ACCESS"]["password"] = self.access_password
+        with open("/etc/fuel/astute.yaml", "w") as current:
+            yaml.safe_dump(updated, current, default_flow_style=False)
         puppet.apply_host()
+        with open("/etc/fuel/astute.yaml", "w") as current:
+            yaml.safe_dump(current_yaml, current, default_flow_style=False)
