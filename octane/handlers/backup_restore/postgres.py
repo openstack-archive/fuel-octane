@@ -83,10 +83,6 @@ class NailgunArchivator(PostgresArchivator):
         self._post_restore_action()
 
     def _post_restore_action(self):
-        with open("/etc/fuel/astute.yaml") as astute_conf:
-            data_dict = yaml.load(astute_conf.read())["FUEL_ACCESS"]
-        user = data_dict["user"]
-        password = data_dict["password"]
         data, _ = docker.run_in_container(
             "nailgun",
             ["cat", magic_consts.OPENSTACK_FIXTURES],
@@ -97,13 +93,20 @@ class NailgunArchivator(PostgresArchivator):
             release = helpers.merge_dicts(
                 base_release_fields, fixture['fields'])
             self.__post_data_to_nailgun(
-                "/api/v1/releases/", release, user, password)
+                "/api/v1/releases/",
+                release,
+                self.context.user,
+                self.context.password)
         subprocess.call([
             "fuel",
             "release",
             "--sync-deployment-tasks",
             "--dir",
             "/etc/puppet/",
+            "--user",
+            self.context.user,
+            "--password",
+            self.context.password
         ])
 
 
