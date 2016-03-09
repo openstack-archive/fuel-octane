@@ -19,8 +19,15 @@ from octane.util import subprocess
 
 class Base(object):
 
-    def __init__(self, archive):
+    def __init__(self, archive, **context):
         self.archive = archive
+        self._context = context
+
+    def __getattr__(self, name):
+        try:
+            return self._context[name]
+        except KeyError:
+            raise AttributeError("Attribute not found in context")
 
     def backup(self):
         raise NotImplemented
