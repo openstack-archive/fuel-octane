@@ -449,10 +449,8 @@ def test_post_restore_action_astute(mocker):
         ]
     ),
 ])
-def test_post_restore_nailgun(mocker, mock_open, dump, calls):
+def test_post_restore_nailgun(mocker, dump, calls):
     data = yaml.dump(dump)
-    mock_open.return_value.read.return_value = yaml.dump(
-        {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -464,7 +462,11 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
-    postgres.NailgunArchivator(None)._post_restore_action()
+    postgres.NailgunArchivator(
+        None,
+        access_password="password",
+        access_user="admin"
+    )._post_restore_action()
 
     headers = {
         "X-Auth-Token": token,
@@ -477,10 +479,39 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
-        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+        "fuel",
+        "release",
+        "--sync-deployment-tasks",
+        "--dir",
+        "/etc/puppet/",
+        "--user",
+        "admin",
+        "--password",
+        "password",
+    ])
 
 
-def test_post_restore_puppet_apply_host(mocker):
+def test_post_restore_puppet_apply_host(mocker, mock_open):
     mock_apply = mocker.patch("octane.util.puppet.apply_host")
-    puppet.PuppetApplyHost(None).restore()
+    yaml_load = mocker.patch(
+        "yaml.load", return_value={"FUEL_ACCESS": {"password": "dump_pswd"}})
+    yaml_dump = mocker.patch("yaml.safe_dump")
+    puppet.PuppetApplyHost(None, access_password="user_pswd").restore()
     assert mock_apply.called
+    assert mock_open.call_args_list == [
+        mock.call("/etc/fuel/astute.yaml"),
+        mock.call("/etc/fuel/astute.yaml", "w"),
+        mock.call("/etc/fuel/astute.yaml", "w"),
+    ]
+    yaml_load.assert_called_once_with(mock_open.return_value)
+    assert [
+        mock.call(
+            {'FUEL_ACCESS': {'password': 'user_pswd'}},
+            mock_open.return_value,
+            default_flow_style=False
+        ),
+        mock.call(
+            {'FUEL_ACCESS': {'password': 'dump_pswd'}},
+            mock_open.return_value,
+            default_flow_style=False
+        )] == yaml_dump.call_args_list
