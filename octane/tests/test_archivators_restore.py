@@ -449,10 +449,8 @@ def test_post_restore_action_astute(mocker):
         ]
     ),
 ])
-def test_post_restore_nailgun(mocker, mock_open, dump, calls):
+def test_post_restore_nailgun(mocker, dump, calls):
     data = yaml.dump(dump)
-    mock_open.return_value.read.return_value = yaml.dump(
-        {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     mocker.patch("octane.util.docker.run_in_container",
                  return_value=(data, None))
@@ -464,7 +462,11 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
-    postgres.NailgunArchivator(None)._post_restore_action()
+    postgres.NailgunArchivator(
+        None,
+        access_password="password",
+        access_user="admin"
+    )._post_restore_action()
 
     headers = {
         "X-Auth-Token": token,
@@ -477,7 +479,16 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
-        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+        "fuel",
+        "release",
+        "--sync-deployment-tasks",
+        "--dir",
+        "/etc/puppet/",
+        "--user",
+        "admin",
+        "--password",
+        "password",
+    ])
 
 
 def test_post_restore_puppet_apply_host(mocker):
