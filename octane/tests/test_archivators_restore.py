@@ -16,6 +16,7 @@ import yaml
 
 from keystoneclient.v2_0 import Client as keystoneclient
 
+from octane.handlers import backup_restore
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -472,8 +473,6 @@ def test_post_restore_action_astute(mocker):
 ])
 def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     data = yaml.dump(dump)
-    mock_open.return_value.read.return_value = yaml.dump(
-        {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container",
@@ -490,7 +489,11 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
-    postgres.NailgunArchivator(None)._post_restore_action()
+    postgres.NailgunArchivator(
+        None,
+        backup_restore.NailgunCredentialsContext(
+            user="admin", password="password")
+    )._post_restore_action()
 
     headers = {
         "X-Auth-Token": token,
@@ -503,7 +506,16 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
     assert json_mock.call_count == 3
     mock_subprocess_call.assert_called_once_with([
-        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+        "fuel",
+        "release",
+        "--sync-deployment-tasks",
+        "--dir",
+        "/etc/puppet/",
+        "--user",
+        "admin",
+        "--password",
+        "password",
+    ])
 
     run_in_container_mock.assert_called_with(
         "postgres",
@@ -525,7 +537,42 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     json_mock.assert_called_with({"deployed_before": {"value": True}})
 
 
-def test_post_restore_puppet_apply_host(mocker):
-    mock_apply = mocker.patch("octane.util.puppet.apply_host")
-    puppet.PuppetApplyHost(None).restore()
+@pytest.mark.parametrize("exc_on_apply", [True, False])
+def test_post_restore_puppet_apply_host(mocker, mock_open, exc_on_apply):
+
+    class TestException(Exception):
+        pass
+
+    mocker.patch(
+        "tempfile.mkstemp",
+        return_value=(1, "/etc/fuel/.astute.yaml.bac"))
+    mock_copy = mocker.patch("shutil.copy")
+    mock_move = mocker.patch("shutil.move")
+    yaml_load = mocker.patch(
+        "yaml.load", return_value={"FUEL_ACCESS": {"password": "dump_pswd"}})
+    yaml_dump = mocker.patch("yaml.safe_dump")
+    context = backup_restore.NailgunCredentialsContext(
+        user="admin", password="user_pswd")
+    archivator = puppet.PuppetApplyHost(None, context)
+    if exc_on_apply:
+        mock_apply = mocker.patch(
+            "octane.util.puppet.apply_host",
+            side_effect=TestException("test exception"))
+        pytest.raises(TestException, archivator.restore)
+    else:
+        mock_apply = mocker.patch("octane.util.puppet.apply_host")
+        archivator.restore()
     assert mock_apply.called
+    assert mock_open.call_args_list == [
+        mock.call("/etc/fuel/astute.yaml"),
+        mock.call("/etc/fuel/astute.yaml", "w"),
+    ]
+    yaml_load.assert_called_once_with(mock_open.return_value)
+    yaml_dump.asswer_called_once_with(
+        {'FUEL_ACCESS': {'password': 'user_pswd'}},
+        mock_open.return_value,
+        default_flow_style=False)
+    mock_copy.assert_called_once_with("/etc/fuel/astute.yaml",
+                                      "/etc/fuel/.astute.yaml.bac")
+    mock_move.assert_called_once_with("/etc/fuel/.astute.yaml.bac",
+                                      "/etc/fuel/astute.yaml")
