@@ -19,8 +19,9 @@ from octane.util import subprocess
 
 class Base(object):
 
-    def __init__(self, archive):
+    def __init__(self, archive, context=None):
         self.archive = archive
+        self.context = context
 
     def backup(self):
         raise NotImplemented
