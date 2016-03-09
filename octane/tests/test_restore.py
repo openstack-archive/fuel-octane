@@ -22,26 +22,35 @@ from octane.handlers import backup_restore
     ("path", False),
     ("path", True),
 ])
-@pytest.mark.parametrize("command, archivators", [
-    ("fuel-restore", backup_restore.ARCHIVATORS),
-    ("fuel-repo-restore", backup_restore.REPO_ARCHIVATORS),
+@pytest.mark.parametrize("command, archivators, password_required", [
+    ("fuel-restore", backup_restore.ARCHIVATORS, True),
+    ("fuel-repo-restore", backup_restore.REPO_ARCHIVATORS, False),
 ])
-def test_parser(mocker, octane_app, path, is_file, command, archivators):
+@pytest.mark.parametrize("password", [None, "password"])
+def test_parser(
+        mocker, octane_app, path, is_file, command, archivators,
+        password, password_required):
     restore_mock = mocker.patch('octane.commands.restore.restore_data')
     mocker.patch("os.path.isfile", return_value=is_file)
     params = [command]
     if path:
         params += ["--from", path]
+    if password and password_required:
+        params += ["--admin-password", password]
     try:
         octane_app.run(params)
     except AssertionError:  # parse error, app returns 2
         assert not restore_mock.called
-        assert path is None
+        assert not password or path is None
     except ValueError:  # Invalid path to backup file
         assert not restore_mock.called
         assert not is_file
     else:
-        restore_mock.assert_called_once_with(path, archivators)
+        context = None
+        if password and password_required:
+            context = backup_restore.NailgunCredentialsContext(
+                user="admin", password=password)
+        restore_mock.assert_called_once_with(path, archivators, context)
         assert path is not None
         assert is_file
 
@@ -51,7 +60,7 @@ def test_restore_data(mocker):
     archivator_mock_1 = mocker.Mock()
     archivator_mock_2 = mocker.Mock()
     path = "path"
-    restore.restore_data(path, [archivator_mock_1, archivator_mock_2])
+    restore.restore_data(path, [archivator_mock_1, archivator_mock_2], {})
     tar_mock.assert_called_once_with(path)
     for arch_mock in [archivator_mock_1, archivator_mock_2]:
         arch_mock.assert_has_calls([

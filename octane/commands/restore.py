@@ -22,9 +22,9 @@ from octane.handlers import backup_restore
 LOG = logging.getLogger(__name__)
 
 
-def restore_data(path_to_backup, archivators):
+def restore_data(path_to_backup, archivators, context):
     with contextlib.closing(tarfile.open(path_to_backup)) as archive:
-        archivators = [cls(archive) for cls in archivators]
+        archivators = [cls(archive, **context) for cls in archivators]
         for archivator in archivators:
             archivator.pre_restore_check()
         for archivator in archivators:
@@ -50,12 +50,35 @@ class BaseRestoreCommand(command.Command):
         assert self.archivators
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
-        restore_data(parsed_args.path, self.archivators)
+        restore_data(
+            parsed_args.path,
+            self.archivators,
+            self.get_context(parsed_args))
+
+    def get_context(self, parsed_args):
+        return None
 
 
 class RestoreCommand(BaseRestoreCommand):
 
     archivators = backup_restore.ARCHIVATORS
+
+    def get_parser(self, *args, **kwargs):
+        parser = super(RestoreCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            "--admin-password",
+            type=str,
+            action="store",
+            dest="admin_password",
+            required=True,
+            help="Fuel admin password")
+        return parser
+
+    def get_context(self, parsed_args):
+        return backup_restore.NailgunCredentialsContext(
+            password=parsed_args.admin_password,
+            user="admin"
+        )
 
 
 class RestoreRepoCommand(BaseRestoreCommand):
