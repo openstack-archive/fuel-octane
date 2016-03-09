@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
+
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -43,3 +45,6 @@ REPO_ARCHIVATORS = [
     mirrors.MirrorsBackup,
     mirrors.RepoBackup,
 ]
+
+NailgunCredentialsContext = collections.namedtuple(
+    "NailgunCredentialsContext", ["password", "user"])
