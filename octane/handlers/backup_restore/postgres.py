@@ -118,6 +118,28 @@ class NailgunArchivator(PostgresArchivator):
             "--dir",
             "/etc/puppet/",
         ])
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
+        results, _ = docker.run_in_container(
+            "postgres",
+            sql_run_prams + ["select id, generated from attributes;"],
+            stdout=subprocess.PIPE)
+        results = results.strip()
+        values = []
+        sql = 'update attributes as a set generated = b.generated ' \
+            'from (values {0}) as b(id, generated) where a.id = b.id;'
+
+        for line in results.split("\n"):
+            c_id, c_data = line.split("|", 1)
+            data = json.loads(c_data)
+            data["deployed_before"] = {"value": True}
+            values.append((c_id, json.dumps(data)))
+
+        if values:
+            sql = sql.format(
+                ','.join(["({0}, '{1}')".format(*v) for v in values]))
+            docker.run_in_container(
+                "postgres", sql_run_prams + [sql], stdout=subprocess.PIPE)
 
 
 class KeystoneArchivator(PostgresArchivator):

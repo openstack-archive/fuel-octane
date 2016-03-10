@@ -451,10 +451,11 @@ def test_post_restore_action_astute(mocker):
     assert not stopped
 
 
-@pytest.mark.parametrize("dump, calls", [
+@pytest.mark.parametrize("dump, calls, data_for_update", [
     (
         [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
         [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
+        "1|{}",
     ),
     (
         [
@@ -465,16 +466,22 @@ def test_post_restore_action_astute(mocker):
         [
             {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
             {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
-        ]
+        ],
+        "1|{}",
     ),
 ])
-def test_post_restore_nailgun(mocker, mock_open, dump, calls):
+def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     data = yaml.dump(dump)
     mock_open.return_value.read.return_value = yaml.dump(
         {"FUEL_ACCESS": {"user": "admin", "password": "admin"}})
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    mocker.patch("octane.util.docker.run_in_container",
-                 return_value=(data, None))
+    run_in_container_mock = mocker.patch(
+        "octane.util.docker.run_in_container",
+        side_effect=[
+            (data, None),
+            (data_for_update, None),
+            ("updated", None),
+        ])
     json_mock = mocker.patch("json.dumps")
     token = "123"
 
@@ -494,9 +501,28 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     for call in post_data.call_args_list:
         assert post_call == call
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
-    assert json_mock.call_count == 2
+    assert json_mock.call_count == 3
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"])
+
+    run_in_container_mock.assert_called_with(
+        "postgres",
+        [
+            "sudo",
+            "-u",
+            "postgres",
+            "psql",
+            "nailgun",
+            "--tuples-only",
+            "-c",
+            "update attributes as a set generated = b.generated "
+            "from (values (1, '{0}')) "
+            "as b(id, generated) where a.id = b.id;".format(
+                json_mock.return_value)
+        ],
+        stdout=subprocess.PIPE
+    )
+    json_mock.assert_called_with({"deployed_before": {"value": True}})
 
 
 def test_post_restore_puppet_apply_host(mocker):
