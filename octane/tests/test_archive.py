@@ -82,3 +82,75 @@ def test_archivate_container_cmd_output(mocker):
     test_archive.addfile.assert_called_once_with(
         tar_info, io_mock.return_value)
     assert io_mock.return_value.getvalue() == output_data
+
+
+def test_update_cpio_with_exception(mocker, mock_subprocess):
+    mocker.patch("tempfile.mkdtemp", return_value="tmp_dir_name")
+    shutil_mocker = mocker.patch("shutil.rmtree")
+
+    class TestException(Exception):
+        pass
+
+    test_msg = "Fake exception"
+    with pytest.raises(TestException) as exc_info:
+        with archivate.update_cpio("fake_img_path.img"):
+            raise TestException(test_msg)
+    assert test_msg == exc_info.value.message
+    shutil_mocker.assert_called_once_with("tmp_dir_name")
+    assert [
+        mock.call(
+            ["gunzip", "-c", "fake_img_path.img"],
+            stdout=subprocess.PIPE),
+        mock.call(
+            ["cpio", "-id"],
+            stdin=mock_subprocess.return_value.__enter__.return_value.stdout,
+            cwd="tmp_dir_name"),
+    ] == mock_subprocess.call_args_list
+
+
+def test_update_cpio(mocker, mock_subprocess):
+    tmp_dir_name = "tmp_dir_name"
+    mocker.patch("tempfile.mkdtemp", return_value=tmp_dir_name)
+    tmp_file = mocker.patch(
+        "tempfile.NamedTemporaryFile"
+    ).return_value.__enter__.return_value
+    shutil_rm_mocker = mocker.patch("shutil.rmtree")
+    shutil_mv_mocker = mocker.patch("shutil.move")
+    mock_subprocess.return_value.__enter__.return_value = \
+        mock_subprocess.return_value
+    walk_mocker = mocker.patch(
+        "os.walk",
+        return_value=[(os.path.join(tmp_dir_name, "path"),
+                       ["dir_1", "dir_2"],
+                       ["file_1", "file_2"])])
+    with archivate.update_cpio("fake_img_path.img") as tmp_dir_name_context:
+        pass
+    assert tmp_dir_name == tmp_dir_name_context
+    walk_mocker.assert_called_once_with(tmp_dir_name)
+    shutil_rm_mocker.assert_called_once_with(tmp_dir_name)
+    shutil_mv_mocker.assert_called_once_with(
+        tmp_file.name, "fake_img_path.img")
+    assert [
+        mock.call("path/{0}\n".format(i)) for i in
+        ["dir_1", "dir_2", "file_1", "file_2"]
+    ] == mock_subprocess.return_value.stdin.write.call_args_list
+    assert [
+        mock.call(
+            ["gunzip", "-c", "fake_img_path.img"],
+            stdout=subprocess.PIPE),
+        mock.call(
+            ["cpio", "-id"],
+            stdin=mock_subprocess.return_value.stdout,
+            cwd=tmp_dir_name),
+        mock.call(
+            ["cpio", "--format", "newc", "-o"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            cwd=tmp_dir_name),
+        mock.call(
+            ["gzip", "-c"],
+            stdin=mock_subprocess.return_value.stdout,
+            stdout=tmp_file,
+            cwd=tmp_dir_name),
+    ] == mock_subprocess.call_args_list
+    assert not tmp_file.delete
