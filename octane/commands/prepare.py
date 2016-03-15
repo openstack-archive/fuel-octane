@@ -21,7 +21,8 @@ from octane.util import subprocess
 
 
 def patch_puppet(revert=False):
-    puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
+    puppet_patch_dir = os.path.join(magic_consts.DATA_DIR,
+                                    "patches", "puppet")
     for d in os.listdir(puppet_patch_dir):
         d = os.path.join(puppet_patch_dir, d)
         if not os.path.isdir(d):
@@ -44,7 +45,7 @@ def patch_puppet(revert=False):
 def apply_patches(revert=False):
     for container, prefix, patch in magic_consts.PATCHES:
         docker.apply_patches(container, prefix,
-                             os.path.join(magic_consts.CWD, patch),
+                             os.path.join(magic_consts.DATA_DIR, patch),
                              revert=revert)
 
 
@@ -60,7 +61,7 @@ def patch_initramfs():
 
 
 def patch_fuel_agent(chroot):
-    patch_dir = os.path.join(magic_consts.CWD, "patches", "fuel_agent")
+    patch_dir = os.path.join(magic_consts.DATA_DIR, "patches", "fuel_agent")
     with open(os.path.join(patch_dir, "patch")) as patch:
         subprocess.call(["patch", "-N", "-p0"], stdin=patch, cwd=chroot)
 
