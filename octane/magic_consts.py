@@ -18,12 +18,13 @@ PATCHES = []
 CWD = os.path.dirname(__file__)  # FIXME
 
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
+DATA_DIR = "/usr/share/octane"
 PUPPET_DIR = "/etc/puppet/modules"
 NAILGUN_ARCHIVATOR_PATCHES = [
     (
         "nailgun",
         os.path.join(PUPPET_DIR, "nailgun/manifests/"),
-        os.path.join(CWD, "patches/timeout.patch")
+        os.path.join(DATA_DIR, "patches/timeout.patch")
     ),
 ]
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"

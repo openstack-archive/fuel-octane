@@ -238,12 +238,14 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
             mock.call(
                 'nailgun',
                 '/etc/puppet/modules/nailgun/manifests/',
-                os.path.join(magic_consts.CWD, "patches/timeout.patch")
+                os.path.join(magic_consts.DATA_DIR,
+                             "patches/timeout.patch")
             ),
             mock.call(
                 'nailgun',
                 '/etc/puppet/modules/nailgun/manifests/',
-                os.path.join(magic_consts.CWD, "patches/timeout.patch"),
+                os.path.join(magic_consts.DATA_DIR,
+                             "patches/timeout.patch"),
                 revert=True
             ),
         ] == patch_mock.call_args_list
