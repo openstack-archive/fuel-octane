@@ -11,7 +11,7 @@ URL:     https://github.com/openstack/fuel-octane
 License: Apache
 Group: Applications/System
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-Prefix: /opt
+Prefix: %{_prefix}
 BuildRequires: git
 BuildRequires: python-setuptools
 BuildRequires: python-pbr
@@ -34,15 +34,17 @@ installations to version 9.0.
 %setup -cq -n %{name}-%{version}
 
 %build
-cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} python setup.py egg_info && cp octane.egg-info/PKG-INFO . && python setup.py build
+cd %{_builddir}/%{name}-%{version} && %{__python2} setup.py sdist && %{__python2} setup.py build
 
 %install
-cd %{_builddir}/%{name}-%{version} && python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES && cp -vr octane/patches ${RPM_BUILD_ROOT}/usr/lib/python2.6/site-packages/octane/ && echo /usr/lib/python2.6/site-packages/octane/patches >> %{_builddir}/%{name}-%{version}/INSTALLED_FILES
+install -d ${RPM_BUILD_ROOT}/usr/share/octane
+cd %{_builddir}/%{name}-%{version} && %{__python2} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT
 
-
-%files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
+%files
 %defattr(-,root,root)
-
+%{python2_sitelib}/*
+%{_bindir}/octane
+%{_datadir}/octane/*
 
 %clean
 rm -rf $RPM_BUILD_ROOT
