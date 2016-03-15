@@ -84,7 +84,7 @@ def test_simple_patch(mocker,
     mock_open.return_value.__enter__.side_effect = patch_files
     mock_subprocess.side_effect = _read_in_subprocess
     prepare.patch_puppet(revert)
-    path_arg = '/'.join([magic_consts.CWD, "patches", "puppet"])
+    path_arg = '/'.join([magic_consts.DATA_DIR, "patches", "puppet"])
     mock_list_dir.assert_called_once_with(path_arg)
     path_args = [mock.call('/'.join([path_arg, i])) for i in os_dirs]
     assert path_args == mock_is_dir.call_args_list
