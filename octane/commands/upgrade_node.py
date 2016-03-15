@@ -75,7 +75,7 @@ def patch_partition_generator(env_id):
 
 def copy_patches_folder_to_nailgun():
     dest_folder = '/tmp'
-    folder = os.path.join(magic_consts.CWD, 'patches')
+    folder = os.path.join(magic_consts.DATA_DIR, 'patches')
     docker.put_files_to_docker('nailgun', dest_folder, folder)
 
 
