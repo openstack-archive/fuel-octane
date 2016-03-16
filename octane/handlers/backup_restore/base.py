@@ -32,6 +32,10 @@ class Base(object):
     def pre_restore_check(self):
         pass
 
+    @property
+    def env(self):
+        return self.context.env
+
 
 class ContainerArchivator(Base):
 

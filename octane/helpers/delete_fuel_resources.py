@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import urlparse
+
 import glanceclient.client
 import keystoneclient.v2_0.client as ksclient
 import neutronclient.neutron.client
@@ -70,5 +72,5 @@ if __name__ == '__main__':
         os.environ["OS_USERNAME"],
         os.environ["OS_PASSWORD"],
         os.environ["OS_TENANT_NAME"],
-        os.environ["OS_AUTH_URL"],
+        urlparse.urljoin(os.environ["OS_AUTH_URL"], "v2.0"),
     )

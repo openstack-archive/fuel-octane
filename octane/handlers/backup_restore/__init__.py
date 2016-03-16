@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -47,7 +49,9 @@ REPO_ARCHIVATORS = [
 
 class BaseContext(object):
 
-    env = None
+    @property
+    def env(self):
+        return os.environ
 
 
 class NailgunCredentialsContext(BaseContext):
@@ -59,7 +63,7 @@ class NailgunCredentialsContext(BaseContext):
 
     @property
     def env(self):
-        return {
-            'OS_USERNAME': self.user,
-            'OS_PASSWORD': self.password,
-        }
+        env = super(NailgunCredentialsContext, self).env.copy()
+        env["OS_USERNAME"] = self.user
+        env["OS_PASSWORD"] = self.password
+        return env
