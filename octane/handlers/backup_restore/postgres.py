@@ -103,17 +103,15 @@ class NailgunArchivator(PostgresArchivator):
                 release,
                 self.context.user,
                 self.context.password)
-        subprocess.call([
-            "fuel",
-            "release",
-            "--sync-deployment-tasks",
-            "--dir",
-            "/etc/puppet/",
-            "--user",
-            self.context.user,
-            "--password",
-            self.context.password
-        ])
+        subprocess.call(
+            [
+                "fuel",
+                "release",
+                "--sync-deployment-tasks",
+                "--dir",
+                "/etc/puppet/",
+            ],
+            env=self.context.get_credentials_env())
 
 
 class KeystoneArchivator(PostgresArchivator):

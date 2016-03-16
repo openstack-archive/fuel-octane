@@ -139,7 +139,10 @@ class TestArchive(object):
 def test_path_restore(mocker, cls, path, members):
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
-    cls(archive).restore()
+    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
+    cls(
+        archive, backup_restore.NailgunCredentialsContext('user', 'password')
+    ).restore()
     for member in members:
         member.assert_extract(path)
 
@@ -468,6 +471,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
+    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
     postgres.NailgunArchivator(
         None,
         backup_restore.NailgunCredentialsContext(
@@ -485,16 +489,9 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
-        "fuel",
-        "release",
-        "--sync-deployment-tasks",
-        "--dir",
-        "/etc/puppet/",
-        "--user",
-        "admin",
-        "--password",
-        "password",
-    ])
+        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
+        env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
+    )
 
 
 @pytest.mark.parametrize("exc_on_apply", [True, False])
