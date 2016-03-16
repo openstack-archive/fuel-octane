@@ -32,6 +32,11 @@ class Base(object):
     def pre_restore_check(self):
         pass
 
+    @property
+    def env(self):
+        if self.context:
+            return self.context.get_credentials_env()
+
 
 class ContainerArchivator(Base):
 

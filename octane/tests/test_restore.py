@@ -39,7 +39,7 @@ def test_parser(
             "octane.handlers.backup_restore.NailgunCredentialsContext",
             return_value=context)
     else:
-        context = backup_restore.BaseContext()
+        context = None
         mocker.patch(
             "octane.handlers.backup_restore.BaseContext",
             return_value=context)

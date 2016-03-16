@@ -56,7 +56,7 @@ class BaseRestoreCommand(command.Command):
             self.get_context(parsed_args))
 
     def get_context(self, parsed_args):
-        return backup_restore.BaseContext()
+        return None
 
 
 class RestoreCommand(BaseRestoreCommand):
