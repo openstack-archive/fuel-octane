@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -51,3 +53,9 @@ class NailgunCredentialsContext(object):
         super(NailgunCredentialsContext, self).__init__()
         self.user = user
         self.password = password
+
+    def get_credentials_env(self):
+        env = os.environ.copy()
+        env["OS_USERNAME"] = self.user
+        env["OS_PASSWORD"] = self.password
+        return env

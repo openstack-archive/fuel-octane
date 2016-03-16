@@ -20,4 +20,5 @@ class SshArchivator(base.PathArchivator):
 
     def restore(self):
         super(SshArchivator, self).restore()
-        subprocess.call(["fuel-bootstrap", "build", "--activate"])
+        subprocess.call(
+            ["fuel-bootstrap", "build", "--activate"], env=self.env)
