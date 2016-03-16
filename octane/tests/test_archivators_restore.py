@@ -140,12 +140,16 @@ def test_path_restore(mocker, cls, path, members):
     subprocess_mock = mocker.patch("octane.util.subprocess.call")
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
-    cls(archive).restore()
+    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
+    cls(
+        archive, backup_restore.NailgunCredentialsContext('user', 'password')
+    ).restore()
     for member in members:
         member.assert_extract(path)
     if cls is ssh.SshArchivator:
         subprocess_mock.assert_called_once_with(
-            ["fuel-bootstrap", "build", "--activate"])
+            ["fuel-bootstrap", "build", "--activate"],
+            env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'user'})
     else:
         assert not subprocess_mock.called
 
@@ -489,6 +493,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
+    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
     postgres.NailgunArchivator(
         None,
         backup_restore.NailgunCredentialsContext(
@@ -506,16 +511,9 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
     assert json_mock.call_count == 3
     mock_subprocess_call.assert_called_once_with([
-        "fuel",
-        "release",
-        "--sync-deployment-tasks",
-        "--dir",
-        "/etc/puppet/",
-        "--user",
-        "admin",
-        "--password",
-        "password",
-    ])
+        "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
+        env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
+    )
 
     run_in_container_mock.assert_called_with(
         "postgres",
