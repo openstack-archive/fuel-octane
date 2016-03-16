@@ -32,6 +32,13 @@ from octane import magic_consts
 def test_parser(
         mocker, octane_app, path, is_file, command, archivators,
         password, password_required):
+    context = None
+    if password and password_required:
+        context = backup_restore.NailgunCredentialsContext(
+            user="admin", password=password)
+        mocker.patch(
+            "octane.handlers.backup_restore.NailgunCredentialsContext",
+            return_value=context)
     restore_mock = mocker.patch('octane.commands.restore.restore_data')
     mocker.patch("os.path.isfile", return_value=is_file)
     params = [command]
@@ -48,10 +55,6 @@ def test_parser(
         assert not restore_mock.called
         assert not is_file
     else:
-        context = None
-        if password and password_required:
-            context = backup_restore.NailgunCredentialsContext(
-                user="admin", password=password)
         restore_mock.assert_called_once_with(path, archivators, context)
         assert path is not None
         assert is_file
