@@ -12,6 +12,7 @@
 
 import json
 import logging
+import os
 import requests
 import six
 import urlparse
@@ -104,6 +105,30 @@ class NailgunArchivator(PostgresArchivator):
             stdout=subprocess.PIPE)
         return results.strip().split("\n")
 
+    def _create_links_on_remote_logs(self):
+        with open("/etc/fuel/astute.yaml") as astute:
+            domain = yaml.load(astute)["DNS_DOMAIN"]
+        dirname = "/var/log/docker-logs/remote/"
+        fqdn_ipaddr_pairs = self._run_sql_in_container(
+            "select meta::json->'system'->>'fqdn', ip from nodes;")
+        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
+        for row in fqdn_ipaddr_pairs:
+            fqdn, ip_addr = row.split("|", 1)
+            fqdn = fqdn.strip()
+            ip_addr = ip_addr.strip()
+            if not fqdn.endswith(domain):
+                continue
+            ip_addr_path = os.path.join(dirname, ip_addr)
+            fqdn_path = os.path.join(dirname, fqdn)
+            if os.path.islink(ip_addr_path):
+                continue
+            if os.path.isdir(ip_addr_path):
+                os.rename(ip_addr_path, fqdn_path)
+            else:
+                os.mkdir(fqdn_path)
+            os.symlink(fqdn, ip_addr_path)
+        docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
+
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -130,7 +155,6 @@ class NailgunArchivator(PostgresArchivator):
             "--password",
             self.context.password
         ])
-
         values = []
 
         for line in self._run_sql_in_container(
@@ -146,6 +170,7 @@ class NailgunArchivator(PostgresArchivator):
                 'from (values {0}) as b(id, generated) '
                 'where a.id = b.id;'.format(','.join(values))
             )
+        self._create_links_on_remote_logs()
 
 
 class KeystoneArchivator(PostgresArchivator):
