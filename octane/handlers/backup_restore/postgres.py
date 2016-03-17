@@ -95,6 +95,15 @@ class NailgunArchivator(PostgresArchivator):
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
 
+    def _run_sql_in_container(self, sql):
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
+        results, _ = docker.run_in_container(
+            "postgres",
+            sql_run_prams + [sql],
+            stdout=subprocess.PIPE)
+        return results.strip().split("\n")
+
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -121,28 +130,22 @@ class NailgunArchivator(PostgresArchivator):
             "--password",
             self.context.password
         ])
-        sql_run_prams = [
-            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            sql_run_prams + ["select id, generated from attributes;"],
-            stdout=subprocess.PIPE)
-        results = results.strip()
-        values = []
-        sql = 'update attributes as a set generated = b.generated ' \
-            'from (values {0}) as b(id, generated) where a.id = b.id;'
 
-        for line in results.split("\n"):
+        values = []
+
+        for line in self._run_sql_in_container(
+                "select id, generated from attributes;"):
             c_id, c_data = line.split("|", 1)
             data = json.loads(c_data)
             data["deployed_before"] = {"value": True}
-            values.append((c_id, json.dumps(data)))
+            values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
 
         if values:
-            sql = sql.format(
-                ','.join(["({0}, '{1}')".format(*v) for v in values]))
-            docker.run_in_container(
-                "postgres", sql_run_prams + [sql], stdout=subprocess.PIPE)
+            self._run_sql_in_container(
+                'update attributes as a set generated = b.generated '
+                'from (values {0}) as b(id, generated) '
+                'where a.id = b.id;'.format(','.join(values))
+            )
 
 
 class KeystoneArchivator(PostgresArchivator):
