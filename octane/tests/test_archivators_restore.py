@@ -472,6 +472,8 @@ def test_post_restore_action_astute(mocker):
     ),
 ])
 def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
+    mock_links = mocker.patch.object(
+        postgres.NailgunArchivator, "_create_links_on_remote_logs")
     data = yaml.dump(dump)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
@@ -535,6 +537,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
         stdout=subprocess.PIPE
     )
     json_mock.assert_called_with({"deployed_before": {"value": True}})
+    mock_links.assert_called_once_with()
 
 
 @pytest.mark.parametrize("exc_on_apply", [True, False])
@@ -578,3 +581,71 @@ def test_post_restore_puppet_apply_host(mocker, mock_open, exc_on_apply):
                                       "/etc/fuel/astute.yaml")
     mkstemp_mock.assert_called_once_with(
         dir="/etc/fuel", prefix=".astute.yaml.octane")
+
+
+@pytest.mark.parametrize("nodes", [
+    [("node_1", True), ("node_2", True), ("node_3", True)],
+    [("node_1", False)],
+    [("node_1", False), ("node_2", False), ("node_3", False)],
+    [("node_1", False), ("node_2", True), ("node_3", False)],
+])
+@pytest.mark.parametrize("is_dir", [True, False])
+@pytest.mark.parametrize("exception", [True, False])
+def test_create_links_on_remote_logs(
+        mocker, mock_open, nodes, is_dir, exception):
+    domain_name = "test_domain"
+    mocker.patch("yaml.load", return_value={"DNS_DOMAIN": domain_name})
+    domain_names = []
+    sql_return_value = []
+    is_link_exists = []
+    moved_nodes = []
+    for idx, node_link_exits in enumerate(nodes):
+        node, link_exists = node_link_exits
+        node_domain_name = "{0}.{1}".format(node, domain_name)
+        domain_names.append(node_domain_name)
+        ip_addr = "10.21.10.{0}".format(idx + 1)
+        sql_return_value.append("{0} | {1}".format(node_domain_name, ip_addr))
+        is_link_exists.append(link_exists)
+        if not link_exists:
+            moved_nodes.append((node_domain_name, ip_addr))
+    is_link_mock = mocker.patch("os.path.islink", side_effect=is_link_exists)
+    mocker.patch("os.path.isdir", return_value=is_dir)
+    mocker.patch.object(
+        backup_restore.postgres.NailgunArchivator,
+        "_run_sql_in_container",
+        return_value=sql_return_value)
+    run_in_container_mock = mocker.patch(
+        "octane.util.docker.run_in_container")
+    rename_mock = mocker.patch("os.rename")
+    symlink_mock = mocker.patch("os.symlink")
+    mkdir_mock = mocker.patch("os.mkdir")
+    archivator = backup_restore.postgres.NailgunArchivator(None)
+    if not exception:
+
+        class TestException(Exception):
+            pass
+
+        is_link_mock.side_effect = TestException("test exc")
+        with pytest.raises(TestException):
+            archivator._create_links_on_remote_logs()
+        assert not mkdir_mock.called
+        assert not rename_mock.called
+    else:
+        archivator._create_links_on_remote_logs()
+        assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
+                mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
+            run_in_container_mock.call_args_list
+        path = "/var/log/docker-logs/remote/"
+        path_pairs = [(os.path.join(path, d), os.path.join(path, i))
+                      for d, i in moved_nodes]
+        sym_calls = [mock.call(d, os.path.join(path, i))
+                     for d, i in moved_nodes]
+        if is_dir:
+            assert [mock.call(i, d) for d, i in path_pairs] == \
+                rename_mock.call_args_list
+            assert not mkdir_mock.called
+        else:
+            assert [mock.call(d) for d, _ in path_pairs] == \
+                mkdir_mock.call_args_list
+            assert not rename_mock.called
+        assert sym_calls == symlink_mock.call_args_list
