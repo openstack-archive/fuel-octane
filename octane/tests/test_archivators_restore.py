@@ -481,12 +481,12 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     data = yaml.dump(dump)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
-        "octane.util.docker.run_in_container",
-        side_effect=[
-            (data, None),
-            (data_for_update, None),
-            ("updated", None),
-        ])
+        "octane.util.docker.run_in_container", return_value=(data, None))
+    run_sql_mock = mocker.patch.object(
+        postgres.NailgunArchivator,
+        "_run_sql_in_container",
+        return_value=[data_for_update]
+    )
     json_mock = mocker.patch("json.dumps")
     token = "123"
 
@@ -517,25 +517,16 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
         env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
     )
 
-    run_in_container_mock.assert_called_with(
-        "postgres",
-        [
-            "sudo",
-            "-u",
-            "postgres",
-            "psql",
-            "nailgun",
-            "--tuples-only",
-            "-c",
-            "update attributes as a set generated = b.generated "
-            "from (values (1, '{0}')) "
-            "as b(id, generated) where a.id = b.id;".format(
-                json_mock.return_value)
-        ],
+    run_in_container_mock.assert_called_once_with(
+        "nailgun",
+        ["cat", magic_consts.OPENSTACK_FIXTURES],
         stdout=subprocess.PIPE
     )
     json_mock.assert_called_with({"deployed_before": {"value": True}})
     mock_links.assert_called_once_with()
+    run_sql_mock.assert_has_calls([
+        mock.call("select id, generated from attributes;"),
+    ])
 
 
 @pytest.mark.parametrize("exc_on_apply", [True, False])
@@ -654,3 +645,27 @@ def test_create_links_on_remote_logs(
     assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
             mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
         run_in_container_mock.call_args_list
+
+
+def test_run_sql(mocker):
+    archivator = postgres.NailgunArchivator(None)
+    run_mock = mocker.patch(
+        "octane.util.docker.run_in_container",
+        return_value=("row_1|val_1\nrow_2|val_1\n", None))
+    test_sql = "test_sql"
+    results = archivator._run_sql_in_container(test_sql)
+    run_mock.assert_called_once_with(
+        "postgres",
+        [
+            "sudo",
+            "-u",
+            "postgres",
+            "psql",
+            "nailgun",
+            "--tuples-only",
+            "-c",
+            test_sql,
+        ],
+        stdout=subprocess.PIPE
+    )
+    assert ["row_1|val_1", "row_2|val_1"] == results
