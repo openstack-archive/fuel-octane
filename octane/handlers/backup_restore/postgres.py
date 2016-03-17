@@ -12,6 +12,7 @@
 
 import json
 import logging
+import os
 import requests
 import six
 import urlparse
@@ -95,6 +96,36 @@ class NailgunArchivator(PostgresArchivator):
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
 
+    def _run_sql_in_container(self, sql):
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
+        results, _ = docker.run_in_container(
+            "postgres",
+            sql_run_prams + [sql],
+            stdout=subprocess.PIPE)
+        return results.strip().split("\n")
+
+    def _create_links_on_remote_logs(self):
+        with open("/etc/fuel/astute.yaml") as astute:
+            domain = yaml.load(astute)["DNS_DOMAIN"]
+        dirname = "/var/log/docker-logs/remote/"
+        fqdn_ipaddr_pairs = self._run_sql_in_container(
+            "select meta::json->'system'->>'fqdn', ip from nodes;")
+        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
+        for fqdn, ip_addr in fqdn_ipaddr_pairs:
+            if not fqdn.endswith(domain):
+                continue
+            ip_addr_path = os.path.join(dirname, ip_addr)
+            fqdn_path = os.path.join(dirname, fqdn)
+            if os.path.islink(ip_addr_path):
+                continue
+            if os.path.isdir(ip_addr_path):
+                os.rename(ip_addr_path, fqdn_path)
+            else:
+                os.mkdir(fqdn_path)
+            os.symlink(fqdn_path, ip_addr_path)
+        docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
+
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -121,28 +152,22 @@ class NailgunArchivator(PostgresArchivator):
             "--password",
             self.context.password
         ])
-        sql_run_prams = [
-            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            sql_run_prams + ["select id, generated from attributes;"],
-            stdout=subprocess.PIPE)
-        results = results.strip()
         values = []
-        sql = 'update attributes as a set generated = b.generated ' \
-            'from (values {0}) as b(id, generated) where a.id = b.id;'
 
-        for line in results.split("\n"):
+        for line in self._run_sql_in_container(
+                "select id, generated from attributes;"):
             c_id, c_data = line.split("|", 1)
             data = json.loads(c_data)
             data["deployed_before"] = {"value": True}
             values.append((c_id, json.dumps(data)))
 
         if values:
-            sql = sql.format(
-                ','.join(["({0}, '{1}')".format(*v) for v in values]))
-            docker.run_in_container(
-                "postgres", sql_run_prams + [sql], stdout=subprocess.PIPE)
+            sql_values = ','.join(["({0}, '{1}')".format(*v) for v in values])
+            self._run_sql_in_container(
+                'update attributes as a set generated = b.generated '
+                'from (values {0}) as b(id, generated) '
+                'where a.id = b.id;'.format(sql_values))
+        self._create_links_on_remote_logs()
 
 
 class KeystoneArchivator(PostgresArchivator):
