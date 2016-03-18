@@ -12,11 +12,13 @@
 
 import json
 import logging
+import os
 import requests
 import six
 import urlparse
 import yaml
 
+from fuelclient.objects import node
 from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
@@ -88,6 +90,29 @@ class NailgunArchivator(PostgresArchivator):
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
 
+    def _create_links_on_remote_logs(self):
+        with open("/etc/fuel/astute.yaml") as astute:
+            domain = yaml.load(astute)["DNS_DOMAIN"]
+        dirname = "/var/log/docker-logs/remote/"
+        pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
+                 for n in node.Node.get_all()]
+        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
+        try:
+            for fqdn, ip_addr in pairs:
+                if not fqdn.endswith(domain):
+                    continue
+                ip_addr_path = os.path.join(dirname, ip_addr)
+                fqdn_path = os.path.join(dirname, fqdn)
+                if os.path.islink(ip_addr_path):
+                    continue
+                if os.path.isdir(ip_addr_path):
+                    os.rename(ip_addr_path, fqdn_path)
+                else:
+                    os.mkdir(fqdn_path)
+                os.symlink(fqdn, ip_addr_path)
+        finally:
+            docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
+
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -112,6 +137,7 @@ class NailgunArchivator(PostgresArchivator):
                 "/etc/puppet/",
             ],
             env=self.context.get_credentials_env())
+        self._create_links_on_remote_logs()
 
 
 class KeystoneArchivator(PostgresArchivator):
