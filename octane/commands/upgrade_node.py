@@ -53,6 +53,12 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
+
+    # NOTE(aroma): copying of VIPs must be done after node reassignment
+    # as according to [1] otherwise the operation will not take any effect
+    # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
+    env_util.copy_vips(env)
+
     call_handlers('predeploy')
     if network_template:
         env_util.set_network_template(env, network_template)
