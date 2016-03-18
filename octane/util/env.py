@@ -235,6 +235,12 @@ def move_nodes(env, nodes):
     wait_for_nodes(nodes, "provisioned")
 
 
+def copy_vips(env):
+    subprocess.call(
+        ["fuel2", "env", "copy", "vips", str(env.data['id'])]
+    )
+
+
 def provision_nodes(env, nodes):
     env.install_selected_nodes('provision', nodes)
     LOG.info("Nodes provision started. Please wait...")
