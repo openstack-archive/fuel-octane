@@ -124,3 +124,14 @@ TENANT_GET_SAMPLE = """
 |     name    |              services             |
 +-------------+-----------------------------------+
 """[1:]
+
+
+def test_copy_vips():
+    env_id = -1
+    env = mock.Mock(data={'id': env_id})
+    with mock.patch('octane.util.env.subprocess.call') as m_call:
+        env_util.copy_vips(env)
+
+    m_call.assert_called_once_with(
+        ['fuel2', 'env', 'copy', 'vips', str(env_id)]
+    )
