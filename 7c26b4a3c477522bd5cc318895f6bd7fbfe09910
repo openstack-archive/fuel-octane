@@ -1,0 +1,8 @@
+Code-Review+2: Oleg Gelbukh <ogelbukh@mirantis.com>
+Workflow+1: Oleg Gelbukh <ogelbukh@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 19 Mar 2016 08:10:48 +0000
+Reviewed-on: https://review.openstack.org/294732
+Project: openstack/fuel-octane
+Branch: refs/heads/stable/7.0
