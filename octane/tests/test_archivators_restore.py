@@ -490,7 +490,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
-        env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
+        env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
     )
 
 
