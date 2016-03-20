@@ -55,6 +55,6 @@ class NailgunCredentialsContext(object):
 
     def get_credentials_env(self):
         env = os.environ.copy()
-        env["OS_USERNAME"] = self.user
-        env["OS_PASSWORD"] = self.password
+        env["KEYSTONE_USER"] = self.user
+        env["KEYSTONE_PASS"] = self.password
         return env
