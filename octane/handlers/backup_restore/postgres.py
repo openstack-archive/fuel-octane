@@ -24,6 +24,7 @@ from keystoneclient.v2_0 import Client as keystoneclient
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import fuel_client
 from octane.util import helpers
 from octane.util import subprocess
 
@@ -101,8 +102,9 @@ class NailgunArchivator(PostgresArchivator):
         with open("/etc/fuel/astute.yaml") as astute:
             domain = yaml.load(astute)["DNS_DOMAIN"]
         dirname = "/var/log/docker-logs/remote/"
-        pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
-                 for n in node.Node.get_all()]
+        with fuel_client.set_auth_context(self.context):
+            pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
+                     for n in node.Node.get_all()]
         docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
         try:
             for fqdn, ip_addr in pairs:
