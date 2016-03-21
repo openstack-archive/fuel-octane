@@ -1,0 +1,9 @@
+Code-Review+1: Vladimir Khlyunev <vkhlyunev@mirantis.com>
+Code-Review+2: Oleg Gelbukh <ogelbukh@mirantis.com>
+Workflow+1: Oleg Gelbukh <ogelbukh@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 21 Mar 2016 12:33:33 +0000
+Reviewed-on: https://review.openstack.org/295250
+Project: openstack/fuel-octane
+Branch: refs/heads/stable/8.0
