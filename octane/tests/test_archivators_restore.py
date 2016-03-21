@@ -624,7 +624,9 @@ def test_create_links_on_remote_logs(
     rename_mock = mocker.patch("os.rename")
     symlink_mock = mocker.patch("os.symlink")
     mkdir_mock = mocker.patch("os.mkdir")
-    archivator = backup_restore.postgres.NailgunArchivator(None)
+    context = backup_restore.NailgunCredentialsContext(
+        user="admin", password="user_pswd")
+    archivator = backup_restore.postgres.NailgunArchivator(None, context)
     if not exception:
 
         class TestException(Exception):
