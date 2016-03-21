@@ -52,6 +52,7 @@ class BaseRestoreCommand(command.Command):
         assert self.archivators
         if not os.path.isfile(parsed_args.path):
             raise ValueError("Invalid path to backup file")
+        os.environ["KEYSTONE_PASS"] = parsed_args.get("admin_password")
         restore_data(
             parsed_args.path,
             self.archivators,
