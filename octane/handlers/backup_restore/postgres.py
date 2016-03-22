@@ -18,7 +18,6 @@ import six
 import urlparse
 import yaml
 
-from fuelclient.objects import node
 from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
@@ -100,12 +99,15 @@ class NailgunArchivator(PostgresArchivator):
     def _create_links_on_remote_logs(self):
         with open("/etc/fuel/astute.yaml") as astute:
             domain = yaml.load(astute)["DNS_DOMAIN"]
+        fqdn_ipaddr_pairs = self._run_sql_in_container(
+            "select meta::json->'system'->>'fqdn', ip from nodes;")
         dirname = "/var/log/docker-logs/remote/"
-        pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
-                 for n in node.Node.get_all()]
         docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
         try:
-            for fqdn, ip_addr in pairs:
+            for row in fqdn_ipaddr_pairs:
+                fqdn, ip_addr = row.split("|", 1)
+                fqdn = fqdn.strip()
+                ip_addr = ip_addr.strip()
                 if not fqdn.endswith(domain):
                     continue
                 ip_addr_path = os.path.join(dirname, ip_addr)

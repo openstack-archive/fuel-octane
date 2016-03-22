@@ -585,31 +585,24 @@ def test_create_links_on_remote_logs(
     domain_name = "test_domain"
     mocker.patch("yaml.load", return_value={"DNS_DOMAIN": domain_name})
     domain_names = []
-    fuel_client_values = []
     is_link_exists = []
     moved_nodes = []
+    sql_return_value = []
     for idx, node_link_exits in enumerate(nodes):
         node, link_exists = node_link_exits
         node_domain_name = "{0}.{1}".format(node, domain_name)
         domain_names.append(node_domain_name)
         ip_addr = "10.21.10.{0}".format(idx + 1)
-        fuel_client_mock = mocker.Mock()
-        fuel_client_mock.data = {
-            "meta": {
-                "system": {
-                    "fqdn": node_domain_name
-                }
-            },
-            "ip": ip_addr,
-        }
-        fuel_client_values.append(fuel_client_mock)
+        sql_return_value.append("{0} | {1}".format(node_domain_name, ip_addr))
         is_link_exists.append(link_exists)
         if not link_exists:
             moved_nodes.append((node_domain_name, ip_addr))
     is_link_mock = mocker.patch("os.path.islink", side_effect=is_link_exists)
     mocker.patch("os.path.isdir", return_value=is_dir)
-    mocker.patch("fuelclient.objects.node.Node.get_all",
-                 return_value=fuel_client_values)
+    mocker.patch.object(
+        backup_restore.postgres.NailgunArchivator,
+        "_run_sql_in_container",
+        return_value=sql_return_value)
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container")
     rename_mock = mocker.patch("os.rename")
