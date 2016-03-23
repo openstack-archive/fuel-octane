@@ -254,6 +254,21 @@ def deploy_changes(env, nodes):
     wait_for_env(env, "operational", timeout=180 * 60)
 
 
+def prepare_net_info(info):
+    quantum_settings = info["quantum_settings"]
+    pred_nets = quantum_settings["predefined_networks"]
+    phys_nets = quantum_settings["L2"]["phys_nets"]
+    if 'net04' in pred_nets and \
+            pred_nets['net04']['L2']['network_type'] == "vlan":
+        physnet = pred_nets["net04"]["L2"]["physnet"]
+        segment_id = phys_nets[physnet]["vlan_range"].split(":")[1]
+        pred_nets['net04']["L2"]["segment_id"] = segment_id
+
+    if 'net04_ext' in pred_nets:
+        pred_nets["net04_ext"]["L2"]["physnet"] = ""
+        pred_nets["net04_ext"]["L2"]["network_type"] = "local"
+
+
 def get_deployment_info(env):
     deployment_info = []
     try:
@@ -312,7 +327,8 @@ def update_deployment_info(env, isolated):
             transformations.reset_gw_admin(info, gw_admin)
         # From run_ping_checker
         info['run_ping_checker'] = False
-        transformations.remove_predefined_nets(info)
+        # transformations.remove_predefined_nets(info)
+        prepare_net_info(info)
         deployment_info.append(info)
     env.upload_facts('deployment', deployment_info)
 
