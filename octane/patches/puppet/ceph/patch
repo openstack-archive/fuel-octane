@@ -1,0 +1,72 @@
+diff --git a/deployment/puppet/ceph/manifests/osds.pp b/deployment/puppet/ceph/manifests/osds.pp
+index 3281415..4d2b31e 100644
+--- a/deployment/puppet/ceph/manifests/osds.pp
++++ b/deployment/puppet/ceph/manifests/osds.pp
+@@ -1,8 +1,28 @@
+-# prepare and bring online the devices listed in $::ceph::osd_devices
++# == Class: ceph::osd
++#
++# Prepare and bring online the OSD devices
++#
++# ==== Parameters
++#
++# [*devices*]
++# (optional) Array. This is the list of OSD devices identified by the facter.
++#
+ class ceph::osds (
+   $devices = $::ceph::osd_devices,
+ ){
+
++  exec { 'udevadm trigger':
++    command     => 'udevadm trigger',
++    returns     => 0,
++    logoutput   => true,
++  } ->
++
++  exec {'ceph-disk activate-all':
++    command     => 'ceph-disk activate-all',
++    returns     => [0, 1],
++    logoutput   => true,
++  } ->
++
+   firewall { '011 ceph-osd allow':
+     chain  => 'INPUT',
+     dport  => '6800-7100',
+@@ -11,5 +31,4 @@ class ceph::osds (
+   } ->
+
+   ceph::osds::osd{ $devices: }
+-
+ }
+diff --git a/deployment/puppet/ceph/manifests/osds/osd.pp b/deployment/puppet/ceph/manifests/osds/osd.pp
+index b8fd18e..153b84d 100644
+--- a/deployment/puppet/ceph/manifests/osds/osd.pp
++++ b/deployment/puppet/ceph/manifests/osds/osd.pp
+@@ -1,3 +1,7 @@
++# == Define: ceph::osds::osd
++#
++# Prepare and activate OSD nodes on the node
++#
+ define ceph::osds::osd () {
+
+   # ${name} format is DISK[:JOURNAL]
+@@ -18,8 +22,8 @@ define ceph::osds::osd () {
+     tries     => 2, # This is necessary because of race for mon creating keys
+     try_sleep => 1,
+     logoutput => true,
+-    unless    => "grep -q ${data_device_name} /proc/mounts",
+-  } ->
++    unless    => "ceph-disk list | fgrep -q -e '${data_device_name} ceph data, active' -e '${data_device_name} ceph data, prepared'",
++  } -> Exec["ceph-deploy osd activate ${deploy_device_name}"]
+
+   exec { "ceph-deploy osd activate ${deploy_device_name}":
+     command   => "ceph-deploy osd activate ${deploy_device_name}",
+@@ -27,7 +31,7 @@ define ceph::osds::osd () {
+     tries     => 3,
+     logoutput => true,
+     timeout   => 0,
+-    unless    => "ceph osd dump | grep -q \"osd.$(sed -nEe 's|${data_device_name}\\ .*ceph-([0-9]+).*$|\\1|p' /proc/mounts)\\ up\\ .*\\ in\\ \"",
++    onlyif    => "ceph-disk list | fgrep -q -e '${data_device_name} ceph data, prepared'",
+   }
+
+ }
