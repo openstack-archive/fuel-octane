@@ -16,6 +16,7 @@ import pytest
 from octane.commands import install_node
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.install_node.install_node')
     octane_app.run(["install-node", "--isolated", "1", "2", "3", "4",
@@ -26,6 +27,7 @@ def test_parser(mocker, octane_app):
                               networks=["public", "management"])
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser_no_networks(mocker, octane_app):
     m = mocker.patch('octane.commands.install_node.install_node')
     octane_app.run(["install-node", "--isolated", "1", "2", "3", "4"])

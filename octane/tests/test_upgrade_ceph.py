@@ -10,7 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
 
+
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_ceph.upgrade_ceph')
     octane_app.run(["upgrade-ceph", "1", "2"])

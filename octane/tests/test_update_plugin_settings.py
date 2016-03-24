@@ -16,6 +16,7 @@ import pytest
 from octane.commands import update_plugin_settings
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.update_plugin_settings'
                      '.transfer_plugins_settings')
