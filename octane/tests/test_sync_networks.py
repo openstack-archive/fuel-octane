@@ -9,8 +9,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import pytest
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     networks = [{'key': 'value'}]
 
