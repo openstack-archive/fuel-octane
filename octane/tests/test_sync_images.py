@@ -16,6 +16,7 @@ import pytest
 from octane.helpers import sync_glance_images
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.sync_images.sync_glance_images')
     octane_app.run(['sync-images', '1', '2', 'br-mgmt'])
@@ -24,6 +25,7 @@ def test_parser(mocker, octane_app):
     m.assert_called_once_with(1, 2, 'br-mgmt')
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_prepare_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.sync_images.prepare')
     octane_app.run(['sync-images-prepare', '1', '2'])

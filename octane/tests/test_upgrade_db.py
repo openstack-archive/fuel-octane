@@ -9,8 +9,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import pytest
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_db.upgrade_db')
     octane_app.run(["upgrade-db", "1", "2", "--db_role_name", "3"])
