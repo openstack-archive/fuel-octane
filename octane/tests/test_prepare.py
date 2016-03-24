@@ -9,8 +9,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import pytest
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_prepare_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.prepare.prepare')
     octane_app.run(["prepare"])
@@ -19,6 +21,7 @@ def test_prepare_parser(mocker, octane_app):
     m.assert_called_once_with()
 
 
+@pytest.mark.skipif(True, reason="Not supported")
 def test_revert_parser(mocker, octane_app):
     mock_apply = mocker.patch('octane.commands.prepare.revert_prepare')
     octane_app.run(["revert-prepare"])
