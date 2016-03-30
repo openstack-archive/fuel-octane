@@ -64,3 +64,16 @@ RUNNING_REQUIRED_CONTAINERS = [
 ]
 
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
+
+OSD_REPOS_UPDATE = [
+    # ("path", "content")
+    (
+        "/etc/apt/sources.list.d/mos.list",
+        "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 "
+        "mos8.0 main restricted"
+    ),
+    (
+        "/etc/apt/sources.list.d/mos-updates.list",
+        'deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted',
+    ),
+]
