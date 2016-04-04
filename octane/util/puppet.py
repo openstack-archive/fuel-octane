@@ -14,6 +14,7 @@ import logging
 import os.path
 
 from octane import magic_consts
+from octane.util import patch
 from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
@@ -32,3 +33,14 @@ def apply_host():
         LOG.error("Cannot apply Puppet state on host: %s",
                   exc.message)
         raise
+
+
+def patch_modules(revert=False):
+    puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
+    args = []
+    for d in os.listdir(puppet_patch_dir):
+        d = os.path.join(puppet_patch_dir, d)
+        if not os.path.isdir(d):
+            continue
+        args.append(os.path.join(d, "patch"))
+    patch.patch_apply(magic_consts.PUPPET_DIR, *args, revert=revert)
