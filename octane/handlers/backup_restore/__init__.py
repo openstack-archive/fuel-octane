@@ -38,7 +38,6 @@ ARCHIVATORS = [
     postgres.NailgunArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
-    puppet.PuppetApplyHost,
 ]
 
 REPO_ARCHIVATORS = [

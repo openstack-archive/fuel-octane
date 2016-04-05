@@ -19,11 +19,7 @@ CWD = os.path.dirname(__file__)  # FIXME
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
 NAILGUN_ARCHIVATOR_PATCHES = [
-    (
-        "nailgun",
-        os.path.join(PUPPET_DIR, "nailgun/manifests/"),
-        os.path.join(CWD, "patches/timeout.patch")
-    ),
+    (PUPPET_DIR, [os.path.join(CWD, "patches/timeout.patch")]),
 ]
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"
 
@@ -34,6 +30,7 @@ DEFAULT_DISKS = True
 DEFAULT_NETS = True
 ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
 VERSIONS = {
+    '9.0': 'mitaka',
     '8.0': 'liberty',
     '7.0': 'kilo',
     '6.1': 'juno',
@@ -46,21 +43,5 @@ VERSIONS = {
 NAILGUN_URL = "http://127.0.0.1:8000"
 KEYSTONE_API_URL = "http://127.0.0.1:5000/v2.0"
 KEYSTONE_TENANT_NAME = "admin"
-
-SYNC_CONTAINERS = []
-
-RUNNING_REQUIRED_CONTAINERS = [
-    "postgres",
-    "rabbitmq",
-    "keystone",
-    "rsync",
-    "astute",
-    "rsyslog",
-    "nailgun",
-    "ostf",
-    "nginx",
-    "cobbler",
-    "mcollective",
-]
 
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"

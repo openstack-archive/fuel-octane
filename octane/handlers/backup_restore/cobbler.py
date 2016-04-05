@@ -10,16 +10,34 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
+import os
+
 from octane.handlers.backup_restore import base
-from octane.util import docker
+from octane.util import archivate
+from octane.util import cobbler
+from octane.util import service
+from octane.util import subprocess
 
 
-class CobblerArchivator(base.ContainerArchivator):
-    backup_directory = "/var/lib/cobbler/config/systems.d/"
-    banned_files = ["default.json"]
-    container = "cobbler"
+class CobblerArchivator(base.PathArchivator):
+    path = '/var/lib/cobbler/config/systems.d/'
+    name = 'cobbler'
 
     def restore(self):
-        super(CobblerArchivator, self).restore()
-        docker.stop_container("cobbler")
-        docker.start_container("cobbler")
+        for member in archivate.filter_members(self.archive, self.name):
+            fp_member = self.archive.extractfile(member)
+            data = json.load(fp_member)
+            # NOTE(akscram): There two profiles in 8.0, such as
+            # 'bootstrap' and 'ubuntu_bootstrap', but in 9.0 only
+            # 'ubuntu_bootstrap' is used.
+            if data['profile'] == 'bootstrap':
+                data['profile'] = 'ubuntu_bootstrap'
+            _, _, filename = member.name.partition(os.path.sep)
+            path = os.path.join(self.path, filename)
+            with open(path, 'wb') as fp:
+                json.dump(data, fp)
+            os.chmod(path, member.mode)
+        subprocess.call(['systemctl', 'restart', 'cobblerd.service'])
+        service.wait_for_service('cobblerd.service', attempts=24)
+        cobbler.wait_for_sync(attempts=24)
