@@ -129,7 +129,7 @@ class NailgunArchivator(PostgresArchivator):
             "postgres",
             sql_run_prams + [sql],
             stdout=subprocess.PIPE)
-        return results.strip().split("\n")
+        return results.strip().splitlines()
 
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
