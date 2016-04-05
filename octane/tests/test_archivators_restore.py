@@ -649,11 +649,15 @@ def test_create_links_on_remote_logs(
         run_in_container_mock.call_args_list
 
 
-def test_run_sql(mocker):
+@pytest.mark.parametrize("sql_raw, result_data", [
+    ("row_1|val_1\nrow_2|val_1\n", ["row_1|val_1", "row_2|val_1"]),
+    ("", [])
+])
+def test_run_sql(mocker, sql_raw, result_data):
     archivator = postgres.NailgunArchivator(None)
     run_mock = mocker.patch(
         "octane.util.docker.run_in_container",
-        return_value=("row_1|val_1\nrow_2|val_1\n", None))
+        return_value=(sql_raw, None))
     test_sql = "test_sql"
     results = archivator._run_sql_in_container(test_sql)
     run_mock.assert_called_once_with(
@@ -670,4 +674,4 @@ def test_run_sql(mocker):
         ],
         stdout=subprocess.PIPE
     )
-    assert ["row_1|val_1", "row_2|val_1"] == results
+    assert result_data == results
