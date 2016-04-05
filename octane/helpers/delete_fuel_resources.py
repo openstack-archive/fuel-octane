@@ -11,15 +11,17 @@
 # under the License.
 
 import glanceclient.client
-import keystoneclient.v2_0.client as ksclient
+import keystoneclient.client as ksclient
 import neutronclient.neutron.client
 
 
 def _get_keystone(username, password, tenant_name, auth_url):
-    return ksclient.Client(username=username,
-                           password=password,
-                           tenant_name=tenant_name,
-                           auth_url=auth_url)
+    klient = ksclient.Client(auth_url=auth_url)
+    klient.authenticate(
+        username=username,
+        password=password,
+        tenant_name=tenant_name)
+    return klient
 
 
 def _get_glance(version=2, endpoint=None, token=None):
