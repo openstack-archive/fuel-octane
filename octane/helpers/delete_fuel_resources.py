@@ -11,15 +11,17 @@
 # under the License.
 
 import glanceclient.client
-import keystoneclient.v2_0.client as ksclient
+import keystoneclient.client as ksclient
 import neutronclient.neutron.client
 
 
 def _get_keystone(username, password, tenant_name, auth_url):
-    return ksclient.Client(username=username,
-                           password=password,
-                           tenant_name=tenant_name,
-                           auth_url=auth_url)
+    klient = ksclient.Client(auth_url=auth_url)
+    klient.authenticate(
+        username=username,
+        password=password,
+        tenant_name=tenant_name)
+    return klient
 
 
 def _get_glance(version=2, endpoint=None, token=None):
@@ -35,7 +37,6 @@ def _get_neutron(version='2.0', token=None, endpoint_url=None):
 
 def clenup_resources(username, password, tenant_name, auth_url):
     keystone = _get_keystone(username, password, tenant_name, auth_url)
-
     glance_endpoint = keystone.service_catalog.url_for(
         service_type='image',
         endpoint_type='publicURL')
