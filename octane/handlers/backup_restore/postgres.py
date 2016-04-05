@@ -23,9 +23,11 @@ from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
-from octane.util import docker
 from octane.util import fuel_client
 from octane.util import helpers
+from octane.util import patch
+from octane.util import puppet
+from octane.util import service
 from octane.util import subprocess
 
 
@@ -36,7 +38,6 @@ class PostgresArchivatorMeta(type):
 
     def __init__(cls, name, bases, attr):
         super(PostgresArchivatorMeta, cls).__init__(name, bases, attr)
-        cls.container = "postgres"
         if cls.db is not None and cls.cmd is None:
             cls.cmd = ["sudo", "-u", "postgres", "pg_dump", "-C", cls.db]
         if cls.db is not None and cls.filename is None:
@@ -46,30 +47,86 @@ class PostgresArchivatorMeta(type):
 @six.add_metaclass(PostgresArchivatorMeta)
 class PostgresArchivator(base.CmdArchivator):
     db = None
+    filename = None
+    services = []
+
+    def pre_restore(self):
+        subprocess.call(["systemctl", "stop"] + self.services)
+        subprocess.call(["sudo", "-u", "postgres", "dropdb", "--if-exists",
+                         self.db])
 
     def restore(self):
-        dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
-        docker.stop_container(self.db)
-        docker.run_in_container(
-            "postgres",
-            ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
-        )
-        with docker.in_container("postgres",
-                                 ["sudo", "-u", "postgres", "psql"],
-                                 stdin=subprocess.PIPE) as process:
-            process.stdin.write(dump.read())
-        docker.start_container(self.db)
-        docker.wait_for_container(self.db)
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
+        self.pre_restore()
+        try:
+            dump = self.archive.extractfile(self.filename)
+            with subprocess.popen(["sudo", "-u", "postgres", "psql"],
+                                  stdin=subprocess.PIPE) as process:
+                process.stdin.write(dump.read())
+        except Exception:
+            LOG.exception("Failed to apply database restore for %s", self.db)
+            self.revert()
+            raise
+        else:
+            self.post_restore()
+
+    def revert(self):
+        pass
+
+    def post_restore(self):
+        puppet.apply(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
+    services = [
+        "nailgun.service",
+        "oswl_flavor_collectord.service",
+        "oswl_image_collectord.service",
+        "oswl_keystone_user_collectord.service",
+        "oswl_tenant_collectord.service",
+        "oswl_vm_collectord.service",
+        "oswl_volume_collectord.service",
+        "receiverd.service",
+        "statsenderd.service",
+        "assassind.service",
+    ]
+    patches = magic_consts.NAILGUN_ARCHIVATOR_PATCHES
+
+    def pre_restore(self):
+        super(NailgunArchivator, self).pre_restore()
+        for args in self.patches:
+            patch.patch_apply(*args)
+
+    def revert(self):
+        for args in self.patches:
+            patch.apply_patches(*args, revert=True)
+        subprocess.call(["systemctl", "restart"] + self.services)
+        for service_name in self.services:
+            service.wait_for_service(service_name)
+
+    def post_restore(self):
+        # NOTE(akscram): We need to remove the configuration file to
+        #                trigger its creation and then db_sync.
+        os.rename("/etc/nailgun/settings.yaml",
+                  "/etc/nailgun/settings.yaml.back")
+        super(NailgunArchivator, self).post_restore()
+        self.revert()
+        self.create_release()
+        self.synchronize_deployment_tasks()
+        self.create_links_on_remote_logs()
+
+    def create_release(self):
+        with open(magic_consts.OPENSTACK_FIXTURES, 'rb') as f:
+            fixtures = yaml.load(f)
+        base_release_fields = fixtures[0]['fields']
+        for fixture in fixtures[1:]:
+            release = helpers.merge_dicts(
+                base_release_fields, fixture['fields'])
+            self.__post_data_to_nailgun(
+                "/api/v1/releases/",
+                release,
+                self.context.user,
+                self.context.password)
 
     def __post_data_to_nailgun(self, url, data, user, password):
         ksclient = keystoneclient(
@@ -88,24 +145,46 @@ class NailgunArchivator(PostgresArchivator):
         LOG.debug(resp.content)
         return resp
 
-    def restore(self):
-        for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-            docker.apply_patches(*args)
-        try:
-            super(NailgunArchivator, self).restore()
-            self._post_restore_action()
-        finally:
-            for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-                docker.apply_patches(*args, revert=True)
+    def synchronize_deployment_tasks(self):
+        subprocess.call(
+            [
+                "fuel",
+                "release",
+                "--sync-deployment-tasks",
+                "--dir",
+                "/etc/puppet/",
+            ],
+            env=self.context.get_credentials_env())
 
-    def _create_links_on_remote_logs(self):
+        values = []
+        for line in self._run_sql(
+                "select id, generated from attributes;"):
+            c_id, c_data = line.split("|", 1)
+            data = json.loads(c_data)
+            data["deployed_before"] = {"value": True}
+            values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
+
+        if values:
+            self._run_sql(
+                'update attributes as a set generated = b.generated '
+                'from (values {0}) as b(id, generated) '
+                'where a.id = b.id;'.format(','.join(values))
+            )
+
+    def _run_sql(self, sql):
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
+        result = subprocess.call_output(sql_run_prams + [sql])
+        return result.strip().splitlines()
+
+    def create_links_on_remote_logs(self):
         with open("/etc/fuel/astute.yaml") as astute:
             domain = yaml.load(astute)["DNS_DOMAIN"]
-        dirname = "/var/log/docker-logs/remote/"
+        dirname = "/var/log/remote/"
         with fuel_client.set_auth_context(self.context):
             pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
                      for n in node.Node.get_all()]
-        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
+        subprocess.call(["systemctl", "stop", "rsyslog.service"])
         try:
             for fqdn, ip_addr in pairs:
                 if not fqdn.endswith(domain):
@@ -120,58 +199,10 @@ class NailgunArchivator(PostgresArchivator):
                     os.mkdir(fqdn_path)
                 os.symlink(fqdn, ip_addr_path)
         finally:
-            docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
-
-    def _run_sql_in_container(self, sql):
-        sql_run_prams = [
-            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            sql_run_prams + [sql],
-            stdout=subprocess.PIPE)
-        return results.strip().splitlines()
-
-    def _post_restore_action(self):
-        data, _ = docker.run_in_container(
-            "nailgun",
-            ["cat", magic_consts.OPENSTACK_FIXTURES],
-            stdout=subprocess.PIPE)
-        fixtures = yaml.load(data)
-        base_release_fields = fixtures[0]['fields']
-        for fixture in fixtures[1:]:
-            release = helpers.merge_dicts(
-                base_release_fields, fixture['fields'])
-            self.__post_data_to_nailgun(
-                "/api/v1/releases/",
-                release,
-                self.context.user,
-                self.context.password)
-        subprocess.call(
-            [
-                "fuel",
-                "release",
-                "--sync-deployment-tasks",
-                "--dir",
-                "/etc/puppet/",
-            ],
-            env=self.context.get_credentials_env())
-
-        values = []
-        for line in self._run_sql_in_container(
-                "select id, generated from attributes;"):
-            c_id, c_data = line.split("|", 1)
-            data = json.loads(c_data)
-            data["deployed_before"] = {"value": True}
-            values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
-
-        if values:
-            self._run_sql_in_container(
-                'update attributes as a set generated = b.generated '
-                'from (values {0}) as b(id, generated) '
-                'where a.id = b.id;'.format(','.join(values))
-            )
-        self._create_links_on_remote_logs()
+            subprocess.call(["systemctl", "start", "rsyslog.service"])
+            service.wait_for_service("rsyslog.service")
 
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+    services = ["openstack-keystone.service"]
