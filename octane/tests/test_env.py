@@ -116,3 +116,61 @@ TENANT_GET_SAMPLE = """
 |     name    |              services             |
 +-------------+-----------------------------------+
 """[1:]
+
+
+def test_copy_vips(mock_subprocess):
+    env_id = -1
+    env = mock.Mock(data={'id': env_id})
+    env_util.copy_vips(env)
+
+    mock_subprocess.assert_called_once_with(
+        ['fuel2', 'env', 'copy', 'vips', str(env_id)]
+    )
+
+
+@pytest.mark.parametrize("data, exception", [
+    (
+        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "Name": "admin"}, '
+        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "Name": "services"}]',
+        False
+    ),
+    (
+        '[{"id": "2aed71d8816f4e5f8d4ad06836521d49", "name": "admin"}, '
+        '{"id": "09f1c11740ba4bc399387f3995d5160e", "name": "services"}]',
+        False,
+    ),
+    (
+        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "NAME": "admin"}, '
+        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "NAME": "services"}]',
+        False
+    ),
+    (
+        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "NAME": "admin"}]',
+        True
+    ),
+])
+@pytest.mark.parametrize("key,value", [
+    ("services", "09f1c11740ba4bc399387f3995d5160e"),
+    ("Services", "09f1c11740ba4bc399387f3995d5160e"),
+    ("SERVICES", "09f1c11740ba4bc399387f3995d5160e"),
+])
+def test_openstack_project_value(mocker, data, key, value, exception):
+    env = mock.Mock()
+    node = mock.Mock()
+    mocker.patch("octane.util.env.get_admin_password", return_value="pswd")
+    mocker.patch("octane.util.ssh.call_output", return_value=data)
+    if exception:
+        with pytest.raises(Exception) as exc_info:
+            env_util.get_openstack_project_value(env, node, key)
+        assert "Field {0} not found in openstack project list".format(key) == \
+            exc_info.value.message
+    else:
+        assert value == env_util.get_openstack_project_value(env, node, key)
+
+
+@pytest.mark.parametrize("node", [mock.Mock(), None])
+def test_get_service_tenant_id(mocker, node):
+    mock_obj = mocker.patch("octane.util.env.get_openstack_project_value")
+    env = mock.Mock()
+    env_util.get_service_tenant_id(env, node)
+    mock_obj.assert_called_once_with(env, node, "services")
