@@ -116,3 +116,33 @@ TENANT_GET_SAMPLE = """
 |     name    |              services             |
 +-------------+-----------------------------------+
 """[1:]
+
+
+@pytest.mark.parametrize("data", [
+    (
+        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "Name": "admin"}, '
+        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "Name": "services"}]'
+    ),
+    (
+        '[{"id": "2aed71d8816f4e5f8d4ad06836521d49", "name": "admin"}, '
+        '{"id": "09f1c11740ba4bc399387f3995d5160e", "name": "services"}]'
+    ),
+    (
+        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "NAME": "admin"}, '
+        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "NAME": "services"}]'
+    ),
+])
+@pytest.mark.parametrize("key,value, exception", [
+    ("services", "09f1c11740ba4bc399387f3995d5160e", False),
+    ("Services", "09f1c11740ba4bc399387f3995d5160e", False),
+    ("SERVICES", "09f1c11740ba4bc399387f3995d5160e", False),
+    ("strange_key", "Field strange_key not found in output:\n{0}", True),
+    ("Strange_key", "Field Strange_key not found in output:\n{0}", True),
+])
+def test_parse_openstack_tenant_get(data, key, value, exception):
+    if exception:
+        with pytest.raises(Exception) as exc_info:
+            env_util.parse_openstack_tenant_get(data, key)
+        assert exc_info.value.message == value.format(data)
+    else:
+        assert value == env_util.parse_openstack_tenant_get(data, key)
