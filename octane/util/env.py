@@ -134,13 +134,12 @@ def get_service_tenant_id(env, node=None):
     tenant_out = ssh.call_output(
         [
             'sh', '-c',
-            '. /root/openrc; keystone --os-password={0} tenant-get services'
+            '. /root/openrc; openstack --os-password {0} project list -f json'
             .format(password),
         ],
         node=node,
     )
-    tenant_id = parse_tenant_get(tenant_out, 'id')
-    return tenant_id
+    return {i["NAME"]: i["ID"] for i in json.loads(tenant_out)}["services"]
 
 
 def cache_service_tenant_id(env, node=None):
