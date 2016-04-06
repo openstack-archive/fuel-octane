@@ -126,6 +126,16 @@ def parse_tenant_get(output, field):
         "Field {0} not found in output:\n{1}".format(field, output))
 
 
+def parse_openstack_tenant_get(data, field):
+    lower_data = [{k.lower(): v for k, v in d.items()}
+                  for d in json.loads(data)]
+    try:
+        return {i["name"]: i["id"] for i in lower_data}[field.lower()]
+    except KeyError:
+        raise Exception(
+            "Field {0} not found in output:\n{1}".format(field, data))
+
+
 def get_service_tenant_id(env, node=None):
     if node is None:
         node = get_one_controller(env)
@@ -134,13 +144,12 @@ def get_service_tenant_id(env, node=None):
     tenant_out = ssh.call_output(
         [
             'sh', '-c',
-            '. /root/openrc; keystone --os-password={0} tenant-get services'
+            '. /root/openrc; openstack --os-password {0} project list -f json'
             .format(password),
         ],
         node=node,
     )
-    tenant_id = parse_tenant_get(tenant_out, 'id')
-    return tenant_id
+    return parse_openstack_tenant_get(tenant_out, "services")
 
 
 def cache_service_tenant_id(env, node=None):
