@@ -8,4 +8,4 @@ python-fuelclient  # It pulls following libs:
 #requests
 #stevedore
 
-paramiko==1.13.0
+paramiko==1.15.2
