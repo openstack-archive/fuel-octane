@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import yaml
+
 
 def merge_dicts(base_dict, update_dict):
     result = base_dict.copy()
@@ -19,3 +21,8 @@ def merge_dicts(base_dict, update_dict):
         else:
             result[key] = merge_dicts(result[key], val)
     return result
+
+
+def get_astute_dict():
+    with open("/etc/fuel/astute.yaml", "r") as current:
+        return yaml.load(current)
