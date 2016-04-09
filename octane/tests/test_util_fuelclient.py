@@ -10,40 +10,58 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
+
+import fuelclient
 from fuelclient import client
 from fuelclient import fuelclient_settings
 
 from octane.util import fuel_client
 
 
-def test_simple_overwrite(mocker):
+class TestContext(object):
 
-    class TestContext(object):
+    user = "test user"
+    password = "test password"
 
-        user = "test user"
-        password = "test password"
 
+def skipif_not_equal(version):
+    reason = "requires fuelclient=={0}".format(version)
+    return pytest.mark.skipif(fuelclient.__version__ != version, reason=reason)
+
+
+@pytest.mark.parametrize(("auth_context", "is_legacy"), [
+    skipif_not_equal("8.0.0")((fuel_client.set_auth_context_80, True)),
+    skipif_not_equal("9.0.0")((fuel_client.set_auth_context_90, False)),
+])
+def test_simple_overwrite(auth_context, is_legacy):
     conf = fuelclient_settings.get_settings()
 
     client_val = "Not empty val"
 
-    assert conf.KEYSTONE_USER == client.APIClient.user
-    assert conf.KEYSTONE_PASS == client.APIClient.password
+    if is_legacy:
+        assert conf.KEYSTONE_USER == client.APIClient.user
+        assert conf.KEYSTONE_PASS == client.APIClient.password
     assert client.APIClient._session is None
     assert client.APIClient._keystone_client is None
 
     client.APIClient._session = client.APIClient._keystone_client = client_val
 
-    with fuel_client.set_auth_context(TestContext()):
-        assert TestContext.user == client.APIClient.user
-        assert TestContext.password == client.APIClient.password
+    with auth_context(TestContext()):
+        if is_legacy:
+            assert TestContext.user == client.APIClient.user
+            assert TestContext.password == client.APIClient.password
+        else:
+            assert TestContext.user == conf.OS_USERNAME
+            assert TestContext.password == conf.OS_PASSWORD
         assert client.APIClient._session is None
         assert client.APIClient._keystone_client is None
 
         client.APIClient._session = client_val
         client.APIClient._keystone_client = client_val
 
-    assert conf.KEYSTONE_USER == client.APIClient.user
-    assert conf.KEYSTONE_PASS == client.APIClient.password
+    if is_legacy:
+        assert conf.KEYSTONE_USER == client.APIClient.user
+        assert conf.KEYSTONE_PASS == client.APIClient.password
     assert client.APIClient._session is None
     assert client.APIClient._keystone_client is None

@@ -12,11 +12,13 @@
 
 import contextlib
 
+import fuelclient
 from fuelclient import client
+from fuelclient import fuelclient_settings
 
 
 @contextlib.contextmanager
-def set_auth_context(auth_context):
+def set_auth_context_80(auth_context):
     old_credentials = (client.APIClient.user, client.APIClient.password)
     client.APIClient.user = auth_context.user
     client.APIClient.password = auth_context.password
@@ -26,3 +28,27 @@ def set_auth_context(auth_context):
     finally:
         (client.APIClient.user, client.APIClient.password) = old_credentials
         client.APIClient._session = client.APIClient._keystone_client = None
+
+
+@contextlib.contextmanager
+def set_auth_context_90(auth_context):
+    settings = fuelclient_settings.get_settings()
+    config = settings.config
+    old_credentials = (settings.OS_USERNAME, settings.OS_PASSWORD)
+    new_credentials = (auth_context.user, auth_context.password)
+    (config['OS_USERNAME'], config['OS_PASSWORD']) = new_credentials
+    client.APIClient._session = client.APIClient._keystone_client = None
+    try:
+        yield
+    finally:
+        (config['OS_USERNAME'], config['OS_PASSWORD']) = old_credentials
+        client.APIClient._session = client.APIClient._keystone_client = None
+
+
+if fuelclient.__version__ == "9.0.0":
+    # NOTE(akscram): The 9.0.0 release for fuelclient is not yet
+    # available on PyPI but to test it on master nodes with the 9.0
+    # release some workaround is needed.
+    set_auth_context = set_auth_context_90
+else:
+    set_auth_context = set_auth_context_80
