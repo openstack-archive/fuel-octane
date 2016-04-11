@@ -32,3 +32,24 @@ def apply_host():
         LOG.error("Cannot apply Puppet state on host: %s",
                   exc.message)
         raise
+
+
+def patch_modules(revert=False):
+    puppet_patch_dir = os.path.join(magic_consts.CWD, "patches", "puppet")
+    for d in os.listdir(puppet_patch_dir):
+        d = os.path.join(puppet_patch_dir, d)
+        if not os.path.isdir(d):
+            continue
+        with open(os.path.join(d, "patch")) as patch:
+            try:
+                subprocess.call(["patch", "-R", "-p3"], stdin=patch,
+                                cwd=magic_consts.PUPPET_DIR)
+            except subprocess.CalledProcessError:
+                if not revert:
+                    pass
+                else:
+                    raise
+            if not revert:
+                patch.seek(0)
+                subprocess.call(["patch", "-N", "-p3"], stdin=patch,
+                                cwd=magic_consts.PUPPET_DIR)
