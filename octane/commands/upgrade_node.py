@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections import defaultdict
 import logging
 import os.path
 
@@ -35,6 +36,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
 
     # Sanity check
     one_orig_id = None
+    node_roles = defaultdict(list)
     for node in nodes:
         orig_id = node.data['cluster']
         if orig_id == env_id:
@@ -49,6 +51,25 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
+        for role in node.data['roles']:
+            node_roles[role].append(node.id)
+    if node_roles['compute'] and node_roles['controler']:
+        raise Exception(
+            "You can't upgrade compute and controller in same time."
+            "compute nodes are: {compute} \n"
+            "controller nodes are: {controller} \n".format(node_roles)
+        )
+    if len(node_roles['compute']) > 1:
+        raise Exception(
+            "You can't upgrade nore then 1 compute in same time "
+            "compute nodes are: {compute} \n".format(node_roles)
+        )
+    if len(node_roles['ceph-osd']) > 1:
+        raise Exception(
+            "You can't upgrade nore then 1 ceph-osd in same time "
+            "ceph-osd nodes are: {ceph-osd} \n".format(node_roles)
+        )
+
     patch_partition_generator(one_orig_id)
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
     call_handlers('preupgrade')
