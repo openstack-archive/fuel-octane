@@ -15,11 +15,6 @@ nova service-list | grep -q 'nova-compute.*enabled' && {
         nova service-disable $1 nova-compute
 }
 
-nova service-list | grep -q 'nova-compute.*enabled' || {
-        echo "All nova-compute are disabled"
-        exit 3
-}
-
 while :; do
     VMS=$(nova list --host $1 | grep -i ' active ' | wc -l)
     if [ $VMS -ne 0 ]; then
