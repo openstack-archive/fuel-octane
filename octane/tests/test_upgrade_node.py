@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 import pytest
 
 
@@ -22,10 +23,16 @@ import pytest
     (["upgrade-node", "--isolated", "--no-provision", "--roles=role-c,role-d",
       "8", "9"], 8, [9], False, ["role-c", "role-d"]),
 ])
-def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles):
+@pytest.mark.parametrize('live_migration', [True, False])
+def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
+                live_migration):
+    run_cmd = copy.copy(cmd)
+    if not live_migration:
+        run_cmd.append("--no-live-migration")
     m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(cmd)
+    octane_app.run(run_cmd)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(env, nodes, isolated=True, network_template=None,
-                              provision=provision, roles=roles)
+                              provision=provision, roles=roles,
+                              live_migration=live_migration)

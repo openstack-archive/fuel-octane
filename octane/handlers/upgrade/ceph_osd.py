@@ -17,17 +17,27 @@ from octane.util import puppet
 
 
 class CephOsdUpgrade(upgrade.UpgradeHandler):
+    env_with_set_noout = set()
+
     def preupgrade(self):
         ceph.check_cluster(self.node)
 
     def prepare(self):
         self.preserve_partition()
-        ceph.set_osd_noout(self.env)
-        puppet.patch_modules()
+        # patch only on first prepare run
+        if not self.env_with_set_noout:
+            puppet.patch_modules()
+        if self.env.data['id'] not in self.env_with_set_noout:
+            self.env_with_set_noout.add(self.env.data['id'])
+            ceph.set_osd_noout(self.env)
 
     def postdeploy(self):
-        ceph.unset_osd_noout(self.env)
-        puppet.patch_modules(revert=True)
+        # revert only on first postdeploy run
+        if self.env.data['id'] in self.env_with_set_noout:
+            ceph.unset_osd_noout(self.env)
+            self.env_with_set_noout.remove(self.env.data['id'])
+        if not self.env_with_set_noout:
+            puppet.patch_modules(revert=True)
 
     def preserve_partition(self):
         partition = 'ceph'
