@@ -28,8 +28,9 @@ LOG = logging.getLogger(__name__)
 
 
 class ControllerUpgrade(upgrade.UpgradeHandler):
-    def __init__(self, node, env, isolated):
-        super(ControllerUpgrade, self).__init__(node, env, isolated)
+    def __init__(self, node, env, isolated, live_migration):
+        super(ControllerUpgrade, self).__init__(
+            node, env, isolated, live_migration)
         self.service_tenant_id = None
         self.gateway = None
 
