@@ -17,15 +17,25 @@ from octane.util import puppet
 
 
 class CephOsdUpgrade(upgrade.UpgradeHandler):
+
+    __RUN_PREPARE = True
+    __RUN_POSTDEPLOY = True
+
     def preupgrade(self):
         ceph.check_cluster(self.node)
 
     def prepare(self):
         self.preserve_partition()
+        if not self.__class__.__RUN_PREPARE:
+            return
+        self.__class__.__RUN_PREPARE = False
         ceph.set_osd_noout(self.env)
         puppet.patch_modules()
 
     def postdeploy(self):
+        if not self.__class__.__RUN_POSTDEPLOY:
+            return
+        self.__class__.__RUN_POSTDEPLOY = False
         ceph.unset_osd_noout(self.env)
         puppet.patch_modules(revert=True)
 
