@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
-                 provision=True, roles=None):
+                 provision=True, roles=None, disable_life_migration=False):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
@@ -59,19 +59,24 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
             "compute nodes are: {compute} \n"
             "controller nodes are: {controller} \n".format(node_roles)
         )
-    if len(node_roles['compute']) > 1:
+    if len(node_roles['compute']) > 1 and not disable_life_migration:
         raise Exception(
             "You can't upgrade nore then 1 compute in same time "
-            "compute nodes are: {compute} \n".format(node_roles)
+            "compute nodes are: {compute} \n"
+            "Mark --disable-life-migration to run this "
+            "command on multiple nodes".format(node_roles)
         )
-    if len(node_roles['ceph-osd']) > 1:
+    if len(node_roles['ceph-osd']) > 1 and not disable_life_migration:
         raise Exception(
             "You can't upgrade nore then 1 ceph-osd in same time "
-            "ceph-osd nodes are: {ceph-osd} \n".format(node_roles)
+            "ceph-osd nodes are: {ceph-osd} \n;"
+            "Mark --disable-life-migration to run this "
+            "command on multiple nodes".format(node_roles)
         )
 
     patch_partition_generator(one_orig_id)
-    call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
+    call_handlers = upgrade_handlers.get_nodes_handlers(
+        nodes, env, isolated, disable_life_migration)
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes, provision, roles)
@@ -137,6 +142,10 @@ class UpgradeNodeCommand(cmd.Command):
         parser.add_argument(
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
+        parser.add_argument(
+            '--disable-life-migration', action='store_true',
+            help="Run migration on ceph-osd or compute nodes in one command"
+                 "It can prevent to cluster downtime on deploy period")
         return parser
 
     def take_action(self, parsed_args):
@@ -144,4 +153,5 @@ class UpgradeNodeCommand(cmd.Command):
                      isolated=parsed_args.isolated,
                      network_template=parsed_args.template,
                      provision=parsed_args.provision,
-                     roles=parsed_args.roles)
+                     roles=parsed_args.roles,
+                     disable_life_migration=parsed_args.disable_life_migration)

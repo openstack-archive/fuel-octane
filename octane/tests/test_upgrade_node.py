@@ -22,10 +22,16 @@ import pytest
     (["upgrade-node", "--isolated", "--no-provision", "--roles=role-c,role-d",
       "8", "9"], 8, [9], False, ["role-c", "role-d"]),
 ])
-def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles):
+@pytest.mark.parametrize('disable_life_migration', [True, False])
+def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
+                disable_life_migration):
+    if disable_life_migration:
+        cmd.append("--disable-life-migration")
+    print cmd
     m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
     octane_app.run(cmd)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(env, nodes, isolated=True, network_template=None,
-                              provision=provision, roles=roles)
+                              provision=provision, roles=roles,
+                              disable_life_migration=disable_life_migration)
