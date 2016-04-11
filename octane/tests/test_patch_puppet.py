@@ -36,9 +36,9 @@ class MockFile(mock.MagicMock):
 
     def assert_calls(self):
         kwargs = {'stdin': self, 'cwd': magic_consts.PUPPET_DIR}
-        args = [((["patch", "-R", "-p3"], ), kwargs), ]
+        args = [((["patch", "-R", "-p1"], ), kwargs), ]
         if not self.revert:
-            args.append(((["patch", "-N", "-p3"], ), kwargs))
+            args.append(((["patch", "-N", "-p1"], ), kwargs))
         assert args == self.call_args
 
 
