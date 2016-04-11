@@ -11,13 +11,13 @@ fi
 
 nova service-list --host $1
 
-nova service-list | grep -q 'nova-compute.*enabled' && {
-        nova service-disable $1 nova-compute
+[ `nova service-list | grep -c 'nova-compute.*enabled'` -gt 1 ] || {
+        echo "You can't  disable last compute node"
+        exit 3
 }
 
-nova service-list | grep -q 'nova-compute.*enabled' || {
-        echo "All nova-compute are disabled"
-        exit 3
+nova service-list | grep -q 'nova-compute.*enabled' && {
+        nova service-disable $1 nova-compute
 }
 
 while :; do
