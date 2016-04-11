@@ -17,7 +17,7 @@ def patch_apply(cwd, patches, revert=False):
     for path in patches:
         with open(path, 'rb') as patch:
             try:
-                subprocess.call(["patch", "-R", "-p3"], stdin=patch, cwd=cwd)
+                subprocess.call(["patch", "-R", "-p1"], stdin=patch, cwd=cwd)
             except subprocess.CalledProcessError:
                 if not revert:
                     pass
@@ -25,4 +25,4 @@ def patch_apply(cwd, patches, revert=False):
                     raise
             if not revert:
                 patch.seek(0)
-                subprocess.call(["patch", "-N", "-p3"], stdin=patch, cwd=cwd)
+                subprocess.call(["patch", "-N", "-p1"], stdin=patch, cwd=cwd)
