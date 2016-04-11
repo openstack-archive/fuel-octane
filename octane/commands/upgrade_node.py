@@ -28,7 +28,8 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
+def upgrade_node(env_id, node_ids, isolated=False,
+                 network_template=None, disable_life_migration=False):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
@@ -58,15 +59,19 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
             "compute nodes are: {compute} \n"
             "controller nodes are: {controller} \n".format(roles)
         )
-    if len(roles['compute']) > 1:
+    if len(roles['compute']) > 1 and not disable_life_migration:
         raise Exception(
             "You can't upgrade nore then 1 compute in same time "
-            "compute nodes are: {compute} \n".format(roles)
+            "compute nodes are: {compute} \n"
+            "Mark --disable-life-migration to run this "
+            "command on multiple nodes".format(roles)
         )
-    if len(roles['ceph-osd']) > 1:
+    if len(roles['ceph-osd']) > 1 and not disable_life_migration:
         raise Exception(
             "You can't upgrade nore then 1 ceph-osd in same time "
-            "ceph-osd nodes are: {ceph-osd} \n".format(roles)
+            "ceph-osd nodes are: {ceph-osd} \n;"
+            "Mark --disable-life-migration to run this "
+            "command on multiple nodes".format(roles)
         )
 
     patch_partition_generator(one_orig_id)
@@ -123,9 +128,14 @@ class UpgradeNodeCommand(cmd.Command):
         parser.add_argument(
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
+        parser.add_argument(
+            '--disable-life-migration', action='store_true',
+            help="Run migration on ceph-osd or compute nodes in one command"
+                 "It can prevent to cluster downtime on deploy period")
         return parser
 
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template)
+                     network_template=parsed_args.template,
+                     disable_life_migration=parsed_args.disable_life_migration)
