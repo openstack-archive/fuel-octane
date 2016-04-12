@@ -13,11 +13,11 @@
 import json
 import os
 import urlparse
-import yaml
 
 from octane.handlers.backup_restore import base
 
 from octane.util import docker
+from octane.util import helpers
 from octane.util import subprocess
 
 
@@ -31,9 +31,7 @@ class NaigunWWWBackup(base.PathArchivator):
         raise NotImplementedError
 
     def backup(self):
-        with open("/etc/fuel/astute.yaml", "r") as current:
-            current_yaml = yaml.load(current)
-            ipaddr = current_yaml["ADMIN_NETWORK"]["ipaddress"]
+        ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
         results, _ = docker.run_in_container(
             "postgres",
             [

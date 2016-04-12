@@ -556,7 +556,7 @@ def test_post_restore_puppet_apply_host(mocker, mock_open, exc_on_apply):
         archivator.restore()
     assert mock_apply.called
     assert mock_open.call_args_list == [
-        mock.call("/etc/fuel/astute.yaml"),
+        mock.call("/etc/fuel/astute.yaml", "r"),
         mock.call("/etc/fuel/astute.yaml", "w"),
     ]
     yaml_load.assert_called_once_with(mock_open.return_value)

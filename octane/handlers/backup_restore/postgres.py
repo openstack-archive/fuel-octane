@@ -99,8 +99,7 @@ class NailgunArchivator(PostgresArchivator):
                 docker.apply_patches(*args, revert=True)
 
     def _create_links_on_remote_logs(self):
-        with open("/etc/fuel/astute.yaml") as astute:
-            domain = yaml.load(astute)["DNS_DOMAIN"]
+        domain = helpers.get_astute_dict()["DNS_DOMAIN"]
         dirname = "/var/log/docker-logs/remote/"
         with fuel_client.set_auth_context(self.context):
             pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
