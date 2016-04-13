@@ -27,7 +27,8 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
+                 provision=True):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
@@ -52,7 +53,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
     call_handlers('preupgrade')
     call_handlers('prepare')
-    env_util.move_nodes(env, nodes)
+    env_util.move_nodes(env, nodes, provision)
 
     # NOTE(aroma): copying of VIPs must be done after node reassignment
     # as according to [1] otherwise the operation will not take any effect
@@ -91,6 +92,11 @@ class UpgradeNodeCommand(cmd.Command):
     def get_parser(self, prog_name):
         parser = super(UpgradeNodeCommand, self).get_parser(prog_name)
         parser.add_argument(
+            '--no-provision', dest='provision', action='store_false',
+            default=True,
+            help="Perform reprovisioning of nodes during the upgrade. "
+                 "(default: True).")
+        parser.add_argument(
             '--isolated', action='store_true',
             help="Isolate node's network from original cluster")
         parser.add_argument(
@@ -107,4 +113,5 @@ class UpgradeNodeCommand(cmd.Command):
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template)
+                     network_template=parsed_args.template,
+                     provision=parsed_args.provision)
