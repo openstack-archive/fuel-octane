@@ -60,7 +60,11 @@ class PostgresArchivator(base.CmdArchivator):
         with docker.in_container("postgres",
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
-            process.stdin.write(dump.read())
+            read_block = dump.read(magic_consts.PSQL_RESTORE_DUMP_CHUNK_SIZE)
+            while read_block:
+                process.stdin.write(read_block)
+                read_block = dump.read(
+                    magic_consts.PSQL_RESTORE_DUMP_CHUNK_SIZE)
         docker.start_container(self.db)
         docker.wait_for_container(self.db)
         subprocess.call([
