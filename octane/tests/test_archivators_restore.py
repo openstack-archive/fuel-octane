@@ -39,6 +39,7 @@ class TestMember(object):
         self.path = ''
         self.is_extracted = False
         self.dump = ""
+        self.read_idx = 0
 
     def isfile(self):
         return self.is_file
@@ -48,8 +49,13 @@ class TestMember(object):
         if self.is_extracted and path:
             assert os.path.join(path, "/") == os.path.join(self.path, "/")
 
-    def read(self):
-        return self.dump
+    def read(self, chunk_size=None):
+        current_idx = self.read_idx
+        if chunk_size:
+            self.read_idx += chunk_size
+        else:
+            self.read_idx = len(self.dump)
+        return self.dump[current_idx: self.read_idx]
 
 
 class TestArchive(object):
