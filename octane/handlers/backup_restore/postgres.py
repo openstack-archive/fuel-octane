@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import requests
+import shutil
 import six
 import urlparse
 import yaml
@@ -57,7 +58,7 @@ class PostgresArchivator(base.CmdArchivator):
         with docker.in_container("postgres",
                                  ["sudo", "-u", "postgres", "psql"],
                                  stdin=subprocess.PIPE) as process:
-            process.stdin.write(dump.read())
+            shutil.copyfileobj(dump, process.stdin)
         docker.start_container(self.db)
 
 
