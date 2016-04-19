@@ -16,6 +16,7 @@ import urlparse
 
 from octane.handlers.backup_restore import base
 
+from octane import magic_consts
 from octane.util import docker
 from octane.util import helpers
 from octane.util import subprocess
@@ -30,8 +31,7 @@ class NaigunWWWBackup(base.PathArchivator):
     def _get_values_list(self, data):
         raise NotImplementedError
 
-    def backup(self):
-        ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
+    def _get_sql_results(self):
         results, _ = docker.run_in_container(
             "postgres",
             [
@@ -45,11 +45,12 @@ class NaigunWWWBackup(base.PathArchivator):
                 self.sql
             ],
             stdout=subprocess.PIPE)
-        results = results.strip()
-        if not results:
-            return
-        rows = results.split("\n")
+        return results.strip().splitlines()
+
+    def backup(self):
+        ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
         already_backuped = set()
+        rows = self._get_sql_results()
         for line in rows:
             data = json.loads(line)
             for value in self._get_values_list(data):
@@ -79,3 +80,28 @@ class RepoBackup(NaigunWWWBackup):
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()
+
+
+class FullMirrorsBackup(NaigunWWWBackup):
+
+    path = "/var/www/nailgun/"
+    sql = "select array_to_json(array_agg(distinct version)) from releases;"
+    name = "mirrors"
+    db = "nailgun"
+
+    def _get_mirrors(self):
+        results = self._get_sql_results()
+        releases = [magic_consts.MOS_UBUNTU_MIRROR]
+        for line in results:
+            releases.extend(json.loads(line))
+        return releases
+
+    def backup(self):
+        for dir_name in self._get_mirrors():
+            path = os.path.join(self.path, dir_name)
+            self.archive.add(path, os.path.join(self.name, dir_name))
+
+
+class FullRepoBackup(base.PathArchivator):
+    name = 'repos/targetimages'
+    path = '/var/www/nailgun/targetimages'
