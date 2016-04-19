@@ -38,8 +38,8 @@ class ContainerSQLRunningMixin(object):
     container = None
     db = None
 
-    def _run_sql_in_container(self, sql):
-        '''Exceute sql in container and db settings as class attributes
+    def _run_sql(self, sql):
+        '''Execute sql in container and db settings as class attributes
 
         return list strings. Each string is the sql result row.
         '''
@@ -170,15 +170,14 @@ class NailgunArchivator(PostgresArchivator, ContainerSQLRunningMixin):
             env=self.context.get_credentials_env())
 
         values = []
-        for line in self._run_sql_in_container(
-                "select id, generated from attributes;"):
+        for line in self._run_sql("select id, generated from attributes;"):
             c_id, c_data = line.split("|", 1)
             data = json.loads(c_data)
             data["deployed_before"] = {"value": True}
             values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
 
         if values:
-            self._run_sql_in_container(
+            self._run_sql(
                 'update attributes as a set generated = b.generated '
                 'from (values {0}) as b(id, generated) '
                 'where a.id = b.id;'.format(','.join(values))
