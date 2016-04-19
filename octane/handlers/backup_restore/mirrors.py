@@ -79,3 +79,40 @@ class RepoBackup(NaigunWWWBackup):
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()
+
+
+class FullMirrorsBackup(base.PathArchivator):
+
+    sql = "select array_to_json(array_agg(distinct version)) from releases;"
+    name = "mirrors"
+    db = "nailgun"
+
+    def _get_mirrors(self):
+        results, _ = docker.run_in_container(
+            "postgres",
+            [
+                "sudo",
+                "-u",
+                "postgres",
+                "psql",
+                self.db,
+                "--tuples-only",
+                "-c",
+                self.sql
+            ],
+            stdout=subprocess.PIPE)
+        results = results.strip().splitlines()
+        releases = ["mos-ubuntu", ]
+        for line in results:
+            releases.extend(json.loads(line))
+        return releases
+
+    def backup(self):
+        for dir_name in self._get_mirrors():
+            path = os.path.join(self.path, dir_name)
+            self.archive.add(path, os.path.join(self.name, dir_name))
+
+
+class FullRepoBackup(base.PathArchivator):
+    name = 'repos'
+    path = '/var/www/nailgun/targetimages'
