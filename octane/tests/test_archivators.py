@@ -255,6 +255,7 @@ def test_repos_backup(
             "psql",
             "nailgun",
             "--tuples-only",
+            "--no-align",
             "-c",
             sql
         ],
