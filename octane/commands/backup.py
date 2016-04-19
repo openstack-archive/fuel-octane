@@ -73,3 +73,17 @@ class BackupCommand(BaseBackupCommand):
 class BackupRepoCommand(BaseBackupCommand):
 
     archivators = backup_restore.REPO_ARCHIVATORS
+    full_archivators = backup_restore.FULL_REPO_ARCHIVATORS
+
+    def get_parser(self, *args, **kwargs):
+        parser = super(BackupRepoCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            "--full",
+            action='store_true',
+            help="Backup all repositories")
+        return parser
+
+    def take_action(self, parsed_args):
+        if parsed_args.full:
+            self.archivators = self.full_archivators
+        super(BackupRepoCommand, self).take_action(parsed_args)
