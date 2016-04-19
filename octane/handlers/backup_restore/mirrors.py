@@ -16,6 +16,7 @@ import urlparse
 
 from octane.handlers.backup_restore import base
 
+from octane import magic_consts
 from octane.util import helpers
 from octane.util import sql
 
@@ -62,3 +63,24 @@ class RepoBackup(NaigunWWWBackup):
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()
+
+
+class FullMirrorsBackup(NaigunWWWBackup):
+
+    name = "mirrors"
+    sql = "select array_to_json(array_agg(distinct version)) from releases;"
+
+    def _get_mirrors(self):
+        results = sql.run_psql_in_container(self.sql, self.db)
+        releases = []
+        for dir_name in magic_consts.MIRRORS_EXTRA_DIRS:
+            if os.path.exists(os.path.join(self.path, dir_name)):
+                releases.append(dir_name)
+        for line in results:
+            releases.extend(json.loads(line))
+        return releases
+
+
+class FullRepoBackup(base.PathArchivator):
+    name = 'repos/targetimages'
+    path = '/var/www/nailgun/targetimages'
