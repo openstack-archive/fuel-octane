@@ -16,9 +16,9 @@ import urlparse
 
 from octane.handlers.backup_restore import base
 
-from octane.util import docker
+from octane import magic_consts
 from octane.util import helpers
-from octane.util import subprocess
+from octane.util import sql
 
 
 class NaigunWWWBackup(base.PathArchivator):
@@ -26,30 +26,15 @@ class NaigunWWWBackup(base.PathArchivator):
     db = "nailgun"
     name = None
     sql = None
+    container = "postgres"
 
     def _get_values_list(self, data):
         raise NotImplementedError
 
     def backup(self):
         ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            [
-                "sudo",
-                "-u",
-                "postgres",
-                "psql",
-                self.db,
-                "--tuples-only",
-                "-c",
-                self.sql
-            ],
-            stdout=subprocess.PIPE)
-        results = results.strip()
-        if not results:
-            return
-        rows = results.split("\n")
         already_backuped = set()
+        rows = sql.run_sql_in_container(self.sql, self.container, self.db)
         for line in rows:
             data = json.loads(line)
             for value in self._get_values_list(data):
@@ -79,3 +64,26 @@ class RepoBackup(NaigunWWWBackup):
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()
+
+
+class FullMirrorsBackup(NaigunWWWBackup):
+
+    name = "mirrors"
+    sql = "select array_to_json(array_agg(distinct version)) from releases;"
+
+    def _get_mirrors(self):
+        results = sql.run_sql_in_container(self.sql, self.container, self.db)
+        releases = [magic_consts.MOS_UBUNTU_MIRROR]
+        for line in results:
+            releases.extend(json.loads(line))
+        return releases
+
+    def backup(self):
+        for dir_name in self._get_mirrors():
+            path = os.path.join(self.path, dir_name)
+            self.archive.add(path, os.path.join(self.name, dir_name))
+
+
+class FullRepoBackup(base.PathArchivator):
+    name = 'repos/targetimages'
+    path = '/var/www/nailgun/targetimages'
