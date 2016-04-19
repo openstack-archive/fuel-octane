@@ -77,3 +77,5 @@ OSD_REPOS_UPDATE = [
         'deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted',
     ),
 ]
+
+MOS_UBUNTU_MIRROR = "mos-ubuntu"
