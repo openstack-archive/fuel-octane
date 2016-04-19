@@ -17,6 +17,7 @@ import os.path
 import time
 import uuid
 import yaml
+from distutils import version
 
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
@@ -125,6 +126,27 @@ def parse_tenant_get(output, field):
     raise Exception(
         "Field {0} not found in output:\n{1}".format(field, output))
 
+def get_service_tenant_id_compat(env, node=None):
+    if node is None:
+        node = get_one_controller(env)
+
+    password = get_admin_password(env, node)
+    tenant_out = ssh.call_output(
+        [
+            'sh', '-c',
+            '. /root/openrc; keystone --os-password={0} tenant-get services'
+            .format(password),
+        ],
+        node=node,
+    )
+    for line in tenant_out.splitlines()[3:-1]:
+        parts = line.split()
+        if parts[1] == 'id':
+            tenant_id = parts[3]
+            return tenant_id
+    raise Exception(
+        "Field {0} not found in output:\n{1}".format(tenant_out, 'id'))
+
 
 def get_openstack_project_dict(env, node=None):
     if node is None:
@@ -167,7 +189,11 @@ def cache_service_tenant_id(env, node=None):
         with open(fname) as f:
             return f.readline()
 
-    tenant_id = get_service_tenant_id(env, node)
+    node_env_version = str(node.env.data.get('fuel_version'))
+    if node_env_version >= version.StrictVersion("7.0"):
+        tenant_id = get_service_tenant_id(env, node)
+    else:
+        tenant_id = get_service_tenant_id_compat(env, node)
     dname = os.path.dirname(fname)
     if not os.path.exists(dname):
         os.makedirs(dname)
