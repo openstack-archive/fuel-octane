@@ -12,33 +12,37 @@
 
 import os
 
-from octane.handlers.backup_restore import astute
-from octane.handlers.backup_restore import cobbler
+# from octane.handlers.backup_restore import astute
+# from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
-from octane.handlers.backup_restore import postgres
+# from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 
 
+# NOTE(akscram): Unsupported archivators are disabled and will be
+# re-wrote one-by-one. Docker containers were removed in 9.0 and all
+# services are run now in OS on the host. This major change requires to
+# modify current archivators that use containers.
 ARCHIVATORS = [
-    astute.AstuteArchivator,
+    # astute.AstuteArchivator,
     # SSH restore must go before Cobbler restore so it updates
     # /etc/cobbler/authorized_keys file automatically
     ssh.SshArchivator,
-    cobbler.CobblerArchivator,
+    # cobbler.CobblerArchivator,
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
     puppet.PuppetArchivator,
-    postgres.KeystoneArchivator,
+    # postgres.KeystoneArchivator,
     # Nailgun restore should be after puppet restore
-    postgres.NailgunArchivator,
+    # postgres.NailgunArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
-    puppet.PuppetApplyHost,
+    # puppet.PuppetApplyHost,
 ]
 
 REPO_ARCHIVATORS = [
