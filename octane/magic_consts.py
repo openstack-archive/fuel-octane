@@ -66,3 +66,5 @@ RUNNING_REQUIRED_CONTAINERS = [
 
 OPENSTACK_FIXTURES = \
     "/usr/lib/python2.6/site-packages/nailgun/fixtures/openstack.yaml"
+
+MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
