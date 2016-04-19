@@ -46,6 +46,11 @@ REPO_ARCHIVATORS = [
     mirrors.RepoBackup,
 ]
 
+FULL_REPO_ARCHIVATORS = [
+    mirrors.FullMirrorsBackup,
+    mirrors.FullRepoBackup,
+]
+
 
 class NailgunCredentialsContext(object):
 
