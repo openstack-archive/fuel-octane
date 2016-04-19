@@ -561,47 +561,18 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     ])
 
 
-@pytest.mark.parametrize("exc_on_apply", [True, False])
-def test_post_restore_puppet_apply_host(mocker, mock_open, exc_on_apply):
-
-    class TestException(Exception):
-        pass
-
-    mkstemp_mock = mocker.patch(
-        "tempfile.mkstemp",
-        return_value=(1, "/etc/fuel/.astute.yaml.bac"))
-    mock_copy = mocker.patch("shutil.copy")
-    mock_move = mocker.patch("shutil.move")
-    yaml_load = mocker.patch(
-        "yaml.load", return_value={"FUEL_ACCESS": {"password": "dump_pswd"}})
-    yaml_dump = mocker.patch("yaml.safe_dump")
+def test_post_restore_puppet_apply_host(mocker):
     context = backup_restore.NailgunCredentialsContext(
         user="admin", password="user_pswd")
+    mock_set_astute_password = mocker.patch(
+        "octane.util.auth.set_astute_password")
+    mock_apply = mocker.patch("octane.util.puppet.apply_host")
+
     archivator = puppet.PuppetApplyHost(None, context)
-    if exc_on_apply:
-        mock_apply = mocker.patch(
-            "octane.util.puppet.apply_host",
-            side_effect=TestException("test exception"))
-        pytest.raises(TestException, archivator.restore)
-    else:
-        mock_apply = mocker.patch("octane.util.puppet.apply_host")
-        archivator.restore()
+    archivator.restore()
+
     assert mock_apply.called
-    assert mock_open.call_args_list == [
-        mock.call("/etc/fuel/astute.yaml", "r"),
-        mock.call("/etc/fuel/astute.yaml", "w"),
-    ]
-    yaml_load.assert_called_once_with(mock_open.return_value)
-    yaml_dump.asswer_called_once_with(
-        {'FUEL_ACCESS': {'password': 'user_pswd'}},
-        mock_open.return_value,
-        default_flow_style=False)
-    mock_copy.assert_called_once_with("/etc/fuel/astute.yaml",
-                                      "/etc/fuel/.astute.yaml.bac")
-    mock_move.assert_called_once_with("/etc/fuel/.astute.yaml.bac",
-                                      "/etc/fuel/astute.yaml")
-    mkstemp_mock.assert_called_once_with(
-        dir="/etc/fuel", prefix=".astute.yaml.octane")
+    mock_set_astute_password.assert_called_once_with(context)
 
 
 @pytest.mark.parametrize("nodes", [
