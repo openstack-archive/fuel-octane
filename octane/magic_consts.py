@@ -64,3 +64,5 @@ RUNNING_REQUIRED_CONTAINERS = [
 ]
 
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
+
+MOS_UBUNTU_MIRROR = "mos-ubuntu"
