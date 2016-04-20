@@ -47,12 +47,28 @@ def test_path_backup(mocker, cls, path, name):
 @pytest.mark.parametrize(
     "cls,banned_files,backup_directory,allowed_files,container,backup_name", [
         (
-            cobbler.CobblerArchivator,
+            cobbler.CobblerSystemArchivator,
             ["default.json"],
             "/var/lib/cobbler/config/systems.d/",
             None,
             "cobbler",
             "cobbler",
+        ),
+        (
+            cobbler.CobblerProfileArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/profiles.d/",
+            None,
+            "cobbler",
+            "cobbler_profiles",
+        ),
+        (
+            cobbler.CobblerDistroArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/distros.d/",
+            None,
+            "cobbler",
+            "cobbler_distros",
         ),
     ])
 def test_container_backup(
