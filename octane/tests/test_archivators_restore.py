@@ -160,23 +160,26 @@ def test_path_restore(mocker, cls, path, members):
         assert not subprocess_mock.called
 
 
-@pytest.mark.parametrize("cls,path,container,members,mock_actions", [
-    (
-        cobbler.CobblerArchivator,
-        "/var/lib/cobbler/config/systems.d/",
-        "cobbler",
-        [
-            ("cobbler/file", True, True),
-            ("cobbler/dir/file", True, True),
-        ],
-        [
-            ("octane.util.docker.stop_container", "cobbler"),
-            ("octane.util.docker.start_container", "cobbler")
-        ]
-    ),
-])
+@pytest.mark.parametrize(
+    "cls,path,container,backup_name,members,mock_actions",
+    [
+        (
+            cobbler.CobblerArchivator,
+            "/var/lib/cobbler/config/systems.d/",
+            "cobbler",
+            "cobbler",
+            [
+                ("cobbler/file", True, True),
+                ("cobbler/dir/file", True, True),
+            ],
+            [
+                ("octane.util.docker.stop_container", "cobbler"),
+                ("octane.util.docker.start_container", "cobbler")
+            ]
+        ),
+    ])
 def test_container_archivator(
-        mocker, cls, path, container, members, mock_actions):
+        mocker, cls, path, container, members, mock_actions, backup_name):
     docker = mocker.patch("octane.util.docker.write_data_in_docker_file")
     extra_mocks = [(mocker.patch(n), p) for n, p in mock_actions]
     members = [TestMember(n, f, e) for n, f, e in members]
@@ -184,7 +187,7 @@ def test_container_archivator(
     cls(archive).restore()
     for member in members:
         member.assert_extract()
-        path_restor = member.name[len(container) + 1:]
+        path_restor = member.name[len(backup_name) + 1:]
         docker.assert_has_calls([
             mock.call(container, os.path.join(path, path_restor), member.dump)
         ])
