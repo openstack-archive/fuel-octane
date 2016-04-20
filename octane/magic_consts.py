@@ -47,22 +47,6 @@ NAILGUN_URL = "http://127.0.0.1:8000"
 KEYSTONE_API_URL = "http://127.0.0.1:5000/v2.0"
 KEYSTONE_TENANT_NAME = "admin"
 
-SYNC_CONTAINERS = []
-
-RUNNING_REQUIRED_CONTAINERS = [
-    "postgres",
-    "rabbitmq",
-    "keystone",
-    "rsync",
-    "astute",
-    "rsyslog",
-    "nailgun",
-    "ostf",
-    "nginx",
-    "cobbler",
-    "mcollective",
-]
-
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
 
 OSD_REPOS_UPDATE = [
