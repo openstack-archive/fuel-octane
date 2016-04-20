@@ -41,8 +41,8 @@ ARCHIVATORS = [
     # Nailgun restore should be after puppet restore
     # postgres.NailgunArchivator,
     version.VersionArchivator,
+    puppet.PuppetApplyTasks,
     nailgun_plugins.NailgunPluginsArchivator,
-    # puppet.PuppetApplyHost,
 ]
 
 REPO_ARCHIVATORS = [
