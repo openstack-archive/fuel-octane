@@ -30,6 +30,7 @@ from octane.handlers.backup_restore import version
 # modify current archivators that use containers.
 ARCHIVATORS = [
     astute.AstuteArchivator,
+    puppet.PuppetApplyTasks,
     # SSH restore must go before Cobbler restore so it updates
     # /etc/cobbler/authorized_keys file automatically
     ssh.SshArchivator,
@@ -42,7 +43,6 @@ ARCHIVATORS = [
     # postgres.NailgunArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
-    # puppet.PuppetApplyHost,
 ]
 
 REPO_ARCHIVATORS = [
