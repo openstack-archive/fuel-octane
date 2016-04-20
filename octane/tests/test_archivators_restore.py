@@ -160,28 +160,41 @@ def test_path_restore(mocker, cls, path, members):
         assert not subprocess_mock.called
 
 
-@pytest.mark.parametrize(
-    "cls,path,container,backup_name,members,mock_actions",
-    [
-        (
-            cobbler.CobblerArchivator,
-            "/var/lib/cobbler/config/systems.d/",
-            "cobbler",
-            "cobbler",
-            [
-                ("cobbler/file", True, True),
-                ("cobbler/dir/file", True, True),
-            ],
-            [
-                ("octane.util.docker.stop_container", "cobbler"),
-                ("octane.util.docker.start_container", "cobbler")
-            ]
-        ),
-    ])
+@pytest.mark.parametrize("cls,path,container,backup_name,members", [
+    (
+        cobbler.CobblerSystemArchivator,
+        "/var/lib/cobbler/config/systems.d/",
+        "cobbler",
+        "cobbler",
+        [
+            ("cobbler/file", True, True),
+            ("cobbler/dir/file", True, True),
+        ],
+    ),
+    (
+        cobbler.CobblerDistroArchivator,
+        "/var/lib/cobbler/config/distros.d/",
+        "cobbler",
+        "cobbler_distros",
+        [
+            ("cobbler_distros/file", True, True),
+            ("cobbler_distros/dir/file", True, True),
+        ],
+    ),
+    (
+        cobbler.CobblerProfileArchivator,
+        "/var/lib/cobbler/config/profiles.d/",
+        "cobbler",
+        "cobbler_profiles",
+        [
+            ("cobbler_profiles/file", True, True),
+            ("cobbler_profiles/dir/file", True, True),
+        ],
+    ),
+])
 def test_container_archivator(
-        mocker, cls, path, container, members, mock_actions, backup_name):
+        mocker, cls, path, container, members, backup_name):
     docker = mocker.patch("octane.util.docker.write_data_in_docker_file")
-    extra_mocks = [(mocker.patch(n), p) for n, p in mock_actions]
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     cls(archive).restore()
@@ -191,8 +204,18 @@ def test_container_archivator(
         docker.assert_has_calls([
             mock.call(container, os.path.join(path, path_restor), member.dump)
         ])
-    for extra_mock, param in extra_mocks:
-        extra_mock.assert_called_once_with(param)
+
+
+def test_cobbler_archivator(mocker):
+
+    mocker.patch.object(cobbler.CobblerSystemArchivator, "restore")
+    mocker.patch.object(cobbler.CobblerDistroArchivator, "restore")
+    mocker.patch.object(cobbler.CobblerProfileArchivator, "restore")
+    stop_container = mocker.patch("octane.util.docker.stop_container")
+    start_container = mocker.patch("octane.util.docker.start_container")
+    cobbler.CobblerArchivator(mock.Mock(), mock.Mock()).restore()
+    stop_container.assert_called_once_with("cobbler")
+    start_container.assert_called_once_with("cobbler")
 
 
 @pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
