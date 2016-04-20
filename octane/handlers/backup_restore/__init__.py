@@ -46,7 +46,7 @@ ARCHIVATORS = [
     # logs.LogsArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
-    # puppet.PuppetApplyHost,
+    puppet.PuppetApplyTasks,
 ]
 
 REPO_ARCHIVATORS = [
