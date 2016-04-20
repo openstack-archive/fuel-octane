@@ -16,7 +16,6 @@ import pytest
 from octane.commands import restore
 from octane.handlers import backup_restore
 from octane.handlers.backup_restore import astute
-from octane import magic_consts
 
 
 @pytest.mark.parametrize("path,is_file", [
@@ -80,9 +79,6 @@ def test_restore_data(mocker):
 ])
 def test_astute_checker(
         mocker, mock_open, backup_ip, current_ip):
-    mocker.patch(
-        "octane.util.docker.get_docker_container_names",
-        return_value=magic_consts.RUNNING_REQUIRED_CONTAINERS)
     tar_mock = mocker.Mock()
     mocker.patch.object(
         astute.AstuteArchivator,
