@@ -34,13 +34,13 @@ def test_apply_task(mock_subprocess, name, returncode, is_error):
     mock_subprocess.assert_called_once_with(cmd)
 
 
-def test_apply_host(mock_subprocess):
-    puppet_util.apply_host()
+def test_apply_all_tasks(mock_subprocess):
+    puppet_util.apply_all_tasks()
     assert mock_subprocess.call_count == 1
 
 
-def test_apply_host_error(mock_subprocess):
+def test_apply_all_tasks_error(mock_subprocess):
     exc = subprocess.CalledProcessError(1, 'TEST_PROCESS')
     mock_subprocess.side_effect = exc
-    with pytest.raises(type(exc)):
-        puppet_util.apply_host()
+    with pytest.raises(subprocess.CalledProcessError):
+        puppet_util.apply_all_tasks()
