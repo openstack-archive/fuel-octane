@@ -10,19 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pytest
-
 from octane.util import puppet as puppet_util
-from octane.util import subprocess
 
 
 def test_apply_host(mock_subprocess):
-    puppet_util.apply_host()
+    puppet_util.apply_all_tasks()
     assert mock_subprocess.call_count == 1
-
-
-def test_apply_host_error(mock_subprocess):
-    exc = subprocess.CalledProcessError(1, 'TEST_PROCESS')
-    mock_subprocess.side_effect = exc
-    with pytest.raises(type(exc)):
-        puppet_util.apply_host()

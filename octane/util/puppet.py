@@ -20,19 +20,12 @@ from octane.util import subprocess
 LOG = logging.getLogger(__name__)
 
 
-def apply_host():
-    cmd = ['puppet', 'apply', '-d', '-v']
+def apply_all_tasks():
     path = os.path.join(magic_consts.PUPPET_DIR,
-                        'nailgun',
+                        'fuel',
                         'examples',
-                        'host-only.pp')
-    cmd.append(path)
-    try:
-        subprocess.call(cmd)
-    except subprocess.CalledProcessError as exc:
-        LOG.error("Cannot apply Puppet state on host: %s",
-                  exc.message)
-        raise
+                        'deploy.sh')
+    subprocess.call([path])
 
 
 def patch_modules(revert=False):
