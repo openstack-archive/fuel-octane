@@ -50,6 +50,11 @@ class ContainerArchivator(Base):
     backup_directory = None
     allowed_files = None
     container = None
+    backup_name = None
+
+    @property
+    def backup_tar_name(self):
+        return self.backup_name or self.container
 
     def backup(self):
         assert self.container
@@ -71,13 +76,14 @@ class ContainerArchivator(Base):
                 self.archive,
                 self.container,
                 ["cat", path],
-                "{0}/{1}".format(self.container, filename)
+                "{0}/{1}".format(self.backup_tar_name, filename)
             )
 
     def restore(self):
         assert self.container
         assert self.backup_directory
-        for member in archivate.filter_members(self.archive, self.container):
+        for member in archivate.filter_members(
+                self.archive, self.backup_tar_name):
             dump = self.archive.extractfile(member.name).read()
             name = member.name.split("/", 1)[-1]
             docker.write_data_in_docker_file(
