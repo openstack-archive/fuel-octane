@@ -160,36 +160,50 @@ def test_path_restore(mocker, cls, path, members):
         assert not subprocess_mock.called
 
 
-@pytest.mark.parametrize("cls,path,container,members,mock_actions", [
+@pytest.mark.parametrize("cls,path,container,backup_name,members", [
     (
-        cobbler.CobblerArchivator,
+        cobbler.CobblerSystemArchivator,
         "/var/lib/cobbler/config/systems.d/",
+        "cobbler",
         "cobbler",
         [
             ("cobbler/file", True, True),
             ("cobbler/dir/file", True, True),
         ],
+    ),
+    (
+        cobbler.CobblerDistroArchivator,
+        "/var/lib/cobbler/config/distros.d/",
+        "cobbler",
+        "cobbler_distros",
         [
-            ("octane.util.docker.stop_container", "cobbler"),
-            ("octane.util.docker.start_container", "cobbler")
-        ]
+            ("cobbler_distros/file", True, True),
+            ("cobbler_distros/dir/file", True, True),
+        ],
+    ),
+    (
+        cobbler.CobblerProfileArchivator,
+        "/var/lib/cobbler/config/profiles.d/",
+        "cobbler",
+        "cobbler_profiles",
+        [
+            ("cobbler_profiles/file", True, True),
+            ("cobbler_profiles/dir/file", True, True),
+        ],
     ),
 ])
 def test_container_archivator(
-        mocker, cls, path, container, members, mock_actions):
+        mocker, cls, path, container, members, backup_name):
     docker = mocker.patch("octane.util.docker.write_data_in_docker_file")
-    extra_mocks = [(mocker.patch(n), p) for n, p in mock_actions]
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     cls(archive).restore()
     for member in members:
         member.assert_extract()
-        path_restor = member.name[len(container) + 1:]
+        path_restor = member.name[len(backup_name) + 1:]
         docker.assert_has_calls([
             mock.call(container, os.path.join(path, path_restor), member.dump)
         ])
-    for extra_mock, param in extra_mocks:
-        extra_mock.assert_called_once_with(param)
 
 
 @pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
