@@ -14,11 +14,33 @@ from octane.handlers.backup_restore import base
 from octane.util import docker
 
 
-class CobblerArchivator(base.ContainerArchivator):
+class CobblerSystemArchivator(base.ContainerArchivator):
     backup_directory = "/var/lib/cobbler/config/systems.d/"
     banned_files = ["default.json"]
     container = "cobbler"
     backup_name = "cobbler"
+
+
+class CobblerProfileArchivator(base.ContainerArchivator):
+    backup_directory = "/var/lib/cobbler/config/profiles.d/"
+    banned_files = ["bootstrap.json", "ubuntu_bootstrap.json"]
+    container = "cobbler"
+    backup_name = "cobbler_profiles"
+
+
+class CobblerDistroArchivator(base.ContainerArchivator):
+    backup_directory = "/var/lib/cobbler/config/distros.d/"
+    banned_files = ["bootstrap.json", "ubuntu_bootstrap.json"]
+    container = "cobbler"
+    backup_name = "cobbler_distros"
+
+
+class CobblerArchivator(base.CollectionArchivator):
+
+    archivators_classes = [
+        CobblerSystemArchivator,
+        CobblerProfileArchivator,
+        CobblerDistroArchivator]
 
     def restore(self):
         super(CobblerArchivator, self).restore()
