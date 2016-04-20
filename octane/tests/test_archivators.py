@@ -46,19 +46,35 @@ def test_path_backup(mocker, cls, path, name):
 @pytest.mark.parametrize(
     "cls,banned_files,backup_directory,allowed_files,container,backup_name", [
         (
-            cobbler.CobblerArchivator,
+            cobbler.CobblerSystemArchivator,
             ["default.json"],
             "/var/lib/cobbler/config/systems.d/",
             None,
             "cobbler",
             "cobbler",
         ),
+        (
+            cobbler.CobblerProfileArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/profiles.d/",
+            None,
+            "cobbler",
+            "cobbler_profiles",
+        ),
+        (
+            cobbler.CobblerDistroArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/distros.d/",
+            None,
+            "cobbler",
+            "cobbler_distros",
+        ),
     ])
 def test_container_backup(
         mocker, cls, banned_files, backup_directory, allowed_files, container,
         backup_name):
     test_archive = mocker.Mock()
-    data_lst = (banned_files or []) + (allowed_files or []) + ["tmp1", "tmp2"]
+    data_lst = banned_files + (allowed_files or []) + ["tmp1", "tmp2"]
     stdout_data_lst = [os.path.join(backup_directory, f) for f in data_lst]
     data = " ".join(stdout_data_lst)
     docker_mock = mocker.patch(
@@ -80,11 +96,9 @@ def test_container_backup(
                  side_effect=foo)
 
     files_to_archive = data_lst
-
-    files_to_archive = [d for d in files_to_archive
-                        if d in (allowed_files or [])]
-    files_to_archive = [d for d in files_to_archive
-                        if d not in (banned_files or [])]
+    if allowed_files:
+        files_to_archive = [d for d in files_to_archive if d in allowed_files]
+    files_to_archive = [d for d in files_to_archive if d not in banned_files]
     backuped_files = set()
     cls(test_archive).backup()
     docker_mock.assert_called_once_with(
@@ -94,6 +108,8 @@ def test_container_backup(
     )
     for filename in files_to_archive:
         assert filename in backuped_files
+    for filename in set(data_lst) - set(files_to_archive):
+        assert filename not in backuped_files
 
 
 @pytest.mark.parametrize("cls,db", [
