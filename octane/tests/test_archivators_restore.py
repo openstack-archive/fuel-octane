@@ -525,14 +525,14 @@ def test_release_restore(mocker, mock_open, content, existing_releases, calls):
     mock_open.assert_called_once_with(magic_consts.OPENSTACK_FIXTURES)
 
 
-def test_post_restore_puppet_apply_host(mocker):
+def test_post_restore_puppet_apply_tasks(mocker):
     context = backup_restore.NailgunCredentialsContext(
         user="admin", password="user_pswd")
     mock_set_astute_password = mocker.patch(
         "octane.util.auth.set_astute_password")
-    mock_apply = mocker.patch("octane.util.puppet.apply_host")
+    mock_apply = mocker.patch("octane.util.puppet.apply_all_tasks")
 
-    archivator = puppet.PuppetApplyHost(None, context)
+    archivator = puppet.PuppetApplyTasks(None, context)
     archivator.restore()
 
     assert mock_apply.called

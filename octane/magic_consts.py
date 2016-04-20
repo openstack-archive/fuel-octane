@@ -24,6 +24,9 @@ NAILGUN_ARCHIVATOR_PATCHES = (
 )
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"
 
+PUPPET_TASKS_DIR = os.path.join(PUPPET_DIR, 'fuel/examples')
+PUPPET_APPLY_TASKS_SCRIPT = os.path.join(PUPPET_TASKS_DIR, 'deploy.sh')
+
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
 BRIDGES = ['br-ex', 'br-mgmt']

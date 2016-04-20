@@ -34,13 +34,17 @@ def test_apply_task(mock_subprocess, name, returncode, is_error):
     mock_subprocess.assert_called_once_with(cmd)
 
 
-def test_apply_host(mock_subprocess):
-    puppet_util.apply_host()
-    assert mock_subprocess.call_count == 1
+def test_apply_all_tasks(mock_subprocess):
+    puppet_util.apply_all_tasks()
+    expected_filename = "/etc/puppet/modules/fuel/examples/deploy.sh"
+    mock_subprocess.assert_called_once_with([expected_filename])
 
 
-def test_apply_host_error(mock_subprocess):
+def test_apply_all_tasks_error(mocker, mock_subprocess):
+    mock_log = mocker.patch("octane.util.puppet.LOG")
     exc = subprocess.CalledProcessError(1, 'TEST_PROCESS')
     mock_subprocess.side_effect = exc
-    with pytest.raises(type(exc)):
-        puppet_util.apply_host()
+    with pytest.raises(subprocess.CalledProcessError):
+        puppet_util.apply_all_tasks()
+    mock_log.error.assert_called_once_with(
+        "Cannot apply Puppet state on host: %s", exc)
