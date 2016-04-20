@@ -44,17 +44,19 @@ def test_path_backup(mocker, cls, path, name):
 
 
 @pytest.mark.parametrize(
-    "cls,banned_files,backup_directory,allowed_files, container", [
+    "cls,banned_files,backup_directory,allowed_files,container,backup_name", [
         (
             cobbler.CobblerArchivator,
             ["default.json"],
             "/var/lib/cobbler/config/systems.d/",
             None,
-            "cobbler"
+            "cobbler",
+            "cobbler",
         ),
     ])
 def test_container_backup(
-        mocker, cls, banned_files, backup_directory, allowed_files, container):
+        mocker, cls, banned_files, backup_directory, allowed_files, container,
+        backup_name):
     test_archive = mocker.Mock()
     data_lst = (banned_files or []) + (allowed_files or []) + ["tmp1", "tmp2"]
     stdout_data_lst = [os.path.join(backup_directory, f) for f in data_lst]
@@ -69,10 +71,10 @@ def test_container_backup(
         _, path = cmd
         assert _ == "cat"
         assert path[:len(backup_directory)] == backup_directory
-        assert backup_dir[:len(container)] == container
+        assert backup_dir[:len(backup_name)] == backup_name
         filename = path[len(backup_directory):].strip("\/")
         backuped_files.add(path[len(backup_directory):])
-        assert filename == backup_dir[len(container):].strip("\/")
+        assert filename == backup_dir[len(backup_name):].strip("\/")
 
     mocker.patch("octane.util.archivate.archivate_container_cmd_output",
                  side_effect=foo)
