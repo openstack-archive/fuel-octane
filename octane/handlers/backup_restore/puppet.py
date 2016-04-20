@@ -20,11 +20,11 @@ class PuppetArchivator(base.DirsArchivator):
     tag = "puppet"
 
 
-class PuppetApplyHost(base.Base):
+class PuppetApplyTasks(base.Base):
 
     def backup(self):
         pass
 
     def restore(self):
         with auth.set_astute_password(self.context):
-            puppet.apply_host()
+            puppet.apply_all_tasks()
