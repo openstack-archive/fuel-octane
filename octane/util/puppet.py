@@ -21,10 +21,8 @@ LOG = logging.getLogger(__name__)
 
 
 def apply_task(task):
-    path = os.path.join(magic_consts.PUPPET_DIR,
-                        'fuel',
-                        'examples',
-                        '{0}.pp'.format(task))
+    filename = '{0}.pp'.format(task)
+    path = os.path.join(magic_consts.PUPPET_TASKS_DIR, filename)
     cmd = ['puppet', 'apply', '-d', '-v', "--color", "false",
            '--detailed-exitcodes', path]
     try:
@@ -44,18 +42,12 @@ def apply_task(task):
             raise
 
 
-def apply_host():
-    cmd = ['puppet', 'apply', '-d', '-v']
-    path = os.path.join(magic_consts.PUPPET_DIR,
-                        'nailgun',
-                        'examples',
-                        'host-only.pp')
-    cmd.append(path)
+def apply_all_tasks():
     try:
-        subprocess.call(cmd)
+        subprocess.call([magic_consts.PUPPET_APPLY_TASKS_SCRIPT])
     except subprocess.CalledProcessError as exc:
         LOG.error("Cannot apply Puppet state on host: %s",
-                  exc.message)
+                  exc)
         raise
 
 
