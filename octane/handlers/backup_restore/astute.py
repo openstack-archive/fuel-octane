@@ -15,8 +15,6 @@ import shutil
 import yaml
 
 from octane.handlers.backup_restore import base
-from octane import magic_consts
-from octane.util import docker
 
 
 LOG = logging.getLogger(__name__)
@@ -72,12 +70,6 @@ class AstuteArchivator(base.PathArchivator):
             return yaml.load(current)
 
     def pre_restore_check(self):
-        names = docker.get_docker_container_names(status="running")
-        containers = set(magic_consts.RUNNING_REQUIRED_CONTAINERS) - set(names)
-        if containers:
-            raise Exception(
-                "Required running containers: {0}".format(
-                    ", ".join(containers)))
         backup_ip = self.get_backup_dict()["ADMIN_NETWORK"]["ipaddress"]
         current_ip = self.get_current_dict()["ADMIN_NETWORK"]["ipaddress"]
         if backup_ip != current_ip:
@@ -113,20 +105,3 @@ class AstuteArchivator(base.PathArchivator):
         with open(new_path_name, "w") as new:
             yaml.safe_dump(current_yaml, new, default_flow_style=False)
         shutil.move(new_path_name, self.path)
-        self._post_restore_action()
-
-    def _post_restore_action(self):
-        # restart all running containers
-        for name in magic_consts.RUNNING_REQUIRED_CONTAINERS:
-            docker.stop_container(name)
-            # FIXME: when astute container restart corrent this may be removed
-            if "astute" == name:
-                try:
-                    docker.start_container(name)
-                except Exception:
-                    LOG.warn(
-                        "Failed to start astute container for the first time")
-                    docker.stop_container(name)
-                else:
-                    continue
-            docker.start_container(name)

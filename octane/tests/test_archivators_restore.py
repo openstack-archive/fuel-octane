@@ -451,18 +451,15 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
     move_mock = mocker.patch("shutil.move")
     cls = astute.AstuteArchivator
     archive = TestArchive([member], cls)
-    post_restore_mock = mocker.patch.object(cls, "_post_restore_action")
     try:
         cls(archive).restore()
     except Exception as exc:
         if restored:
             raise
         assert str(exc).startswith("Not found values in backup for keys: ")
-        assert not post_restore_mock.called
     else:
         assert restored
         member.assert_extract()
-        post_restore_mock.assert_called_once_with()
         copy_mock.assert_called_once_with(
             "/etc/fuel/astute.yaml", "/etc/fuel/astute.yaml.old")
         move_mock.assert_called_once_with(
@@ -470,24 +467,6 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
         safe_dump.assert_called_once_with(dict_to_restore,
                                           mock_open.return_value,
                                           default_flow_style=False)
-
-
-def test_post_restore_action_astute(mocker):
-
-    stopped = []
-    mocker.patch(
-        "octane.util.docker.get_docker_container_names",
-        return_value=["container_1", "container_2"]
-    )
-    start = mocker.patch("octane.util.docker.start_container",
-                         side_effect=stopped.remove)
-    stop = mocker.patch("octane.util.docker.stop_container",
-                        side_effect=stopped.append)
-
-    astute.AstuteArchivator(None)._post_restore_action()
-    assert start.called
-    assert stop.called
-    assert not stopped
 
 
 @pytest.mark.parametrize(("dump", "calls"), [
