@@ -142,3 +142,37 @@ class PathArchivator(Base):
                 member.name = member.name.split("/", 1)[-1]
                 path = self.path
             self.archive.extract(member, path)
+
+
+class CollectionArchivator(Base):
+
+    archivator_classes = []
+
+    def __init__(self, *args, **kwargs):
+        super(CollectionArchivator, self).__init__(*args, **kwargs)
+        self.archivators = [c(*args, **kwargs)
+                            for c in self.archivator_classes]
+
+    def extra_backup(self):
+        pass
+
+    def backup(self):
+        for archvator in self.archivators:
+            archvator.backup()
+        self.extra_backup()
+
+    def extra_restore(self):
+        pass
+
+    def restore(self):
+        for archvator in self.archivators:
+            archvator.restore()
+        self.extra_restore()
+
+    def extra_pre_restore_check(self):
+        pass
+
+    def pre_restore_check(self):
+        for archvator in self.archivators:
+            archvator.pre_restore_check()
+        self.extra_pre_restore_check()
