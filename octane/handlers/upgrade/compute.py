@@ -93,14 +93,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def shutoff_vms(self):
         password = env_util.get_admin_password(self.env)
-        cmd = ['. /root/openrc;',
-               'nova list --os-password {0} --host {1}'
-               .format(password, self.node.data['hostname']),
-               '|',
-               'awk -F\| \'$4~/ACTIVE/{print($2)}',
-               '|',
-               'xargs -I% nova stop %']
-        out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
+        controller = env_util.get_one_controller(self.env)
+        run_cmd = ". /root/openrc; nova --os-password {0} " \
+            "list --host {1}".format(password, self.node.data["hostname"])
+        run_cmd += "|awk -F\| \'$4~/ACTIVE/{print($2)}\'|xargs -I% nova stop %"
+        ssh.call(["sh", "-c", run_cmd], stdout=ssh.PIPE, node=controller)
 
     def create_configdrive_partition(self):
         disks = disk.get_node_disks(self.node)
