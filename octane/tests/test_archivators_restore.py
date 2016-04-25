@@ -516,7 +516,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
         "octane.util.docker.run_in_container", return_value=(data, None))
     run_sql_mock = mocker.patch.object(
         postgres.NailgunArchivator,
-        "_run_sql_in_container",
+        "_run_sql",
         return_value=[data_for_update]
     )
     json_mock = mocker.patch("json.dumps")
@@ -691,7 +691,7 @@ def test_run_sql(mocker, sql_raw, result_data):
         "octane.util.docker.run_in_container",
         return_value=(sql_raw, None))
     test_sql = "test_sql"
-    results = archivator._run_sql_in_container(test_sql)
+    results = archivator._run_sql(test_sql)
     run_mock.assert_called_once_with(
         "postgres",
         [
