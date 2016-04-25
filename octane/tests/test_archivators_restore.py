@@ -514,9 +514,8 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container", return_value=(data, None))
-    run_sql_mock = mocker.patch.object(
-        postgres.NailgunArchivator,
-        "_run_sql_in_container",
+    run_sql_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
         return_value=[data_for_update]
     )
     json_mock = mocker.patch("json.dumps")
@@ -557,7 +556,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     json_mock.assert_called_with({"deployed_before": {"value": True}})
     mock_links.assert_called_once_with()
     run_sql_mock.assert_has_calls([
-        mock.call("select id, generated from attributes;"),
+        mock.call("select id, generated from attributes;", "nailgun"),
     ])
 
 
@@ -679,31 +678,3 @@ def test_create_links_on_remote_logs(
     assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
             mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
         run_in_container_mock.call_args_list
-
-
-@pytest.mark.parametrize("sql_raw, result_data", [
-    ("row_1|val_1\nrow_2|val_1\n", ["row_1|val_1", "row_2|val_1"]),
-    ("", [])
-])
-def test_run_sql(mocker, sql_raw, result_data):
-    archivator = postgres.NailgunArchivator(None)
-    run_mock = mocker.patch(
-        "octane.util.docker.run_in_container",
-        return_value=(sql_raw, None))
-    test_sql = "test_sql"
-    results = archivator._run_sql_in_container(test_sql)
-    run_mock.assert_called_once_with(
-        "postgres",
-        [
-            "sudo",
-            "-u",
-            "postgres",
-            "psql",
-            "nailgun",
-            "--tuples-only",
-            "-c",
-            test_sql,
-        ],
-        stdout=subprocess.PIPE
-    )
-    assert result_data == results
