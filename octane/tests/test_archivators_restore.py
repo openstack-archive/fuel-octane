@@ -647,3 +647,31 @@ def test_create_links_on_remote_logs(
     assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
             mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
         run_in_container_mock.call_args_list
+
+
+@pytest.mark.parametrize("sql_raw, result_data", [
+    ("row_1|val_1\nrow_2|val_1\n", ["row_1|val_1", "row_2|val_1"]),
+    ("", [])
+])
+def test_run_sql(mocker, sql_raw, result_data):
+    archivator = postgres.NailgunArchivator(None)
+    run_mock = mocker.patch(
+        "octane.util.docker.run_in_container",
+        return_value=(sql_raw, None))
+    test_sql = "test_sql"
+    results = archivator._run_sql(test_sql)
+    run_mock.assert_called_once_with(
+        "postgres",
+        [
+            "sudo",
+            "-u",
+            "postgres",
+            "psql",
+            "nailgun",
+            "--tuples-only",
+            "-c",
+            test_sql,
+        ],
+        stdout=subprocess.PIPE
+    )
+    assert result_data == results

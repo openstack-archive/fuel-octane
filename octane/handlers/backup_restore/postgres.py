@@ -33,6 +33,28 @@ from octane.util import subprocess
 LOG = logging.getLogger(__name__)
 
 
+class ContainerSQLRunningMixin(object):
+
+    container = None
+    db = None
+
+    def _run_sql(self, sql):
+        '''Execute sql in container and db settings as class attributes
+
+        return list strings. Each string is the sql result row.
+        '''
+        assert self.container
+        assert self.db
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", self.db, "--tuples-only", "-c",
+        ]
+        results, _ = docker.run_in_container(
+            self.container,
+            sql_run_prams + [sql],
+            stdout=subprocess.PIPE)
+        return results.strip().splitlines()
+
+
 class PostgresArchivatorMeta(type):
 
     def __init__(cls, name, bases, attr):
@@ -62,7 +84,7 @@ class PostgresArchivator(base.CmdArchivator):
         docker.start_container(self.db)
 
 
-class NailgunArchivator(PostgresArchivator):
+class NailgunArchivator(PostgresArchivator, ContainerSQLRunningMixin):
     db = "nailgun"
 
     def __post_data_to_nailgun(self, url, data, user, password):
