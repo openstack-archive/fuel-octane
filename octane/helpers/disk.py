@@ -9,9 +9,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os.path
-
-from octane.util import docker
 from octane.util import ssh
 
 
@@ -37,15 +34,3 @@ def create_partition(disk_name, size, node):
     ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart',
               'custom', 'ext4', str(start), str(end)],
              node=node)
-
-
-def update_partition_generator():
-    fname = 'update_release_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname)]
-    docker.run_in_container('nailgun', command)
-
-
-def update_node_partition_info(node_id):
-    fname = 'update_node_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname), str(node_id)]
-    docker.run_in_container('nailgun', command)
