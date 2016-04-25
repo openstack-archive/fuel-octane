@@ -33,6 +33,28 @@ from octane.util import subprocess
 LOG = logging.getLogger(__name__)
 
 
+class ContainerSQLRunningMixin(object):
+
+    container = None
+    db = None
+
+    def _run_sql_in_container(self, sql):
+        '''Exceute sql in container and db settings as class attributes
+
+        return list strings. Each string is the sql result row.
+        '''
+        assert self.container
+        assert self.db
+        sql_run_prams = [
+            "sudo", "-u", "postgres", "psql", self.db, "--tuples-only", "-c",
+        ]
+        results, _ = docker.run_in_container(
+            self.container,
+            sql_run_prams + [sql],
+            stdout=subprocess.PIPE)
+        return results.strip().splitlines()
+
+
 class PostgresArchivatorMeta(type):
 
     def __init__(cls, name, bases, attr):
@@ -69,7 +91,7 @@ class PostgresArchivator(base.CmdArchivator):
         ])
 
 
-class NailgunArchivator(PostgresArchivator):
+class NailgunArchivator(PostgresArchivator, ContainerSQLRunningMixin):
     db = "nailgun"
 
     def __post_data_to_nailgun(self, url, data, user, password):
@@ -121,15 +143,6 @@ class NailgunArchivator(PostgresArchivator):
                 os.symlink(fqdn, ip_addr_path)
         finally:
             docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
-
-    def _run_sql_in_container(self, sql):
-        sql_run_prams = [
-            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            sql_run_prams + [sql],
-            stdout=subprocess.PIPE)
-        return results.strip().splitlines()
 
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
