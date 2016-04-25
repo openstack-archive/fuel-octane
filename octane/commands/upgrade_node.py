@@ -71,11 +71,13 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
 
 
 def patch_partition_generator(env_id):
-    """Update partitions generator for releases earlier than 6.0"""
+    """Update partitions generator for releases earlier than 7.0"""
 
     env = environment_obj.Environment(env_id)
     env_version = version.StrictVersion(env.data["fuel_version"])
-    if env_version < version.StrictVersion("6.0"):
+    provision_method = env_util.get_env_provision_method(env)
+    if env_version < version.StrictVersion("7.0") and \
+            provision_method != 'image':
         copy_patches_folder_to_nailgun()
         disk.update_partition_generator()
 
