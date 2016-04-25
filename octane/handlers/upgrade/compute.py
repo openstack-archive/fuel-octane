@@ -15,6 +15,8 @@ import os.path
 import stat
 import subprocess
 
+from distutils import version
+
 from octane.handlers import upgrade
 from octane.helpers import disk
 from octane import magic_consts
@@ -29,7 +31,10 @@ LOG = logging.getLogger(__name__)
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         env = self.node.env
-        if env_util.get_env_provision_method(env) != 'image':
+        env_version = version.StrictVersion(env.data["fuel_version"])
+        provision_method = env_util.get_env_provision_method(env)
+        if env_version < version.StrictVersion("7.0") and \
+                provision_method(env) != 'image':
             self.create_configdrive_partition()
             disk.update_node_partition_info(self.node.id)
         if node_util.is_live_migration_supported(self.node):
