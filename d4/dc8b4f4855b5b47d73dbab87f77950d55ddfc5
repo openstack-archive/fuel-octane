@@ -1,0 +1,9 @@
+Code-Review+2: Oleg Gelbukh <ogelbukh@mirantis.com>
+Code-Review+2: Yuriy Taraday <yorik.sar@gmail.com>
+Workflow+1: Yuriy Taraday <yorik.sar@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 25 Apr 2016 08:56:54 +0000
+Reviewed-on: https://review.openstack.org/308245
+Project: openstack/fuel-octane
+Branch: refs/heads/master
