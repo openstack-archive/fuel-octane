@@ -182,3 +182,67 @@ def test_get_service_tenant_id(mocker, node):
     env = mock.Mock()
     env_util.get_service_tenant_id(env, node)
     mock_obj.assert_called_once_with(env, node, "services")
+
+
+ENV_SETTINGS = {
+    'editable': {
+        'public_ssl': {
+            'horizon': {
+                'value': None
+            },
+            'services': {
+                'value': None
+            }
+        },
+        'external_ntp': {
+            'ntp_list': {
+                'value': None
+            }
+        },
+        'external_dns': {
+            'dns_list': {
+                'value': None
+            }
+        },
+        'provision': {
+            'method': {
+                'value': None
+            }
+        }
+    }
+}
+
+
+@pytest.mark.parametrize("env_id,master_ip", [(1, '10.0.0.1')])
+def test_change_env_settings(mocker, env_id, master_ip):
+    env = mocker.patch("fuelclient.objects.environment.Environment")
+    mock_env = env.return_value = mock.Mock()
+    mock_env.get_attributes.return_value = ENV_SETTINGS
+    env_util.change_env_settings(env_id, master_ip)
+    mock_env.update_attributes.assert_called_once_with({
+        'editable': {
+            'public_ssl': {
+                'horizon': {
+                    'value': False
+                },
+                'services': {
+                    'value': False
+                }
+            },
+            'external_ntp': {
+                'ntp_list': {
+                    'value': master_ip
+                }
+            },
+            'external_dns': {
+                'dns_list': {
+                    'value': master_ip
+                }
+            },
+            'provision': {
+                'method': {
+                    'value': 'image'
+                }
+            }
+        }
+    })
