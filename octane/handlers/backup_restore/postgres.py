@@ -27,6 +27,7 @@ from octane import magic_consts
 from octane.util import docker
 from octane.util import fuel_client
 from octane.util import helpers
+from octane.util import sql
 from octane.util import subprocess
 
 
@@ -122,15 +123,6 @@ class NailgunArchivator(PostgresArchivator):
         finally:
             docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
 
-    def _run_sql_in_container(self, sql):
-        sql_run_prams = [
-            "sudo", "-u", "postgres", "psql", "nailgun", "--tuples-only", "-c"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            sql_run_prams + [sql],
-            stdout=subprocess.PIPE)
-        return results.strip().splitlines()
-
     def _post_restore_action(self):
         data, _ = docker.run_in_container(
             "nailgun",
@@ -157,19 +149,22 @@ class NailgunArchivator(PostgresArchivator):
             env=self.context.get_credentials_env())
 
         values = []
-        for line in self._run_sql_in_container(
-                "select id, generated from attributes;"):
+        for line in sql.run_psql_in_container(
+                "select id, generated from attributes;",
+                self.container,
+                self.db):
             c_id, c_data = line.split("|", 1)
             data = json.loads(c_data)
             data["deployed_before"] = {"value": True}
             values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
 
         if values:
-            self._run_sql_in_container(
+            sql.run_psql_in_container(
                 'update attributes as a set generated = b.generated '
                 'from (values {0}) as b(id, generated) '
-                'where a.id = b.id;'.format(','.join(values))
-            )
+                'where a.id = b.id;'.format(','.join(values)),
+                self.container,
+                self.db)
         self._create_links_on_remote_logs()
 
 

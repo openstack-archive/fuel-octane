@@ -27,6 +27,7 @@ from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 from octane import magic_consts
+from octane.util import sql
 from octane.util import subprocess
 
 
@@ -514,9 +515,8 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container", return_value=(data, None))
-    run_sql_mock = mocker.patch.object(
-        postgres.NailgunArchivator,
-        "_run_sql_in_container",
+    run_sql_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
         return_value=[data_for_update]
     )
     json_mock = mocker.patch("json.dumps")
@@ -557,7 +557,11 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     json_mock.assert_called_with({"deployed_before": {"value": True}})
     mock_links.assert_called_once_with()
     run_sql_mock.assert_has_calls([
-        mock.call("select id, generated from attributes;"),
+        mock.call(
+            "select id, generated from attributes;",
+            "postgres",
+            "nailgun",
+        ),
     ])
 
 
@@ -656,22 +660,24 @@ def test_create_links_on_remote_logs(
     ("row_1|val_1\nrow_2|val_1\n", ["row_1|val_1", "row_2|val_1"]),
     ("", [])
 ])
-def test_run_sql(mocker, sql_raw, result_data):
-    archivator = postgres.NailgunArchivator(None)
+@pytest.mark.parametrize("container", ["postgres"])
+@pytest.mark.parametrize("db", ["nailgun", "keystone"])
+def test_run_sql(mocker, sql_raw, result_data, container, db):
     run_mock = mocker.patch(
         "octane.util.docker.run_in_container",
         return_value=(sql_raw, None))
     test_sql = "test_sql"
-    results = archivator._run_sql_in_container(test_sql)
+    results = sql.run_psql_in_container(test_sql, container, db)
     run_mock.assert_called_once_with(
-        "postgres",
+        container,
         [
             "sudo",
             "-u",
             "postgres",
             "psql",
-            "nailgun",
+            db,
             "--tuples-only",
+            "--no-align",
             "-c",
             test_sql,
         ],
