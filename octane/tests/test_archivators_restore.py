@@ -27,6 +27,7 @@ from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 from octane import magic_consts
+from octane.util import sql
 from octane.util import subprocess
 
 
@@ -647,3 +648,33 @@ def test_create_links_on_remote_logs(
     assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
             mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
         run_in_container_mock.call_args_list
+
+
+@pytest.mark.parametrize("sql_raw, result_data", [
+    ("row_1|val_1\nrow_2|val_1\n", ["row_1|val_1", "row_2|val_1"]),
+    ("", [])
+])
+@pytest.mark.parametrize("container", ["postgres"])
+@pytest.mark.parametrize("db", ["nailgun", "keystone"])
+def test_run_sql(mocker, sql_raw, result_data, container, db):
+    run_mock = mocker.patch(
+        "octane.util.docker.run_in_container",
+        return_value=(sql_raw, None))
+    test_sql = "test_sql"
+    results = sql.run_psql_in_container(test_sql, container, db)
+    run_mock.assert_called_once_with(
+        container,
+        [
+            "sudo",
+            "-u",
+            "postgres",
+            "psql",
+            db,
+            "--tuples-only",
+            "--no-align",
+            "-c",
+            test_sql,
+        ],
+        stdout=subprocess.PIPE
+    )
+    assert result_data == results
