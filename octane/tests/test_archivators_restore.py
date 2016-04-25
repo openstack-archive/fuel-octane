@@ -495,8 +495,8 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls):
         postgres.NailgunArchivator, "_create_links_on_remote_logs")
     data = yaml.dump(dump)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    mocker.patch("octane.util.docker.run_in_container",
-                 return_value=(data, None))
+    mocker.patch(
+        "octane.util.docker.run_in_container", return_value=(data, None))
     json_mock = mocker.patch("json.dumps")
     token = "123"
 

@@ -27,6 +27,7 @@ from octane import magic_consts
 from octane.util import docker
 from octane.util import fuel_client
 from octane.util import helpers
+from octane.util import sql
 from octane.util import subprocess
 
 
