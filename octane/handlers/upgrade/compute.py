@@ -29,9 +29,8 @@ LOG = logging.getLogger(__name__)
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         env = self.node.env
-        if env_util.get_env_provision_method(env) != 'image':
+        if env_util.incompatible_provision_method(env):
             self.create_configdrive_partition()
-            disk.update_node_partition_info(self.node.id)
         if node_util.is_live_migration_supported(self.node):
             self.evacuate_host()
         else:

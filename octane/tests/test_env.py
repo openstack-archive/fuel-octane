@@ -182,3 +182,30 @@ def test_get_service_tenant_id(mocker, node):
     env = mock.Mock()
     env_util.get_service_tenant_id(env, node)
     mock_obj.assert_called_once_with(env, node, "services")
+
+
+@pytest.mark.parametrize("mock_method,version,expected_result",
+                         [("cobbler", "5.1.1", True),
+                          ("image", "6.0", False),
+                          ("cobbler", "6.0", True),
+                          ("image", "6.0", False),
+                          ("image", "7.0", False),
+                          ("image", "", False),
+                          (None, None, False)])
+def test_incompatible_provision_method(mocker,
+                                       mock_method,
+                                       version,
+                                       expected_result):
+    mock_env = mock.Mock()
+    mock_env.data = {"fuel_version": version, "id": "test"}
+    mock_get_method = mocker.patch("octane.util.env.get_env_provision_method")
+    mock_get_method.return_value = mock_method
+    if version:
+        assert expected_result == env_util.incompatible_provision_method(
+            mock_env)
+    else:
+        with pytest.raises(Exception) as exc_info:
+            env_util.incompatible_provision_method(mock_env)
+        assert ("Cannot find version of environment {0}:"
+                " attribute 'fuel_version' missing or has incorrect value"
+                .format(mock_env.data["id"])) == exc_info.value.message
