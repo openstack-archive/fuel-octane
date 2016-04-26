@@ -3,3 +3,4 @@ pytest
 pytest-cov
 pytest-mock<0.10.0
 pyzabbix==0.7.3
+-e git+https://github.com/openstack/fuel-agent.git@0c100a3deebc6c1e6b0d682c8ffcbc73a6a93b56#egg=fuel_bootstrap&subdirectory=contrib/fuel_bootstrap/fuel_bootstrap_cli
