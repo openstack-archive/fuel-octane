@@ -10,21 +10,21 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from octane.handlers.backup_restore import base
-from octane.util import fuel_bootstrap
+import re
+
 from octane.util import subprocess
 
 
-class SshArchivator(base.PathArchivator):
-    path = "/root/.ssh/"
-    name = "ssh"
+def get_images_uuids():
+    # TODO(vegasq) how to exclude active images?
+    uuid_regex = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    return set(re.findall(uuid_regex,
+                          subprocess.call_output(["fuel-bootstrap", "list"])))
 
-    def restore(self):
-        super(SshArchivator, self).restore()
-        subprocess.call(
-            ["fuel-bootstrap", "build", "--activate"],
-            env=self.context.get_credentials_env())
 
-        # Remove old images cause they were created with old ssh keys pair
-        for image_uuid in fuel_bootstrap.get_images_uuids():
-            fuel_bootstrap.delete_image(image_uuid)
+def delete_image(uuid):
+    try:
+        subprocess.call(["fuel-bootstrap", "delete", uuid])
+    except subprocess.CalledProcessError:
+        # Ignore active images
+        pass
