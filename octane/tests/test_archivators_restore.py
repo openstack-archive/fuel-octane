@@ -143,7 +143,13 @@ class TestArchive(object):
     ),
 ])
 def test_path_restore(mocker, cls, path, members):
+    fake_uuids = ['00000000-1111-2222-3333-444444444444', 'centos']
     subprocess_mock = mocker.patch("octane.util.subprocess.call")
+    get_images = mocker.patch(
+        "octane.util.fuel_bootstrap.get_not_active_images_uuids",
+        return_value=fake_uuids)
+    delete_image = mocker.patch("octane.util.fuel_bootstrap.delete_image")
+
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
@@ -156,6 +162,8 @@ def test_path_restore(mocker, cls, path, members):
         subprocess_mock.assert_called_once_with(
             ["fuel-bootstrap", "build", "--activate"],
             env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'user'})
+        get_images.assert_called_once()
+        delete_image.assert_called_once_with(fake_uuids[0])
     else:
         assert not subprocess_mock.called
 
