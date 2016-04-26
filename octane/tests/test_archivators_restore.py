@@ -144,6 +144,7 @@ class TestArchive(object):
 ])
 def test_path_restore(mocker, cls, path, members):
     subprocess_mock = mocker.patch("octane.util.subprocess.call")
+    mocker.patch("octane.util.fuel_bootstrap.get_images_uuids")
     members = [TestMember(n, f, e) for n, f, e in members]
     archive = TestArchive(members, cls)
     mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
