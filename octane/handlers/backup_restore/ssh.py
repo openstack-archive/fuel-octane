@@ -11,6 +11,7 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import fuel_bootstrap
 from octane.util import subprocess
 
 
@@ -20,6 +21,11 @@ class SshArchivator(base.PathArchivator):
 
     def restore(self):
         super(SshArchivator, self).restore()
+
         subprocess.call(
             ["fuel-bootstrap", "build", "--activate"],
             env=self.context.get_credentials_env())
+
+        # Remove old images cause they were created with old ssh keys pair
+        for image_uuid in fuel_bootstrap.get_images_uuids():
+            fuel_bootstrap.delete_image(image_uuid)
