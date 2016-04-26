@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from octane.util import fuel_bootstrap
+
 from octane.handlers.backup_restore import base
 from octane.util import subprocess
 
@@ -20,6 +22,10 @@ class SshArchivator(base.PathArchivator):
 
     def restore(self):
         super(SshArchivator, self).restore()
+
+        # Remove old images cause they were created with old ssh keys pair
+        map(fuel_bootstrap.delete, fuel_bootstrap.get_images_uuids())
+
         subprocess.call(
             ["fuel-bootstrap", "build", "--activate"],
             env=self.context.get_credentials_env())
