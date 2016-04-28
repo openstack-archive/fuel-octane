@@ -10,7 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fuelclient
+from distutils import version
 import json
 import logging
 import os.path
@@ -18,6 +18,7 @@ import time
 import uuid
 import yaml
 
+import fuelclient
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
@@ -117,21 +118,26 @@ def delete_fuel_resources(env):
     )
 
 
-def parse_tenant_get(output, field):
-    for line in output.splitlines()[3:-1]:
-        parts = line.split()
-        if parts[1] == field:
-            return parts[3]
-    raise Exception(
-        "Field {0} not found in output:\n{1}".format(field, output))
-
-
-def get_openstack_project_dict(env, node=None):
-    if node is None:
-        node = get_one_controller(env)
-
+def get_keystone_tenants(env, node):
     password = get_admin_password(env, node)
     tenant_out = ssh.call_output(
+        [
+            'sh', '-c',
+            '. /root/openrc; keystone --os-password={0} tenant-list'
+            .format(password),
+        ],
+        node=node,
+    )
+    tenants = {}
+    for line in tenant_out.splitlines()[3:-1]:
+        parts = line.split()
+        tenants[parts[3]] = parts[1]
+    return tenants
+
+
+def get_openstack_projects(env, node):
+    password = get_admin_password(env, node)
+    out = ssh.call_output(
         [
             'sh', '-c',
             '. /root/openrc; openstack --os-password {0} project list -f json'
@@ -140,8 +146,20 @@ def get_openstack_project_dict(env, node=None):
         node=node,
     )
     data = [{k.lower(): v for k, v in d.items()}
-            for d in json.loads(tenant_out)]
+            for d in json.loads(out)]
     return {i["name"]: i["id"] for i in data}
+
+
+def get_openstack_project_dict(env, node=None):
+    if node is None:
+        node = get_one_controller(env)
+
+    node_env_version = str(node.env.data.get('fuel_version'))
+    if node_env_version < version.StrictVersion("7.0"):
+        mapping = get_keystone_tenants(env, node)
+    else:
+        mapping = get_openstack_projects(env, node)
+    return mapping
 
 
 def get_openstack_project_value(env, node, key):
@@ -153,7 +171,7 @@ def get_openstack_project_value(env, node, key):
             "Field {0} not found in openstack project list".format(key))
 
 
-def get_service_tenant_id(env, node=None):
+def get_service_tenant_id(env, node):
     return get_openstack_project_value(env, node, "services")
 
 
