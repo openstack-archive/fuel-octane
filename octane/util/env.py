@@ -78,7 +78,8 @@ def change_env_settings(env_id, master_ip=''):
     attrs['editable']['public_ssl']['services']['value'] = False
     attrs['editable']['external_ntp']['ntp_list']['value'] = master_ip
     attrs['editable']['external_dns']['dns_list']['value'] = master_ip
-
+    if get_env_provision_method(env) != 'image':
+        attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
 
 
