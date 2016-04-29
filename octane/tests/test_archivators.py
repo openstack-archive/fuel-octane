@@ -25,7 +25,6 @@ from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
-from octane.util import subprocess
 
 
 @pytest.mark.parametrize("cls,path,name", [
@@ -45,13 +44,12 @@ def test_path_backup(mocker, cls, path, name):
 
 
 @pytest.mark.parametrize(
-    "cls,banned_files,backup_directory,allowed_files,container,backup_name", [
+    "cls,banned_files,backup_directory,allowed_files,backup_name", [
         (
             cobbler.CobblerSystemArchivator,
             ["default.json"],
             "/var/lib/cobbler/config/systems.d/",
             None,
-            "cobbler",
             "cobbler",
         ),
         (
@@ -59,7 +57,6 @@ def test_path_backup(mocker, cls, path, name):
             ["bootstrap.json", "ubuntu_bootstrap.json"],
             "/var/lib/cobbler/config/profiles.d/",
             None,
-            "cobbler",
             "cobbler_profiles",
         ),
         (
@@ -67,49 +64,40 @@ def test_path_backup(mocker, cls, path, name):
             ["bootstrap.json", "ubuntu_bootstrap.json"],
             "/var/lib/cobbler/config/distros.d/",
             None,
-            "cobbler",
             "cobbler_distros",
         ),
     ])
-def test_container_backup(
-        mocker, cls, banned_files, backup_directory, allowed_files, container,
-        backup_name):
-    test_archive = mocker.Mock()
-    data_lst = banned_files + (allowed_files or []) + ["tmp1", "tmp2"]
-    stdout_data_lst = [os.path.join(backup_directory, f) for f in data_lst]
-    data = " ".join(stdout_data_lst)
-    docker_mock = mocker.patch(
-        "octane.util.docker.run_in_container",
-        return_value=(data, None))
+def test_path_filter_backup(mocker, cls, banned_files, backup_directory,
+                            allowed_files, backup_name):
+    def foo(path, path_in_archive):
+        assert path.startswith(backup_directory)
+        assert path_in_archive.startswith(backup_name)
+        filename = path[len(backup_directory):].lstrip(os.path.sep)
+        filename_in_archive = \
+            path_in_archive[len(backup_name):].lstrip(os.path.sep)
+        assert filename == filename_in_archive
+        backuped_files.add(filename)
 
-    def foo(archive, container_name, cmd, backup_dir):
-        assert archive is test_archive
-        assert container == container_name
-        _, path = cmd
-        assert _ == "cat"
-        assert path[:len(backup_directory)] == backup_directory
-        assert backup_dir[:len(backup_name)] == backup_name
-        filename = path[len(backup_directory):].strip("\/")
-        backuped_files.add(path[len(backup_directory):])
-        assert filename == backup_dir[len(backup_name):].strip("\/")
-
-    mocker.patch("octane.util.archivate.archivate_container_cmd_output",
-                 side_effect=foo)
-
-    files_to_archive = data_lst
+    filenames = banned_files + (allowed_files or []) + ["tmp1", "tmp2"]
+    files_to_archive = filenames
     if allowed_files:
         files_to_archive = [d for d in files_to_archive if d in allowed_files]
     files_to_archive = [d for d in files_to_archive if d not in banned_files]
     backuped_files = set()
+
+    test_archive = mocker.Mock()
+    test_archive.add.side_effect = foo
+
+    mock_os_walk = mocker.patch("os.walk")
+    mock_os_walk.return_value = [(backup_directory, (), filenames)]
+
     cls(test_archive).backup()
-    docker_mock.assert_called_once_with(
-        container,
-        ["find", backup_directory, "-type", "f"],
-        stdout=subprocess.PIPE
-    )
+
+    mock_os_walk.assert_called_once_with(backup_directory)
+
     for filename in files_to_archive:
         assert filename in backuped_files
-    for filename in set(data_lst) - set(files_to_archive):
+    for filename in set(filenames) - set(files_to_archive):
         assert filename not in backuped_files
 
 
