@@ -91,6 +91,37 @@ class ContainerArchivator(Base):
             )
 
 
+class PathFilterArchivator(Base):
+
+    backup_directory = None
+    backup_name = None
+    allowed_files = None
+    banned_files = []
+
+    def backup(self):
+        assert self.backup_name
+        assert self.backup_directory
+        for root, _, filenames in os.walk(self.backup_directory):
+            directory = root[len(self.backup_directory):].lstrip(os.path.sep)
+            for filename in filenames:
+                relative_path = os.path.join(directory, filename)
+                if relative_path in self.banned_files:
+                    continue
+                if self.allowed_files is not None \
+                        and relative_path not in self.allowed_files:
+                    continue
+                path = os.path.join(root, filename)
+                path_in_archive = os.path.join(self.backup_name, relative_path)
+                self.archive.add(path, path_in_archive)
+
+    def restore(self):
+        assert self.backup_name
+        assert self.backup_directory
+        for member in archivate.filter_members(self.archive, self.backup_name):
+            member.name = member.name.partition(os.path.sep)[-1]
+            self.archive.extract(member, self.backup_directory)
+
+
 class CmdArchivator(Base):
 
     container = None

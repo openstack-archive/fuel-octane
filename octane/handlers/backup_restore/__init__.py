@@ -13,7 +13,7 @@
 import os
 
 from octane.handlers.backup_restore import astute
-# from octane.handlers.backup_restore import cobbler
+from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
 # from octane.handlers.backup_restore import logs
@@ -35,7 +35,7 @@ ARCHIVATORS = [
     # SSH restore must go before Cobbler restore so it updates
     # /etc/cobbler/authorized_keys file automatically
     ssh.SshArchivator,
-    # cobbler.CobblerArchivator,
+    cobbler.CobblerArchivator,
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
     puppet.PuppetArchivator,
