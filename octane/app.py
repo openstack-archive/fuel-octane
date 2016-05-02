@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import getpass
 import os
 import sys
 
@@ -17,6 +18,7 @@ from cliff import app
 from cliff import commandmanager as cm
 
 import octane
+from octane import environment as env
 from octane import log
 
 
@@ -39,6 +41,18 @@ class OctaneApp(app.App):
         else:  # Probably local dev's env
             log_file = 'octane.log'
         parser.set_defaults(log_file=log_file)
+        parser.add_argument(
+            '--ssh-user', metavar="USER",
+            help="SSH user to use.  Default is current user.")
+        parser.add_argument(
+            '--ssh-password', action="store_true",
+            help="Prompt for SSH password")
+        parser.add_argument(
+            '--ssh-password-inline', metavar="PASSWORD",
+            help="Pass SSH password on command line.")
+        parser.add_argument(
+            '--sudo', action="store_true",
+            help="Use (passwordless) sudo to gain root access.")
         return parser
 
     def configure_logging(self):
@@ -46,6 +60,14 @@ class OctaneApp(app.App):
         log.set_console_formatter()
         log.silence_iso8601()
         log.lower_urllib_level()
+
+    def initialize_app(self, argv):
+        env.USE_SUDO = self.options.sudo
+        env.SSH_USER = self.options.ssh_user
+        if self.options.ssh_password:
+            env.SSH_PASSWORD = getpass.getpass('Password:')
+        elif self.options.ssh_password_inline:
+            env.SSH_PASSWORD = self.options.ssh_password_inline
 
 
 def main(argv=None):
