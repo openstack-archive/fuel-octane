@@ -13,6 +13,7 @@
 import contextlib
 import io
 import logging
+import os
 import pipes
 import random
 import threading
@@ -73,7 +74,12 @@ def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(node.data['ip'], key_filename=magic_consts.SSH_KEYS)
+    kwargs = {'key_filename': magic_consts.SSH_KEYS}
+    if os.environ['use_sudo'] != 'False':
+        kwargs['username'] = os.environ['ssh_user']
+        if os.environ['ssh_password'] != 'False':
+            kwargs['password'] = os.environ['ssh_password']
+    client.connect(node.data['ip'], **kwargs)
     return client
 
 
@@ -109,6 +115,9 @@ class _LogPipe(subprocess._BaseLogPipe):
 class SSHPopen(subprocess.BasePopen):
     def __init__(self, name, cmd, popen_kwargs):
         self.node = popen_kwargs.pop('node')
+        if os.environ['use_sudo'] != 'False':
+            cmd = ['sudo'] + cmd
+            LOG.debug("os.environ[use_sudo] is true; cmd=%s" % cmd)
         for key in ['stdin', 'stdout', 'stderr']:
             assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
@@ -181,7 +190,14 @@ def call_output(cmd, **kwargs):
 @_cache
 def _get_sftp(node):
     transport = get_client(node).get_transport()
-    return paramiko.SFTPClient.from_transport(transport)
+    if os.environ['use_sudo'] != 'False':
+        LOG.info("Using sudo for SFTP channel.")
+        channel = transport.open_channel('session')
+        channel.exec_command('sudo /usr/lib/openssh/sftp-server')
+        return paramiko.sftp_client.SFTPClient(channel)
+    else:
+        return paramiko.SFTPClient.from_transport(transport)
+
 
 get_client.invalidate.append(_get_sftp)
 
