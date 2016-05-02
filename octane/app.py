@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import getpass
 import os
 import sys
 
@@ -28,6 +29,9 @@ class OctaneApp(app.App):
             command_manager=cm.CommandManager('octane'),
             **kwargs
         )
+        os.environ['use_sudo'] = 'False'
+        os.environ['ssh_user'] = 'False'
+        os.environ['ssh_password'] = 'False'
 
     def build_option_parser(self, description, version, argparse_kwargs=None):
         parser = super(OctaneApp, self).build_option_parser(
@@ -39,6 +43,18 @@ class OctaneApp(app.App):
         else:  # Probably local dev's env
             log_file = 'octane.log'
         parser.set_defaults(log_file=log_file)
+        parser.add_argument(
+            '--ssh-user', metavar="USER",
+            help="SSH user to use.  Default is current user.")
+        parser.add_argument(
+            '--ssh-password', action="store_true",
+            help="Prompt for SSH password")
+        parser.add_argument(
+            '--ssh-password-inline', metavar="PASSWORD",
+            help="Pass SSH password on command line.")
+        parser.add_argument(
+            '--sudo', action="store_true",
+            help="Use (passwordless) sudo to gain root access.")
         return parser
 
     def configure_logging(self):
@@ -46,6 +62,14 @@ class OctaneApp(app.App):
         log.set_console_formatter()
         log.silence_iso8601()
         log.lower_urllib_level()
+
+    def initialize_app(self, argv):
+        os.environ['use_sudo'] = str(self.options.sudo)
+        os.environ['ssh_user'] = str(self.options.ssh_user)
+        if self.options.ssh_password:
+            os.environ['ssh_password'] = getpass.getpass('Password:')
+        elif self.options.ssh_password_inline:
+            os.environ['ssh_password'] = self.options.ssh_password_inline
 
 
 def main(argv=None):
