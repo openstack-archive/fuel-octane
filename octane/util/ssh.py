@@ -20,6 +20,7 @@ import threading
 import paramiko
 from paramiko import channel
 
+from octane import environment as env
 from octane import magic_consts
 from octane.util import subprocess
 
@@ -73,7 +74,12 @@ def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(node.data['ip'], key_filename=magic_consts.SSH_KEYS)
+    kwargs = {'key_filename': magic_consts.SSH_KEYS}
+    if env.SSH_USER:
+        kwargs['username'] = env.SSH_USER
+    if env.SSH_PASSWORD:
+        kwargs['password'] = env.SSH_PASSWORD
+    client.connect(node.data['ip'], **kwargs)
     return client
 
 
@@ -109,6 +115,9 @@ class _LogPipe(subprocess._BaseLogPipe):
 class SSHPopen(subprocess.BasePopen):
     def __init__(self, name, cmd, popen_kwargs):
         self.node = popen_kwargs.pop('node')
+        if env.USE_SUDO:
+            cmd = ['sudo'] + cmd
+            LOG.debug("env.USE_SUDO is true; cmd=%s" % cmd)
         for key in ['stdin', 'stdout', 'stderr']:
             assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
@@ -181,7 +190,14 @@ def call_output(cmd, **kwargs):
 @_cache
 def _get_sftp(node):
     transport = get_client(node).get_transport()
-    return paramiko.SFTPClient.from_transport(transport)
+    if env.USE_SUDO:
+        LOG.info("Using sudo for SFTP channel.")
+        channel = transport.open_channel('session')
+        channel.exec_command('sudo /usr/lib/openssh/sftp-server')
+        return paramiko.sftp_client.SFTPClient(channel)
+    else:
+        return paramiko.SFTPClient.from_transport(transport)
+
 
 get_client.invalidate.append(_get_sftp)
 
