@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
 from distutils import version
 import json
 import logging
@@ -26,6 +27,7 @@ from fuelclient.objects import task as task_obj
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import sql
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -81,6 +83,34 @@ def change_env_settings(env_id, master_ip=''):
     if get_env_provision_method(env) != 'image':
         attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
+    generated_data = sql.run_sql_in_container(
+        "select generated from attributes where cluster_id={0}".format(env_id),
+        "postgres",
+        "nailgun"
+    )[0]
+    generated_data = json.loads(generated_data)
+    release_data = sql.run_sql_in_container(
+        "select attributes_metadata from  releases where id={0}".format(
+            env.data['release_id']),
+        "postgres",
+        "nailgun"
+    )[0]
+    release_image_data_dict = json.loads(
+        release_data
+    )['generated']['provision']['image_data']
+    settings = collections.namedtuple(
+        "settings",
+        ["MASTER_IP", "id"]
+    )(master_ip, env_id)
+    for key, value in generated_data['provision']['image_data'].iteritems():
+        value['uri'] = release_image_data_dict[key]['uri'].format(
+            settings=settings, cluster=settings)
+    sql.run_sql_in_container(
+        "update attributes set generated='{0}' where cluster_id={1}".format(
+            json.dumps(generated_data), env_id),
+        "postgres",
+        "nailgun"
+    )
 
 
 def clone_env(env_id, release):
