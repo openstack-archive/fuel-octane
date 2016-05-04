@@ -11,6 +11,8 @@
 # under the License.
 
 import fuelclient
+
+import collections
 import json
 import logging
 import os.path
@@ -27,6 +29,7 @@ from fuelclient.objects import task as task_obj
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import sql
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -82,6 +85,28 @@ def change_env_settings(env_id, master_ip=''):
     if get_env_provision_method(env) != 'image':
         attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
+    generated_data = sql.run_psql_in_container(
+        "select generated from attributes where cluster_id={0}".format(env_id),
+        "nailgun"
+    )[0]
+    generated_json = json.loads(generated_data)
+    release_data = sql.run_psql_in_container(
+        "select attributes_metadata from  releases where id={0}".format(
+            env.data['release_id']),
+        "nailgun"
+    )[0]
+    release_json = json.loads(release_data)
+    release_image_dict = release_json['generated']['provision']['image_data']
+    settings_cls = collections.namedtuple("settings", ["MASTER_IP", "id"])
+    settings = settings_cls(master_ip, env_id)
+    for key, value in generated_json['provision']['image_data'].iteritems():
+        value['uri'] = release_image_dict[key]['uri'].format(settings=settings,
+                                                             cluster=settings)
+    sql.run_psql_in_container(
+        "update attributes set generated='{0}' where cluster_id={1}".format(
+            json.dumps(generated_json), env_id),
+        "nailgun"
+    )
 
 
 def clone_env(env_id, release):

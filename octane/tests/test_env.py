@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 import mock
 import pytest
 
@@ -255,9 +256,42 @@ ENV_SETTINGS = {
 
 
 @pytest.mark.parametrize("env_id,master_ip", [(1, '10.0.0.1')])
-def test_change_env_settings(mocker, env_id, master_ip):
+@pytest.mark.parametrize("format_tuples", [
+    [
+        # (path, release_template, expected_result)
+        ('/boot', "{settings.MASTER_IP}_{cluster.id}", "10.0.0.1_1"),
+        (
+            '/',
+            "{cluster.id}_{settings.MASTER_IP}_blabal.tar.gz",
+            "1_10.0.0.1_blabal.tar.gz"
+        ),
+    ]
+])
+def test_change_env_settings(mocker, env_id, master_ip, format_tuples):
     env = mocker.patch("fuelclient.objects.environment.Environment")
+    env_dict = {
+        'provision': {
+            'image_data': {f[0]: {'uri': 'bad_value'} for f in format_tuples}}
+    }
+    expected_dict = {
+        'provision': {
+            'image_data': {f[0]: {'uri': f[2]} for f in format_tuples}}
+    }
+    release_dict = {
+        'generated': {
+            'provision': {
+                'image_data': {f[0]: {'uri': f[1]} for f in format_tuples}}
+        }
+    }
+    sql_call_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
+        side_effect=[
+            [json.dumps(env_dict)], [json.dumps(release_dict)], 1
+        ]
+    )
+    mock_json_dumps = mocker.patch("json.dumps", return_value="generated_json")
     mock_env = env.return_value = mock.Mock()
+    mock_env.data = {"release_id": 1}
     mock_env.get_attributes.return_value = ENV_SETTINGS
     env_util.change_env_settings(env_id, master_ip)
     mock_env.update_attributes.assert_called_once_with({
@@ -287,6 +321,13 @@ def test_change_env_settings(mocker, env_id, master_ip):
             }
         }
     })
+    mock_json_dumps.assert_called_once_with(expected_dict)
+    sql_call_mock.assert_called_with(
+        "update attributes set generated='{0}' where cluster_id={1}".format(
+            mock_json_dumps.return_value, env_id
+        ),
+        'nailgun'
+    )
 
 
 @pytest.mark.parametrize("mock_method,version,expected_result",
