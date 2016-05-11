@@ -77,3 +77,4 @@ OSD_REPOS_UPDATE = [
         'deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted',
     ),
 ]
+COBBLER_DROP_VERSION = "7.0"

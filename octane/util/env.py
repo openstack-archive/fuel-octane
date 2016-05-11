@@ -10,7 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from distutils import version
+import fuelclient
 import json
 import logging
 import os.path
@@ -18,7 +18,8 @@ import time
 import uuid
 import yaml
 
-import fuelclient
+from distutils import version
+
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
@@ -412,3 +413,18 @@ def iter_deployment_info(env, roles):
     for node in controllers:
         info = find_node_deployment_info(node, roles, full_info)
         yield (node, info)
+
+
+def incompatible_provision_method(env):
+    if env.data.get("fuel_version"):
+        env_version = version.StrictVersion(env.data["fuel_version"])
+    else:
+        error_message = ("Cannot find version of environment {0}:"
+                         " attribute 'fuel_version' missing or has"
+                         " incorrect value".format(env.data["id"]))
+        raise Exception(error_message)
+    provision_method = get_env_provision_method(env)
+    if env_version < version.StrictVersion(magic_consts.COBBLER_DROP_VERSION) \
+            and provision_method != 'image':
+        return True
+    return False
