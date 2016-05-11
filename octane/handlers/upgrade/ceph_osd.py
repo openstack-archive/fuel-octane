@@ -10,15 +10,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+
 from octane.commands import prepare
 from octane.handlers import upgrade
 from octane.util import ceph
 from octane.util import node as node_util
+from octane.util import subprocess
+
+LOG = logging.getLogger(__name__)
 
 
 class CephOsdUpgrade(upgrade.UpgradeHandler):
+
     def preupgrade(self):
-        ceph.check_cluster(self.node)
+        try:
+            ceph.check_cluster(self.node)
+        except subprocess.CalledProcessError as exc:
+            LOG.warning("Ceph cluster health is not OK, ignoring: %s", exc)
 
     def prepare(self):
         self.preserve_partition()
