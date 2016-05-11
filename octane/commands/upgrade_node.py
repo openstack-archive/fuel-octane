@@ -14,12 +14,10 @@ import logging
 import os.path
 
 from cliff import command as cmd
-from distutils import version
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 from octane.handlers import upgrade as upgrade_handlers
-from octane.helpers import disk
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
@@ -49,7 +47,10 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
-    patch_partition_generator(one_orig_id)
+    # NOTE(ogelbukh): patches and scripts copied to nailgun container
+    # for later use
+    copy_patches_folder_to_nailgun()
+
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
     call_handlers('preupgrade')
     call_handlers('prepare')
@@ -68,16 +69,6 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     else:
         env_util.deploy_changes(env, nodes)
     call_handlers('postdeploy')
-
-
-def patch_partition_generator(env_id):
-    """Update partitions generator for releases earlier than 6.0"""
-
-    env = environment_obj.Environment(env_id)
-    env_version = version.StrictVersion(env.data["fuel_version"])
-    if env_version < version.StrictVersion("6.0"):
-        copy_patches_folder_to_nailgun()
-        disk.update_partition_generator()
 
 
 def copy_patches_folder_to_nailgun():
