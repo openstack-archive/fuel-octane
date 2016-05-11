@@ -66,3 +66,5 @@ RUNNING_REQUIRED_CONTAINERS = [
 
 OPENSTACK_FIXTURES = \
     "/usr/lib/python2.6/site-packages/nailgun/fixtures/openstack.yaml"
+
+COBBLER_DROP_VERSION = "7.0"
