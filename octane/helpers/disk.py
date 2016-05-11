@@ -39,12 +39,6 @@ def create_partition(disk_name, size, node):
              node=node)
 
 
-def update_partition_generator():
-    fname = 'update_release_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname)]
-    docker.run_in_container('nailgun', command)
-
-
 def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
     command = ['python', os.path.join('/tmp', fname), str(node_id)]
