@@ -26,7 +26,7 @@ def test_set_astute_password(mocker, mock_open, exc_on_apply):
     mkstemp_mock = mocker.patch(
         "tempfile.mkstemp",
         return_value=(1, "/etc/fuel/.astute.yaml.bac"))
-    mock_copy = mocker.patch("shutil.copy")
+    mock_copy = mocker.patch("shutil.copy2")
     mock_move = mocker.patch("shutil.move")
     yaml_load = mocker.patch(
         "yaml.load", return_value={"FUEL_ACCESS": {"password": "dump_pswd"}})
