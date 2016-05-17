@@ -162,11 +162,13 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "mirrors",
             "select editable from attributes;",
             "127.0.0.1",
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}',
+            [
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}'
+            ],
             ["test_fest", "test_fest_2"]
         ),
         (
@@ -174,16 +176,18 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "mirrors",
             "select editable from attributes;",
             "127.0.0.1",
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}\n'
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}',
+            [
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}',
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}',
+            ],
             ["test_fest", "test_fest_2", "test_fest_3"]
         ),
         (
@@ -199,12 +203,14 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "repos",
             "select generated from attributes;",
             "127.0.0.1",
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-            '}}}',
+            [
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+                '}}}'
+            ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
@@ -212,18 +218,20 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "repos",
             "select generated from attributes;",
             "127.0.0.1",
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
-            '}}}\n'
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-            '}}}',
+            [
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
+                '}}}',
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+                '}}}',
+            ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
@@ -242,25 +250,14 @@ def test_repos_backup(
     yaml_mocker = mocker.patch(
         "yaml.load",
         return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
-    docker_mock = mocker.patch("octane.util.docker.run_in_container")
+    sql_mock = mocker.patch("octane.util.sql.run_psql_in_container")
     test_archive = mocker.Mock()
     path = "/var/www/nailgun/"
-    docker_mock.return_value = sql_output, None
+    sql_mock.return_value = sql_output
     cls(test_archive).backup()
     yaml_mocker.assert_called_once_with(mock_open.return_value)
-    docker_mock.assert_called_once_with(
-        "postgres", [
-            "sudo",
-            "-u",
-            "postgres",
-            "psql",
-            "nailgun",
-            "--tuples-only",
-            "-c",
-            sql
-        ],
-        stdout=subprocess.PIPE
-    )
+
+    sql_mock.assert_called_once_with(sql, "nailgun")
     test_archive.add.assert_has_calls(
         [
             mock.call(os.path.join(path, i), os.path.join(name, i))
