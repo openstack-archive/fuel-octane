@@ -29,21 +29,23 @@ class NaigunWWWBackup(base.PathArchivator):
     def _get_values_list(self, data):
         raise NotImplementedError
 
-    def backup(self):
+    def _get_mirrors(self):
         ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
         rows = sql.run_psql_in_container(self.sql, self.db)
-        already_backuped = set()
+        dirs_to_backup = set()
         for line in rows:
             data = json.loads(line)
             for value in self._get_values_list(data):
                 if ipaddr in value['uri']:
                     path = urlparse.urlsplit(value['uri']).path
                     dir_name = path.lstrip("/").split('/', 1)[0]
-                    if dir_name in already_backuped:
-                        continue
-                    already_backuped.add(dir_name)
-                    path = os.path.join(self.path, dir_name)
-                    self.archive.add(path, os.path.join(self.name, dir_name))
+                    dirs_to_backup.add(dir_name)
+        return list(dirs_to_backup)
+
+    def backup(self):
+        for dir_name in self._get_mirrors():
+            path = os.path.join(self.path, dir_name)
+            self.archive.add(path, os.path.join(self.name, dir_name))
 
 
 class MirrorsBackup(NaigunWWWBackup):
