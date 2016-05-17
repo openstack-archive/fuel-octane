@@ -109,7 +109,7 @@ class AstuteArchivator(base.PathArchivator):
                     ",".join(not_found_keys)))
         old_path_name = "{0}.old".format(self.path)
         new_path_name = "{0}.new".format(self.path)
-        shutil.copy(self.path, old_path_name)
+        shutil.copy2(self.path, old_path_name)
         with open(new_path_name, "w") as new:
             yaml.safe_dump(current_yaml, new, default_flow_style=False)
         shutil.move(new_path_name, self.path)

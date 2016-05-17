@@ -21,7 +21,7 @@ from octane.util import archivate
 
 def update_centos_bootstrap():
     with archivate.update_cpio(magic_consts.BOOTSTRAP_INITRAMFS) as tmp_dir:
-        shutil.copy(
+        shutil.copy2(
             "/root/.ssh/authorized_keys",
             os.path.join(tmp_dir, "root/.ssh/authorized_keys"))
 

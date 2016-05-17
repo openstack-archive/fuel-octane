@@ -445,7 +445,7 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
 
     mocker.patch("yaml.load", side_effect=[dump_dict, current_dict])
     safe_dump = mocker.patch("yaml.safe_dump")
-    copy_mock = mocker.patch("shutil.copy")
+    copy_mock = mocker.patch("shutil.copy2")
     move_mock = mocker.patch("shutil.move")
     cls = astute.AstuteArchivator
     archive = TestArchive([member], cls)
