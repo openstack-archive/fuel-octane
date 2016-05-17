@@ -16,9 +16,8 @@ import urlparse
 
 from octane.handlers.backup_restore import base
 
-from octane.util import docker
 from octane.util import helpers
-from octane.util import subprocess
+from octane.util import sql
 
 
 class NaigunWWWBackup(base.PathArchivator):
@@ -32,23 +31,7 @@ class NaigunWWWBackup(base.PathArchivator):
 
     def backup(self):
         ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-        results, _ = docker.run_in_container(
-            "postgres",
-            [
-                "sudo",
-                "-u",
-                "postgres",
-                "psql",
-                self.db,
-                "--tuples-only",
-                "-c",
-                self.sql
-            ],
-            stdout=subprocess.PIPE)
-        results = results.strip()
-        if not results:
-            return
-        rows = results.split("\n")
+        rows = sql.run_psql_in_container(self.sql, self.db)
         already_backuped = set()
         for line in rows:
             data = json.loads(line)
