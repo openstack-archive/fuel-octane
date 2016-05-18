@@ -24,7 +24,7 @@ def set_astute_password(auth_context):
     _, tmp_file_name = tempfile.mkstemp(
         dir="/etc/fuel",
         prefix=".astute.yaml.octane")
-    shutil.copy("/etc/fuel/astute.yaml", tmp_file_name)
+    shutil.copy2("/etc/fuel/astute.yaml", tmp_file_name)
     try:
         data = helpers.get_astute_dict()
         data["FUEL_ACCESS"]["password"] = auth_context.password
