@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import shutil
 import tempfile
 import yaml
@@ -30,9 +31,10 @@ class PuppetApplyHost(base.Base):
         pass
 
     def restore(self):
-        _, tmp_file_name = tempfile.mkstemp(
+        fd, tmp_file_name = tempfile.mkstemp(
             dir="/etc/fuel",
             prefix=".astute.yaml.octane")
+        os.close(fd)
         shutil.copy("/etc/fuel/astute.yaml", tmp_file_name)
         try:
             data = helpers.get_astute_dict()
