@@ -23,9 +23,11 @@ class TestException(Exception):
 
 @pytest.mark.parametrize("exc_on_apply", [True, False])
 def test_set_astute_password(mocker, mock_open, exc_on_apply):
+    fd_mock = mock.Mock()
+    close_mock = mocker.patch("os.close")
     mkstemp_mock = mocker.patch(
         "tempfile.mkstemp",
-        return_value=(1, "/etc/fuel/.astute.yaml.bac"))
+        return_value=(fd_mock, "/etc/fuel/.astute.yaml.bac"))
     mock_copy = mocker.patch("shutil.copy2")
     mock_move = mocker.patch("shutil.move")
     yaml_load = mocker.patch(
@@ -45,7 +47,7 @@ def test_set_astute_password(mocker, mock_open, exc_on_apply):
         mock.call("/etc/fuel/astute.yaml", "w"),
     ]
     yaml_load.assert_called_once_with(mock_open.return_value)
-    yaml_dump.asswer_called_once_with(
+    yaml_dump.assert_called_once_with(
         {'FUEL_ACCESS': {'password': 'user_pswd'}},
         mock_open.return_value,
         default_flow_style=False)
@@ -55,3 +57,4 @@ def test_set_astute_password(mocker, mock_open, exc_on_apply):
                                       "/etc/fuel/astute.yaml")
     mkstemp_mock.assert_called_once_with(
         dir="/etc/fuel", prefix=".astute.yaml.octane")
+    close_mock.assert_called_once_with(fd_mock)
