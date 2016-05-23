@@ -1,5 +1,7 @@
 include AUTHORS
 include ChangeLog
+include octane/patches/*
+include octane/bin/*
 exclude .gitignore
 
 global-exclude *.pyc
