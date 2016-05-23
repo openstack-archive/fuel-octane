@@ -72,7 +72,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         controller = env_util.get_one_controller(self.env)
         with ssh.tempdir(controller) as tempdir:
             local_path = os.path.join(
-                magic_consts.CWD, 'bin', 'host_evacuation.sh')
+                magic_consts.CWD, 'helpers', 'host_evacuation.sh')
             remote_path = os.path.join(tempdir, 'host_evacuation.sh')
             sftp = ssh.sftp(controller)
             sftp.put(local_path, remote_path)
