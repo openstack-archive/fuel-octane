@@ -210,6 +210,16 @@ def _container_action(container, action):
 
 def stop_container(container):
     _container_action(container, "stop")
+    containter_id = subprocess.call_output([
+        'docker',
+        'ps',
+        '--filter',
+        'name={0}'.format(container),
+        '--format',
+        '{{.ID}}'
+    ]).strip()
+    if containter_id:
+        subprocess.call(["docker", "stop", containter_id])
 
 
 def start_container(container):
