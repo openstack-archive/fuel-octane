@@ -91,3 +91,27 @@ def test_wait_for_puppet_in_container(mocker, mock_subprocess):
     ]
     docker._wait_for_puppet_in_container(test_container, attempts, delay)
     assert 2 == mock_subprocess.call_count
+
+
+@pytest.mark.parametrize(
+    "container_id,stop_by_docker",
+    [('\n', False), ("123", True), ("123\n", True)])
+@pytest.mark.parametrize("container_name", ["container_name"])
+def test_docker_stop(
+        mocker, mock_subprocess, container_id, container_name, stop_by_docker):
+    mock_subprocess_call_output = mocker.patch(
+        "octane.util.subprocess.call_output", return_value=container_id)
+    mock_stop_action = mocker.patch("octane.util.docker._container_action")
+    docker.stop_container(container_name)
+    mock_stop_action.assert_called_once_with(container_name, "stop")
+    mock_subprocess_call_output.assert_called_once_with([
+        'docker',
+        'ps',
+        '--filter',
+        'name={0}'.format(container_name),
+        '--format',
+        '{{.ID}}'
+    ])
+    if stop_by_docker:
+        mock_subprocess.assert_called_once_with(
+            ["docker", "stop", container_id.strip()])
