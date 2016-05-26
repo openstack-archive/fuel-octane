@@ -13,7 +13,9 @@
 import logging
 
 from octane.handlers import upgrade
+from octane.helpers import disk
 from octane.util import ceph
+from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import puppet
 from octane.util import subprocess
@@ -28,6 +30,10 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
             ceph.check_cluster(self.node)
         except subprocess.CalledProcessError as exc:
             LOG.warning("Ceph cluster health is not OK, ignoring: %s", exc)
+
+        if env_util.incompatible_provision_method(self.node.env):
+            disk.create_configdrive_partition(self.node)
+            disk.update_node_partition_info(self.node.id)
 
     def prepare(self):
         self.preserve_partition()
