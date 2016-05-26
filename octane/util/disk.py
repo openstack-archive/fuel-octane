@@ -11,6 +11,7 @@
 # under the License.
 import os.path
 
+from octane import magic_consts
 from octane.util import docker
 from octane.util import ssh
 
@@ -51,5 +52,6 @@ def create_configdrive_partition(node):
         raise Exception("No disks info was found "
                         "for node {0}".format(node.data["id"]))
     # it was agreed that 10MB is enough for config drive partition
-    size = 10
-    create_partition(disks[0]['name'], size, node)
+    create_partition(disks[0]['name'],
+                     magic_consts.CONFIGDRIVE_PART_SIZE,
+                     node)
