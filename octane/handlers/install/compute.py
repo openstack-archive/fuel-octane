@@ -14,8 +14,8 @@ import logging
 import os.path
 
 from octane.handlers import install
-from octane.helpers import disk
 from octane import magic_consts
+from octane.util import disk 
 from octane.util import node as node_util
 from octane.util import plugin
 from octane.util import ssh
