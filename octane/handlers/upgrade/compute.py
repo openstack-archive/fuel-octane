@@ -17,7 +17,6 @@ import subprocess
 
 from octane.handlers import upgrade
 from octane import magic_consts
-from octane.util import disk
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import plugin
@@ -28,10 +27,6 @@ LOG = logging.getLogger(__name__)
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        env = self.node.env
-        if env_util.incompatible_provision_method(env):
-            disk.create_configdrive_partition()
-            disk.update_node_partition_info(self.node.id)
         if not self.live_migration:
             self.preserve_partition()
             self.shutoff_vms()
@@ -102,15 +97,6 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                '|',
                'xargs -I% nova stop %']
         ssh.call(["sh", "-c", ' '.join(cmd)], stdout=ssh.PIPE, node=controller)
-
-    def create_configdrive_partition(self):
-        disks = disk.get_node_disks(self.node)
-        if not disks:
-            raise Exception("No disks info was found "
-                            "for node {0}".format(self.node["id"]))
-        # it was agreed that 10MB is enough for config drive partition
-        size = 10
-        disk.create_partition(disks[0]['name'], size, self.node)
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
