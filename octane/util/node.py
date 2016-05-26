@@ -135,10 +135,25 @@ def wait_for_mcollective_start(nodes, timeout=600):
 def add_compute_upgrade_levels(node, version):
     sftp = ssh.sftp(node)
     with ssh.update_file(sftp, '/etc/nova/nova.conf') as (old, new):
+        add_upgrade_levels = True
+        in_section = False
         for line in old:
-            new.write(line)
             if line.startswith("[upgrade_levels]"):
+                add_upgrade_levels = False
+                in_section = True
+                new.write(line)
                 new.write("compute={0}\n".format(version))
+                continue
+            if in_section and line.startswith("["):
+                in_section = False
+            if in_section and line.startswith("compute="):
+                LOG.warning(
+                    "Skipping line so not to duplicate compute "
+                    "upgrade level setting: %s" % line.rstrip())
+                continue
+            new.write(line)
+        if add_upgrade_levels:
+            new.write("[upgrade_levels]\ncompute={0}\n".format(version))
 
 
 def remove_compute_upgrade_levels(node):
