@@ -29,9 +29,9 @@ def parse_last_partition_end(out):
 
 # size in MB
 def create_partition(disk_name, size, node):
-    out, _ = ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'print'],
-                      stdout=ssh.PIPE,
-                      node=node)
+    out = ssh.call_output(['parted', '/dev/%s' % disk_name,
+                           'unit', 'MB', 'print'],
+                          node=node)
     start = parse_last_partition_end(out) + 1
     end = start + size
     ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart',
