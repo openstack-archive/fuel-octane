@@ -1,0 +1,10 @@
+--- usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
++++ usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
+325,327c325,327
+<                 LOG.debug('Adding UEFI partition on disk %s: size=200' %
+<                           disk['name'])
+<                 parted.add_partition(size=200)
+---
+>                 # LOG.debug('Adding UEFI partition on disk %s: size=200' %
+>                 #           disk['name'])
+>                 # parted.add_partition(size=200)
