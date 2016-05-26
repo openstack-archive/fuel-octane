@@ -103,15 +103,6 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                'xargs -I% nova stop %']
         ssh.call(["sh", "-c", ' '.join(cmd)], stdout=ssh.PIPE, node=controller)
 
-    def create_configdrive_partition(self):
-        disks = disk.get_node_disks(self.node)
-        if not disks:
-            raise Exception("No disks info was found "
-                            "for node {0}".format(self.node["id"]))
-        # it was agreed that 10MB is enough for config drive partition
-        size = 10
-        disk.create_partition(disks[0]['name'], size, self.node)
-
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
             return
