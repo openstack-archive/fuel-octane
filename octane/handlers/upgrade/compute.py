@@ -16,8 +16,8 @@ import stat
 import subprocess
 
 from octane.handlers import upgrade
-from octane.helpers import disk
 from octane import magic_consts
+from octane.util import disk
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import plugin
