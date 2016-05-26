@@ -17,7 +17,6 @@ import subprocess
 
 from octane.handlers import upgrade
 from octane import magic_consts
-from octane.util import disk
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import plugin
@@ -28,10 +27,6 @@ LOG = logging.getLogger(__name__)
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        env = self.node.env
-        if env_util.incompatible_provision_method(env):
-            disk.create_configdrive_partition()
-            disk.update_node_partition_info(self.node.id)
         if not self.live_migration:
             self.preserve_partition()
             self.shutoff_vms()
