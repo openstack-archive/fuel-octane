@@ -125,12 +125,14 @@ def _check_upgrade_levels(mocker, node, content, expected_content):
 
 NOVA_DEFAULT = b"#\u0444\n[DEFAULT]\ndebug = True\n"
 NOVA_WITH_EMPTY_LEVELS = NOVA_DEFAULT + b"[upgrade_levels]\n"
+NOVA_WITH_JUNO_LEVELS = NOVA_WITH_EMPTY_LEVELS + b"compute=juno\n"
 NOVA_WITH_KILO_LEVELS = NOVA_WITH_EMPTY_LEVELS + b"compute=kilo\n"
 
 
 @pytest.mark.parametrize("content,expected_content", [
-    (NOVA_DEFAULT, NOVA_DEFAULT),
+    (NOVA_DEFAULT, NOVA_WITH_KILO_LEVELS),
     (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_KILO_LEVELS),
+    (NOVA_WITH_JUNO_LEVELS, NOVA_WITH_KILO_LEVELS),
 ])
 def test_add_compute_upgrade_levels(mocker, node, content, expected_content):
     with _check_upgrade_levels(mocker, node, content, expected_content):
