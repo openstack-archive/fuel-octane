@@ -11,6 +11,7 @@
 # under the License.
 import os.path
 
+from octane import magic_consts
 from octane.util import docker
 from octane.util import ssh
 
@@ -43,3 +44,14 @@ def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
     command = ['python', os.path.join('/tmp', fname), str(node_id)]
     docker.run_in_container('nailgun', command)
+
+
+def create_configdrive_partition(node):
+    disks = get_node_disks(node)
+    if not disks:
+        raise Exception("No disks info was found "
+                        "for node {0}".format(node.data["id"]))
+    # it was agreed that 10MB is enough for config drive partition
+    create_partition(disks[0]['name'],
+                     magic_consts.CONFIGDRIVE_PART_SIZE,
+                     node)
