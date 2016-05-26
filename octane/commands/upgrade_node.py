@@ -61,9 +61,9 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
     env_util.copy_vips(env)
 
-    call_handlers('predeploy')
     if network_template:
         env_util.set_network_template(env, network_template)
+    call_handlers('predeploy')
     if isolated or len(nodes) == 1:
         env_util.deploy_nodes(env, nodes)
     else:
