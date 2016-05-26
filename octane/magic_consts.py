@@ -72,3 +72,5 @@ UPGRADE_NODE_PATCHES = [
 ]
 
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+# NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
+CONFIGDRIVE_PART_SIZE = 10
