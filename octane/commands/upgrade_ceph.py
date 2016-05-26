@@ -81,6 +81,17 @@ def get_ceph_conf_filename(node):
     return '/etc/ceph/ceph.conf'
 
 
+def add_rgw_frontends(conf):
+    rgw_frontends_line = ("rgw_frontends = fastcgi socket_port=9000 "
+                          "socket_host=127.0.0.1")
+    if re.search(rgw_frontends_line, conf):
+        return conf
+    conf = re.sub(r'\nkeyring = /etc/ceph/keyring.radosgw.gateway\n',
+                  "\g<0>{0}\n".format(rgw_frontends_line),
+                  conf)
+    return conf
+
+
 def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
     nodes = list(env_util.get_controllers(seed_env))
     hostnames = map(short_hostname, node_util.get_hostnames(nodes))
@@ -89,6 +100,7 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
     with contextlib.closing(tarfile.open(filename)) as f:
         conf = f.extractfile(conf_filename).read()
         conf = replace_addresses(conf, hostnames, mgmt_ips)
+        conf = add_rgw_frontends(conf)
 
     fsid = get_fsid(conf)
     monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
