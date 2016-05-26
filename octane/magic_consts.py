@@ -82,3 +82,6 @@ COBBLER_DROP_VERSION = "7.0"
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
 RELEASE_STATUS_MANAGED = "manageonly"
+
+# NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
+CONFIGDRIVE_PART_SIZE = 10
