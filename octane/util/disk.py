@@ -43,3 +43,13 @@ def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
     command = ['python', os.path.join('/tmp', fname), str(node_id)]
     docker.run_in_container('nailgun', command)
+
+
+def create_configdrive_partition(node):
+    disks = get_node_disks(node)
+    if not disks:
+        raise Exception("No disks info was found "
+                        "for node {0}".format(node.data["id"]))
+    # it was agreed that 10MB is enough for config drive partition
+    size = 10
+    create_partition(disks[0]['name'], size, self.node)
