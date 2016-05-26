@@ -47,6 +47,13 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
+    # NOTE(ogelbukh): Another sanity check: we can't upgrade single controller
+    # except the first one, otherwise deployment fails
+    # TODO(ogelbukh): Investigate and solve the root cause of the issue that
+    # prevents upgrade of a single controller
+    if len(nodes) == 1 and 'controller' in nodes[0].data['roles']:
+        raise Exception("Cannot upgrade single non-isolated controller {0}"
+                        .format(nodes[0].data['id']))
     # NOTE(ogelbukh): patches and scripts copied to nailgun container
     # for later use
     copy_patches_folder_to_nailgun()
