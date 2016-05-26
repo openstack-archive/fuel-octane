@@ -13,6 +13,7 @@
 import os
 import pytest
 
+from octane import magic_consts
 from octane.util import disk as disk_util
 
 
@@ -46,3 +47,33 @@ def test_update_partition_info(mocker, node):
     ]
     disk_util.update_node_partition_info(test_node_id)
     mock_run_in_container.assert_called_once_with(container, expected_command)
+
+
+NODE_DISKS_ATTRIBUTE = [
+    {
+        'id': '1',
+        'name': 'disk1',
+    }, {
+        'id': '2',
+        'name': 'disk2',
+    }
+]
+
+
+@pytest.mark.parametrize("disk_attrs", [
+    NODE_DISKS_ATTRIBUTE,
+    None,
+])
+def test_create_configdrive_partition(mocker, node, disk_attrs):
+    name = 'disk1'
+    node.mock_add_spec(['get_attribute'])
+    node.data = {"id": "1"}
+    node.get_attribute.return_value = disk_attrs
+    mock_create_part = mocker.patch("octane.util.disk.create_partition")
+    if disk_attrs:
+        disk_util.create_configdrive_partition(node)
+        mock_create_part.assert_called_once_with(
+            name, magic_consts.CONFIGDRIVE_PART_SIZE, node)
+    else:
+        with pytest.raises(disk_util.NoDisksInfoError):
+            disk_util.create_configdrive_partition(node)
