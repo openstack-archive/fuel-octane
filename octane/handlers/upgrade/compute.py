@@ -30,7 +30,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         env = self.node.env
         if env_util.incompatible_provision_method(env):
-            self.create_configdrive_partition()
+            disk.create_configdrive_partition()
             disk.update_node_partition_info(self.node.id)
         if not self.live_migration:
             self.preserve_partition()
