@@ -11,9 +11,12 @@
 # under the License.
 
 import logging
+import os
 
 from octane.handlers import upgrade
+from octane import magic_consts
 from octane.util import ceph
+from octane.util import docker
 from octane.util import node as node_util
 from octane.util import puppet
 from octane.util import subprocess
@@ -28,6 +31,13 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
             ceph.check_cluster(self.node)
         except subprocess.CalledProcessError as exc:
             LOG.warning("Ceph cluster health is not OK, ignoring: %s", exc)
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
     def prepare(self):
         self.preserve_partition()
@@ -37,6 +47,14 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
     def postdeploy(self):
         ceph.unset_osd_noout(self.env)
         puppet.patch_modules(revert=True)
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+            revert=True
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
     def preserve_partition(self):
         partition = 'ceph'

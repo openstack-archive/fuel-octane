@@ -18,6 +18,7 @@ import subprocess
 from octane.handlers import upgrade
 from octane import magic_consts
 from octane.util import disk
+from octane.util import docker
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import plugin
@@ -37,6 +38,15 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         else:
             self.backup_iscsi_initiator_info()
             self.preserve_partition()
+
+    def preupgrade(self):
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
     def postdeploy(self):
         self.restore_iscsi_initiator_info()
@@ -67,6 +77,14 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
             ssh.call(["service", "nova-compute", "restart"], node=self.node)
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+            revert=True
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)

@@ -20,6 +20,7 @@ from octane.handlers import upgrade
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import docker
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -36,6 +37,13 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
     def preupgrade(self):
         self.service_tenant_id = env_util.cache_service_tenant_id(
             self.env, self.node)
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
@@ -120,6 +128,14 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                      self.node.id, self.gateway)
             ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],
                      node=self.node)
+        docker.apply_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/",
+            os.path.join(magic_consts.CWD, "patches/nailgun_serializer.patch"),
+            revert=True
+        )
+        docker.stop_container("nailgun")
+        docker.start_container("nailgun")
 
 
 def get_admin_gateway(environment):
