@@ -21,6 +21,7 @@ from octane.handlers import upgrade as upgrade_handlers
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
+from octane.util import helpers
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,13 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
     # Sanity check
+    if network_template:
+        try:
+            network_template_data = helpers.load_yaml(network_template)
+        except Exception:
+            LOG.exception("Cannot open network template from %s",
+                          network_template)
+            raise
     one_orig_id = None
     for node in nodes:
         orig_id = node.data['cluster']
@@ -62,7 +70,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     env_util.copy_vips(env)
 
     if network_template:
-        env_util.set_network_template(env, network_template)
+        env.set_network_template_data(network_template_data)
     call_handlers('predeploy')
     if isolated or len(nodes) == 1:
         env_util.deploy_nodes(env, nodes)
