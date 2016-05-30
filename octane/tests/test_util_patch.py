@@ -18,15 +18,15 @@ import pytest
 from octane.util import patch
 
 
+class TestException(Exception):
+    pass
+
+
 @pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
 @pytest.mark.parametrize("cwd", ["test_dir"])
 @pytest.mark.parametrize("is_exception", [True, False])
 def test_applied_context_manager(mocker, patches, cwd, is_exception):
     patch_mock = mocker.patch("octane.util.patch.patch_apply")
-
-    class TestException(Exception):
-        pass
-
     if is_exception:
         with pytest.raises(TestException):
             with patch.applied_patch(cwd, *patches):
