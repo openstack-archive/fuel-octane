@@ -78,3 +78,9 @@ CONFIGDRIVE_PART_SIZE = 10
 KEYSTONE_CONF = "/etc/keystone/keystone.conf"
 KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"
 ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+NAILGUN_SERVICE_PATCHES = (
+    "nailgun",
+    "nailgun",
+    "/usr/lib/python2.7/site-packages/nailgun/orchestrator/",
+    os.path.join(CWD, "patches/nailgun_serializer.patch")
+)

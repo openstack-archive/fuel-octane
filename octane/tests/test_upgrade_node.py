@@ -15,6 +15,7 @@ import pytest
 import yaml
 
 from octane.commands import upgrade_node
+from octane import magic_consts
 
 
 @pytest.mark.parametrize('cmd,env,nodes,provision,roles', [
@@ -78,12 +79,16 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         "octane.commands.upgrade_node.load_network_template")
     mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
+    mock_docker_patch = mocker.patch(
+        "octane.util.docker.patch_container_service")
     upgrade_node.upgrade_node(test_env_id, node_ids)
 
     mock_copy_patches.assert_called_once_with()
     mock_copy_vips.assert_called_once_with(mock_env)
     mock_move_nodes.assert_called_once_with(mock_env, mock_nodes_list,
                                             True, None)
+    mock_docker_patch.assert_called_once_with(
+        *magic_consts.NAILGUN_SERVICE_PATCHES)
     assert mock_handlers.call_args_list == [
         mock.call('preupgrade'), mock.call('prepare'),
         mock.call('predeploy'), mock.call('postdeploy')]
