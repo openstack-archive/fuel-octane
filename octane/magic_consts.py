@@ -82,3 +82,9 @@ COBBLER_DROP_VERSION = "7.0"
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
 RELEASE_STATUS_MANAGED = "manageonly"
+NAILGUN_SERVICE_PATCHES = (
+    "nailgun",
+    "nailgun",
+    "/usr/lib/python2.7/site-packages/nailgun/orchestrator/",
+    os.path.join(CWD, "patches/nailgun_serializer.patch")
+)

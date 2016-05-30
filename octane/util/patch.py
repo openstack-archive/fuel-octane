@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
+
+from octane.util import docker
 from octane.util import subprocess
 
 
@@ -26,3 +29,11 @@ def patch_apply(cwd, patches, revert=False):
             if not revert:
                 patch.seek(0)
                 subprocess.call(["patch", "-N", "-p1"], stdin=patch, cwd=cwd)
+
+
+@contextlib.contextmanager
+def patch_container_service(container, service, prefix, *patches):
+    with docker.applied_patches(container, prefix, *patches):
+        docker.run_in_container(container, ["service", service, "restart"])
+        yield
+    docker.run_in_container(container, ["service", service, "restart"])
