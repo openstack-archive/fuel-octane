@@ -21,8 +21,20 @@ from octane.handlers import upgrade as upgrade_handlers
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
+from octane.util import helpers
 
 LOG = logging.getLogger(__name__)
+
+
+def load_network_template(network_template):
+    if network_template:
+        try:
+            data = helpers.load_yaml(network_template)
+        except Exception:
+            LOG.exception("Cannot open network template from %s",
+                          network_template)
+            raise
+    return data
 
 
 def check_sanity(env, nodes):
@@ -52,6 +64,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
+    network_template_data = load_network_template(network_template)
     check_sanity(env, nodes)
 
     # NOTE(ogelbukh): patches and scripts copied to nailgun container
@@ -69,7 +82,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     env_util.copy_vips(env)
 
     if network_template:
-        env_util.set_network_template(env, network_template)
+        env.set_network_template_data(network_template_data)
     call_handlers('predeploy')
     if isolated or len(nodes) == 1:
         env_util.deploy_nodes(env, nodes)
