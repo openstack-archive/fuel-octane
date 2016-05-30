@@ -52,24 +52,31 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     copy_patches_folder_to_nailgun()
 
     call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
-    call_handlers('preupgrade')
-    call_handlers('prepare')
-    env_util.move_nodes(env, nodes, provision, roles)
+    nailgun_serializer_patch = os.path.join(
+        magic_consts.CWD, "patches/nailgun_serializer.patch")
+    with docker.applied_patches(
+            "nailgun",
+            "/usr/lib/python2.7/site-packages/nailgun/orchestrator/",
+            nailgun_serializer_patch):
+        docker.run_in_container("nailgun", ["service", "nailgun", "restart"])
+        call_handlers('preupgrade')
+        call_handlers('prepare')
+        env_util.move_nodes(env, nodes, provision, roles)
 
-    # NOTE(aroma): copying of VIPs must be done after node reassignment
-    # as according to [1] otherwise the operation will not take any effect
-    # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
-    env_util.copy_vips(env)
+        # NOTE(aroma): copying of VIPs must be done after node reassignment
+        # as according to [1] otherwise the operation will not take any effect
+        # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
+        env_util.copy_vips(env)
 
-    if network_template:
-        env_util.set_network_template(env, network_template)
-    call_handlers('predeploy')
-    if isolated or len(nodes) == 1:
-        env_util.deploy_nodes(env, nodes)
-    else:
-        env_util.deploy_changes(env, nodes)
-    call_handlers('postdeploy')
-
+        if network_template:
+            env_util.set_network_template(env, network_template)
+        call_handlers('predeploy')
+        if isolated or len(nodes) == 1:
+            env_util.deploy_nodes(env, nodes)
+        else:
+            env_util.deploy_changes(env, nodes)
+        call_handlers('postdeploy')
+    docker.run_in_container("nailgun", ["service", "nailgun", "restart"])
 
 def copy_patches_folder_to_nailgun():
     dest_folder = '/tmp'
