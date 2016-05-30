@@ -16,15 +16,15 @@ import pytest
 from octane.util import patch
 
 
+class TestException(Exception):
+    pass
+
+
 @pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
 @pytest.mark.parametrize("cwd", ["test_dir"])
 @pytest.mark.parametrize("is_exception", [True, False])
 def test_applied_context_manager(mocker, patches, cwd, is_exception):
     patch_mock = mocker.patch("octane.util.patch.patch_apply")
-
-    class TestException(Exception):
-        pass
-
     if is_exception:
         with pytest.raises(TestException):
             with patch.applied_patch(cwd, *patches):
@@ -36,3 +36,30 @@ def test_applied_context_manager(mocker, patches, cwd, is_exception):
         mock.call(cwd, patches),
         mock.call(cwd, patches, revert=True)
     ] == patch_mock.call_args_list
+
+
+@pytest.mark.parametrize("is_exception", [True, False])
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
+@pytest.mark.parametrize("service", ["service_1"])
+@pytest.mark.parametrize("prefix ", ["prefix_1", "prefix_2", None])
+def test_applied_docker_context_manager(
+        mocker, patches, container, is_exception, service, prefix):
+    patch_mock = mocker.patch("octane.util.docker.applied_patches")
+    docker_run_mock = mocker.patch("octane.util.docker.run_in_container")
+
+    if is_exception:
+        with pytest.raises(TestException):
+            with patch.patch_container_service(
+                    container, service, prefix, *patches):
+                raise TestException
+    else:
+        with patch.patch_container_service(
+                container, service, prefix, *patches):
+            pass
+
+    assert [
+        mock.call(container, ["service", service, "restart"]),
+        mock.call(container, ["service", service, "restart"])
+    ] == docker_run_mock.call_args_list
+    patch_mock.assert_called_once_with(container, prefix, *patches)

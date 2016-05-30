@@ -12,6 +12,7 @@
 
 import contextlib
 
+from octane.util import docker
 from octane.util import subprocess
 
 
@@ -37,3 +38,13 @@ def applied_patch(cwd, *patches):
         yield
     finally:
         patch_apply(cwd, patches, revert=True)
+
+
+@contextlib.contextmanager
+def patch_container_service(container, service, prefix, *patches):
+    try:
+        with docker.applied_patches(container, prefix, *patches):
+            docker.run_in_container(container, ["service", service, "restart"])
+            yield
+    finally:
+        docker.run_in_container(container, ["service", service, "restart"])

@@ -86,3 +86,10 @@ RELEASE_STATUS_MANAGED = "manageonly"
 UPGRADE_NODE_PATCHES = [
     os.path.join(CWD, "patches/puppet/fix_mysql.patch")
 ]
+
+NAILGUN_SERVICE_PATCHES = (
+    "nailgun",
+    "nailgun",
+    "/usr/lib/python2.7/site-packages/nailgun/orchestrator/",
+    os.path.join(CWD, "patches/nailgun_serializer.patch")
+)
