@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import logging
 import os.path
 
@@ -72,8 +73,11 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
 
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
-    with patch.applied_patch(
-            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES):
+    with contextlib.nested(
+            docker.patch_container_service(
+                *magic_consts.NAILGUN_ARCHIVATOR_PATCHES),
+            patch.applied_patch(
+                magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES)):
         call_handlers('preupgrade')
         call_handlers('prepare')
         env_util.move_nodes(env, nodes, provision, roles)
