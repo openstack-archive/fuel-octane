@@ -72,3 +72,9 @@ UPGRADE_NODE_PATCHES = [
 ]
 
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+NAILGUN_SERVICE_PATCHES = (
+    "nailgun",
+    "nailgun",
+    "/usr/lib/python2.7/site-packages/nailgun/orchestrator/",
+    os.path.join(CWD, "patches/nailgun_serializer.patch")
+)
