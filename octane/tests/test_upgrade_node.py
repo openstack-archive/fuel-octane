@@ -11,6 +11,7 @@
 # under the License.
 
 import pytest
+import yaml
 
 from octane.commands import upgrade_node
 
@@ -49,3 +50,17 @@ def test_check_sanity(mocker, node):
     mock_nodes = [mock_node, ]
     res = upgrade_node.check_sanity(mock_env, mock_nodes)
     assert res
+
+
+@pytest.mark.parametrize("return_value", [{'test': 'test'}, ])
+@pytest.mark.parametrize("side_effect",
+                         [None, yaml.parser.ParserError, IOError])
+def test_load_network_template(mocker, return_value, side_effect):
+    mocker.patch("octane.util.helpers.load_yaml",
+                 return_value=return_value,
+                 side_effect=side_effect)
+    if side_effect:
+        with pytest.raises(side_effect):
+            upgrade_node.load_network_template("testfile")
+    else:
+        assert return_value == upgrade_node.load_network_template("testfile")
