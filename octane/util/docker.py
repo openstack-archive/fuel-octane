@@ -238,3 +238,13 @@ def applied_patches(container, prefix, *patches):
         yield
     finally:
         apply_patches(container, prefix, *patches, revert=True)
+
+
+@contextlib.contextmanager
+def patch_container_service(container, service, prefix, *patches):
+    try:
+        with applied_patches(container, prefix, *patches):
+            run_in_container(container, ["service", service, "restart"])
+            yield
+    finally:
+        run_in_container(container, ["service", service, "restart"])
