@@ -13,7 +13,7 @@ import subprocess
 
 from mock import call
 from mock import Mock
-from octane.helpers import network
+from octane.util import network
 
 
 def test_create_overlay_network(mocker):
@@ -107,10 +107,10 @@ def test_delete_overlay_network(mocker):
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
 
-    mock_ovs_tuns = mocker.patch('octane.helpers.network.list_tunnels_ovs')
+    mock_ovs_tuns = mocker.patch('octane.util.network.list_tunnels_ovs')
     mock_ovs_tuns.return_value = ['br-ex--gre-10.10.10.2']
 
-    mock_lnx_tun = mocker.patch('octane.helpers.network.list_tunnels_lnx')
+    mock_lnx_tun = mocker.patch('octane.util.network.list_tunnels_lnx')
     mock_lnx_tun.return_value = ['gre3-3']
 
     expected_args = [
