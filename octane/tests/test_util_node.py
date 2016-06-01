@@ -10,11 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import contextlib
 import io
 import mock
 import pytest
 
+from octane.tests import util as test_util
 from octane.util import node as node_util
 from octane.util import ssh
 
@@ -104,47 +104,31 @@ def test_untar_files(node, mock_ssh_popen, mock_open):
     assert buf.getvalue() == content
 
 
-@contextlib.contextmanager
-def _check_upgrade_levels(mocker, node, content, expected_content):
-    mock_sftp = mocker.patch('octane.util.ssh.sftp')
-
-    old = io.BytesIO(content)
-    mock_new = mocker.Mock()
-    buf = io.BytesIO()
-    mock_new.write = buf.write
-    mock_update_file = mocker.patch('octane.util.ssh.update_file')
-    mock_update_file.return_value.__enter__.return_value = (old, mock_new)
-
-    yield
-
-    mock_sftp.assert_called_once_with(node)
-    mock_update_file.assert_called_once_with(mock_sftp.return_value,
-                                             '/etc/nova/nova.conf')
-    assert buf.getvalue() == expected_content
-
-
 NOVA_DEFAULT = b"#\u0444\n[DEFAULT]\ndebug = True\n"
 NOVA_WITH_EMPTY_LEVELS = NOVA_DEFAULT + b"[upgrade_levels]\n"
 NOVA_WITH_KILO_LEVELS = NOVA_WITH_EMPTY_LEVELS + b"compute=kilo\n"
 
 
-@pytest.mark.parametrize("content,expected_content", [
-    (NOVA_DEFAULT, NOVA_DEFAULT),
-    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_KILO_LEVELS),
+@pytest.mark.parametrize("content,expected_content,filename", [
+    (NOVA_DEFAULT, NOVA_DEFAULT, '/etc/nova/nova.conf'),
+    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_KILO_LEVELS, '/etc/nova/nova.conf'),
 ])
-def test_add_compute_upgrade_levels(mocker, node, content, expected_content):
-    with _check_upgrade_levels(mocker, node, content, expected_content):
+def test_add_compute_upgrade_levels(mocker, node, content, expected_content,
+                                    filename):
+    with test_util.mock_update_file(mocker, node, content, expected_content,
+                                    filename):
         node_util.add_compute_upgrade_levels(node, 'kilo')
 
 
-@pytest.mark.parametrize("content,expected_content", [
-    (NOVA_DEFAULT, NOVA_DEFAULT),
-    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_EMPTY_LEVELS),
-    (NOVA_WITH_KILO_LEVELS, NOVA_WITH_EMPTY_LEVELS),
+@pytest.mark.parametrize("content,expected_content,filename", [
+    (NOVA_DEFAULT, NOVA_DEFAULT, '/etc/nova/nova.conf'),
+    (NOVA_WITH_EMPTY_LEVELS, NOVA_WITH_EMPTY_LEVELS, '/etc/nova/nova.conf'),
+    (NOVA_WITH_KILO_LEVELS, NOVA_WITH_EMPTY_LEVELS, '/etc/nova/nova.conf'),
 ])
 def test_remove_compute_upgrade_levels(mocker, node, content,
-                                       expected_content):
-    with _check_upgrade_levels(mocker, node, content, expected_content):
+                                       expected_content, filename):
+    with test_util.mock_update_file(mocker, node, content, expected_content,
+                                    filename):
         node_util.remove_compute_upgrade_levels(node)
 
 
