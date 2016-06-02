@@ -9,9 +9,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os.path
+import json
 
-from octane.util import docker
+from octane.util import sql
 from octane.util import ssh
 
 
@@ -39,6 +39,44 @@ def create_partition(disk_name, size, node):
 
 
 def update_node_partition_info(node_id):
-    fname = 'update_node_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname), str(node_id)]
-    docker.run_in_container('nailgun', command)
+    try:
+        node_volumes_id, volumes_str = sql.run_psql_in_container(
+            "select id, volumes from volume_manager_node_volumes "
+            "where node_id={0}".format(node_id),
+            "nailgun"
+        )[0].split("|")
+    except IndexError:
+        raise Exception(
+            "No volumes info was found for node {0}".format(node_id)
+        )
+    volumes = json.loads(volumes_str)
+    try:
+        os_data = next(disk for disk in volumes if disk.get("id") == "os")
+    except StopIteration:
+        return
+    editable_volumes = [disk for disk in volumes if disk.get('id') != 'os']
+    for disk in editable_volumes:
+        disk_volumes, disk['volumes'] = disk['volumes'], []
+        for volume in disk_volumes:
+            if volume['type'] == 'pv' and \
+                    volume['vg'] == 'os' and \
+                    volume['size'] > 0:
+                disk['volumes'].extend([
+                    {
+                        'name': v['name'],
+                        'size': v['size'],
+                        'type': 'partition',
+                        'mount': v['mount'],
+                        'file_system': v['file_system'],
+                    }
+                    for v in os_data['volumes']
+                ])
+                continue
+            if volume['type'] == 'lvm_meta_pool' or volume['type'] == 'boot':
+                volume['size'] = 0
+            disk['volumes'].append(volume)
+    sql.run_psql_in_container(
+        "update volume_manager_node_volumes set volumes='{0}' "
+        "where id={1}".format(json.dumps(volumes), node_volumes_id),
+        "nailgun"
+    )
