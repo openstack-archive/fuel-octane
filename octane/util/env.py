@@ -112,10 +112,9 @@ def change_env_settings(env_id, master_ip=''):
 
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
-    res = subprocess.call_output(
-        ["fuel2", "env", "clone", "-f", "json",
-         str(env_id), uuid.uuid4().hex, str(release.data['id'])],
-    )
+    res = fuel2_env_call(["clone", "-f", "json", str(env_id),
+                         uuid.uuid4().hex, str(release.data['id'])],
+                         output=True)
     for kv in json.loads(res):
         if kv['Field'] == 'id':
             seed_id = kv['Value']
@@ -127,10 +126,10 @@ def clone_env(env_id, release):
 
 
 def clone_ips(orig_id, networks):
-    call_args = ['fuel2', 'env', 'clone-ips', str(orig_id)]
+    call_args = ['clone-ips', str(orig_id)]
     if networks:
         call_args += ['--networks'] + networks
-    subprocess.call(call_args)
+    fuel2_env_call(call_args)
 
 
 def delete_fuel_resources(env):
@@ -211,7 +210,7 @@ def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
 
 def move_nodes(env, nodes, provision=True, roles=None):
     env_id = env.data['id']
-    cmd = ["fuel2", "env", "move", "node"]
+    cmd = ["move", "node"]
     if not provision:
         cmd += ['--no-provision']
     if roles:
@@ -222,16 +221,22 @@ def move_nodes(env, nodes, provision=True, roles=None):
         if provision and incompatible_provision_method(env):
             disk.create_configdrive_partition(node)
             disk.update_node_partition_info(node.data["id"])
-        subprocess.call(cmd_move_node)
+        fuel2_env_call(cmd_move_node)
     if provision:
         LOG.info("Nodes provision started. Please wait...")
         wait_for_nodes(nodes, "provisioned")
 
 
 def copy_vips(env):
-    subprocess.call(
-        ["fuel2", "env", "copy", "vips", str(env.data['id'])]
-    )
+    fuel2_env_call(["copy", "vips", str(env.data['id'])])
+
+
+def fuel2_env_call(args, output=False):
+    cmd = ["fuel2", "--debug", "env"] + args
+    if output:
+        return subprocess.call_output(cmd)
+    else:
+        subprocess.call(cmd)
 
 
 def provision_nodes(env, nodes):
