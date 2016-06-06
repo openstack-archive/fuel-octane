@@ -12,6 +12,8 @@
 
 import pytest
 
+from octane.commands import upgrade_node
+
 
 @pytest.mark.parametrize('cmd,env,nodes,provision,roles', [
     (["upgrade-node", "--isolated", "1", "2", "3"], 1, [2, 3], True, None),
@@ -29,3 +31,10 @@ def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles):
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(env, nodes, isolated=True, network_template=None,
                               provision=provision, roles=roles)
+
+
+def test_check_sanity(mocker, node):
+    mock_env = mocker.Mock(data={"id": "test-env"})
+    mock_node = mocker.Mock(data={"id": "test-node", "cluster": None})
+    mock_nodes = [mock_node, ]
+    assert upgrade_node.check_sanity(mock_env, mock_nodes)
