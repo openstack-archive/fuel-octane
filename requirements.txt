@@ -8,4 +8,5 @@ python-fuelclient  # It pulls following libs:
 #requests
 #stevedore
 
+cryptography<1.4
 paramiko
