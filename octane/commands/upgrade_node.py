@@ -26,15 +26,10 @@ from octane.util import patch
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
-                 provision=True, roles=None, live_migration=True):
-    # From check_deployment_status
-    env = environment_obj.Environment(env_id)
-    nodes = [node_obj.Node(node_id) for node_id in node_ids]
-
-    # Sanity check
+def check_sanity(env_id, nodes):
     one_orig_id = None
     for node in nodes:
+        node_id = node.data['id']
         orig_id = node.data['cluster']
         if orig_id == env_id:
             raise Exception(
@@ -48,14 +43,16 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
-    # NOTE(ogelbukh): Another sanity check: we can't upgrade single controller
-    # except the first one, otherwise deployment fails
-    # TODO(ogelbukh): Investigate and solve the root cause of the issue that
-    # prevents upgrade of a single controller
-    if not isolated and len(nodes) == 1 and \
-            'controller' in nodes[0].data['roles']:
-        raise Exception("Cannot upgrade single non-isolated controller {0}"
-                        .format(nodes[0].data['id']))
+
+
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
+                 provision=True, roles=None, live_migration=True):
+    # From check_deployment_status
+    env = environment_obj.Environment(env_id)
+    nodes = [node_obj.Node(node_id) for node_id in node_ids]
+
+    check_sanity(env_id, nodes)
+
     # NOTE(ogelbukh): patches and scripts copied to nailgun container
     # for later use
     copy_patches_folder_to_nailgun()
