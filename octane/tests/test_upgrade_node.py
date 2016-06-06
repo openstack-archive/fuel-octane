@@ -12,6 +12,8 @@
 
 import pytest
 
+from octane.commands import upgrade_node
+
 
 @pytest.mark.parametrize('cmd,env,nodes,provision,roles', [
     (["upgrade-node", "--isolated", "1", "2", "3"], 1, [2, 3], True, None),
@@ -34,3 +36,39 @@ def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
     m.assert_called_once_with(env, nodes, isolated=True, network_template=None,
                               provision=provision, roles=roles,
                               live_migration=live_migration)
+
+
+@pytest.mark.parametrize('node_data,expected_error', [
+    ([{
+        'id': 'test-node',
+        'cluster': None,
+    }], None),
+    ([{
+        'id': 'test-node',
+        'cluster': 'test-env',
+    }], Exception),
+    ([{
+        'id': 'test-node',
+        'cluster': 'test-env-1',
+    }, {
+        'id': 'another-test-node',
+        'cluster': 'test-env-2'
+    }], Exception),
+])
+def test_check_sanity(mocker, node, node_data, expected_error):
+    test_env_id = "test-env"
+    mock_nodes = []
+    for data in node_data:
+        mock_node = mocker.Mock(data=data)
+        mock_nodes.append(mock_node)
+    if expected_error:
+        with pytest.raises(expected_error) as exc_info:
+            upgrade_node.check_sanity(test_env_id, mock_nodes)
+        if len(mock_nodes) == 1:
+            assert "Cannot upgrade node with ID %s:" \
+                in exc_info.value.args[0]
+        else:
+            assert "Not upgrading nodes from different clusters" \
+                in exc_info.value.args[0]
+    else:
+        assert upgrade_node.check_sanity(test_env_id, mock_nodes) is None
