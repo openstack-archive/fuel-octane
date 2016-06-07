@@ -316,7 +316,8 @@ DEPLOYMENT_INFO_7_0 = {
 
 
 IFACE_DEFAULT = b"auto br-ex\niface br-ex inet static\n" + \
-    b"bridge_ports eth0\naddress 10.109.1.4/24\ngateway 10.109.1.1\n"
+    b"bridge_ports eth0\naddress 10.109.1.4/24\ngateway 10.109.1.1\n" + \
+    b"hwaddress ether 42:9b:7d:dc:f8:4c"
 
 
 @pytest.mark.parametrize("content,expected_content,bridge,port", [
@@ -324,6 +325,21 @@ IFACE_DEFAULT = b"auto br-ex\niface br-ex inet static\n" + \
 ])
 def test_save_port_lnx(mocker, node, content, expected_content, bridge, port):
     filename = '/etc/network/interfaces.d/ifcfg-{0}'.format(bridge)
+    mock_get_bridge_mac = mocker.patch('octane.util.network.get_bridge_mac')
+    mock_get_bridge_mac.return_value = '42:9b:7d:dc:f8:4c'
     with test_util.mock_update_file(mocker, node, content, expected_content,
                                     filename):
         network.save_port_lnx(node, bridge, port)
+
+
+@pytest.mark.parametrize("output,expected_mac", [
+    ("12: pxe-fuel: <BROADCAST,UP,LOWER_UP> mtu 1500 qdisc noqueue "
+     "state UNKNOWN mode DEFAULT group default \    link/ether "
+     "42:9b:7d:dc:f8:4c brd ff:ff:ff:ff:ff:ff",
+     "42:9b:7d:dc:f8:4c"),
+])
+def test_get_bridge_mac(mocker, node, mock_ssh_call_output,
+                        output, expected_mac):
+    mock_ssh_call_output.return_value = output
+    mac = network.get_bridge_mac(node, 'br-test')
+    assert mac == expected_mac

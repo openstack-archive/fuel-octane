@@ -318,9 +318,16 @@ create_port_providers = {
 }
 
 
+def get_bridge_mac(node, bridge):
+    cmd = ["ip", "-o", "link", "show", "dev", bridge]
+    output = ssh.call_output(cmd, node=node)
+    return re.search("link/ether (\S+)", output).group(1)
+
+
 def save_port_lnx(node, bridge, port):
     ifaces_path = '/etc/network/interfaces.d'
     bridge_file = os.path.join(ifaces_path, 'ifcfg-{0}'.format(bridge))
+    bridge_mac = get_bridge_mac(node, bridge)
     sftp = ssh.sftp(node)
     with ssh.update_file(sftp, bridge_file) as (old, new):
         found_bridge_port_line = False
@@ -332,6 +339,7 @@ def save_port_lnx(node, bridge, port):
             new.write(line)
         if not found_bridge_port_line:
             new.write('bridge_ports {0}\n'.format(port['name']))
+            new.write('hwaddress ether {0}\n'.format(bridge_mac))
 
 
 save_port_providers = {
