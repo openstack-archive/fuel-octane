@@ -28,8 +28,11 @@ def get_tempname(dir=None, prefix=None):
 
 
 @contextlib.contextmanager
-def temp_dir():
-    temp_dir = tempfile.mkdtemp()
+def temp_dir(prefix=None):
+    kwargs = {}
+    if prefix:
+        kwargs["prefix"] = prefix
+    temp_dir = tempfile.mkdtemp(**kwargs)
     try:
         yield temp_dir
     finally:
