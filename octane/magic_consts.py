@@ -74,3 +74,8 @@ UPGRADE_NODE_PATCHES = [
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
 # NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
 CONFIGDRIVE_PART_SIZE = 10
+
+NOVA_PATCH_PREFIX_DIR = '/usr/lib/python2.7/dist-packages/'
+NOVA_PATCHES = [
+    os.path.join(CWD, "patches/nova.patch")
+]

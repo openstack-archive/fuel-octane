@@ -233,3 +233,19 @@ def tempdir(node):
         yield dirname
     finally:
         call(['rm', '-rf', dirname], node=node)
+
+
+@contextlib.contextmanager
+def applied_patch(cwd, *patches):
+    patched_files = []
+
+    try:
+        for path in patches:
+            with open(path, "rb") as patch:
+                call(["patch", "-N", "-p1"], stdin=patch, cwd=cwd)
+                patched_files.append(path)
+                yield
+    finally:
+        for path in patched_files:
+            with open(path, "rb") as patch:
+                call(["patch", "-R", "-p1"], stdin=patch, cwd=cwd)
