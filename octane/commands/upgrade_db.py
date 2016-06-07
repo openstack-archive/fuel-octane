@@ -13,6 +13,7 @@
 import logging
 import os.path
 import shutil
+import tempfile
 import time
 
 from cliff import command as cmd
@@ -22,6 +23,8 @@ from octane import magic_consts
 from octane.util import db
 from octane.util import env as env_util
 from octane.util import maintenance
+from octane.util import patch
+from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
 
@@ -52,9 +55,34 @@ def upgrade_db(orig_id, seed_id, db_role_name):
         'dbs.original.cluster_%s.sql.gz' % (orig_env.data['id'],),
     )
     shutil.copy(fname, fname2)
-
     db.mysqldump_restore_to_env(seed_env, db_role_name, fname)
-    db.db_sync(seed_env)
+    prefix = '/usr/lib/python2.7/dist-packages/'
+    patch_file = os.path.join(magic_consts.CWD, "patches/nova.patch")
+    file_names = patch.get_filenames_from_patches(prefix, patch_file)
+    tempdir_path = tempfile.mkdtemp()
+    file_name_pairs = []
+    for f_name in file_names:
+        local_name = os.path.join(tempdir_path, f_name)
+        remote_name = os.path.join(prefix, f_name)
+        local_dirname = os.path.dirname(local_name)
+        if not os.path.exists(local_dirname):
+            os.makedirs(local_dirname)
+        file_name_pairs.append((remote_name, local_name))
+
+    try:
+        for node in seed_env.get_all_nodes():
+            ssh.get_files_from_remote_node(node, file_name_pairs)
+            patch.patch_apply(tempdir_path, [patch_file])
+            ssh.put_files_to_remote_node(
+                node, [(b, a) for a, b in file_name_pairs])
+            try:
+                db.db_sync(seed_env)
+            finally:
+                patch.patch_apply(tempdir_path, [patch_file], revert=True)
+                ssh.put_files_to_remote_node(
+                    node, [(b, a) for a, b in file_name_pairs])
+    finally:
+        shutil.rmtree(tempdir_path)
 
 
 class UpgradeDBCommand(cmd.Command):
