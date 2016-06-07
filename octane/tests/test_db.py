@@ -14,6 +14,7 @@ import io
 
 import mock
 
+from octane import magic_consts
 from octane.util import db
 from octane.util import ssh
 
@@ -66,7 +67,12 @@ def test_db_sync(mocker, node, mock_subprocess, mock_ssh_call):
     get_one_controller = mocker.patch('octane.util.env.get_one_controller')
     get_one_controller.return_value = node
 
+    applied_patch = mocker.patch("octane.util.ssh.applied_patch")
+
     db.db_sync('env')
+
+    applied_patch.assert_called_once_with(
+        magic_consts.NOVA_PATCH_PREFIX_DIR, *magic_consts.NOVA_PATCHES)
 
     assert not mock_subprocess.called
     assert all(call[1]['parse_levels']
