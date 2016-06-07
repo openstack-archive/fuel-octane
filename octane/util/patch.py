@@ -26,3 +26,30 @@ def patch_apply(cwd, patches, revert=False):
             if not revert:
                 patch.seek(0)
                 subprocess.call(["patch", "-N", "-p1"], stdin=patch, cwd=cwd)
+
+
+def get_files_from_patch(patch):
+    """Get all files touched by a patch"""
+    result = []
+    with open(patch) as p:
+        for line in p:
+            if line.startswith('+++'):
+                fname = line[4:].strip()
+                if fname.startswith('b/'):
+                    fname = fname[2:]
+                tab_pos = fname.find('\t')
+                if tab_pos > 0:
+                    fname = fname[:tab_pos]
+                result.append(fname)
+    return result
+
+
+def get_filenames_from_patches(prefix, *patches):
+    files = []
+    for patch in patches:
+        for fname in get_files_from_patch(patch):
+            if fname.startswith(prefix):
+                files.append(fname[len(prefix) + 1:])
+            else:
+                files.append(fname)
+    return files
