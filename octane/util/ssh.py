@@ -233,3 +233,15 @@ def tempdir(node):
         yield dirname
     finally:
         call(['rm', '-rf', dirname], node=node)
+
+
+def get_files_from_remoute_node(node, remoute_and_local_path_pairs):
+    sftp_client = sftp(node)
+    for remoute_path, local_path in remoute_and_local_path_pairs:
+        sftp_client.get(remoute_path, local_path)
+
+
+def put_files_to_remoute_node(node, local_and_remoute_path_pairs):
+    sftp_client = sftp(node)
+    for local_path, remoute_path in local_and_remoute_path_pairs:
+        sftp_client.put(local_path, remoute_path)
