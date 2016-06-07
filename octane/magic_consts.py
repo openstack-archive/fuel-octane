@@ -72,3 +72,8 @@ UPGRADE_NODE_PATCHES = [
 ]
 
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+
+NOVA_PATCH_PREFIX_DIR = '/usr/lib/python2.7/dist-packages/'
+NOVA_PATCHES = [
+    os.path.join(CWD, "patches/nova.patch")
+]

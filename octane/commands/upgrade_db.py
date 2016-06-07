@@ -52,7 +52,6 @@ def upgrade_db(orig_id, seed_id, db_role_name):
         'dbs.original.cluster_%s.sql.gz' % (orig_env.data['id'],),
     )
     shutil.copy(fname, fname2)
-
     db.mysqldump_restore_to_env(seed_env, db_role_name, fname)
     db.db_sync(seed_env)
 
