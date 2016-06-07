@@ -19,6 +19,7 @@ import tarfile
 import tempfile
 import time
 
+from octane.util import patch
 from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
@@ -114,58 +115,20 @@ def get_files_from_docker(container, files, destination_dir):
             tar.extractall(destination_dir)
 
 
-def get_files_from_patch(patch):
-    """Get all files touched by a patch"""
-    result = []
-    with open(patch) as p:
-        for line in p:
-            if line.startswith('+++'):
-                fname = line[4:].strip()
-                if fname.startswith('b/'):
-                    fname = fname[2:]
-                tab_pos = fname.find('\t')
-                if tab_pos > 0:
-                    fname = fname[:tab_pos]
-                result.append(fname)
-    return result
-
-
 def apply_patches(container, prefix, *patches, **kwargs):
     """Apply set of patches to a container's filesystem"""
     revert = kwargs.pop('revert', False)
     # TODO: review all logic here to apply all preprocessing steps to patches
     # beforehand
+    files = [os.path.join(prefix, f)
+             for f in patch.get_filenames_from_patches(prefix, *patches)]
+    if not files:
+        LOG.warn("Nothing to patch!")
+        return
     tempdir = tempfile.mkdtemp(prefix='octane_docker_patches.')
     try:
-        files = []
-        for patch in patches:
-            for fname in get_files_from_patch(patch):
-                if fname.startswith(prefix):
-                    files.append(fname[len(prefix) + 1:])
-                else:
-                    files.append(fname)
-        files = [os.path.join(prefix, f) for f in files]
         get_files_from_docker(container, files, tempdir)
-        prefix = os.path.dirname(files[0])  # FIXME: WTF?!
-        direction = "-R" if revert else "-N"
-        with subprocess.popen(
-                ["patch", direction, "-p0", "-d", tempdir + "/" + prefix],
-                stdin=subprocess.PIPE,
-                ) as proc:
-            for patch in patches:
-                with open(patch) as p:
-                    for line in p:
-                        if line.startswith('+++'):  # FIXME: PLEASE!
-                            try:
-                                slash_pos = line.rindex('/', 4)
-                                space_pos = line.index(' ', slash_pos)
-                            except ValueError:
-                                pass
-                            else:
-                                line = ('+++ ' +
-                                        line[slash_pos + 1:space_pos] +
-                                        '\n')
-                        proc.stdin.write(line)
+        patch.patch_apply(tempdir, patches, revert)
         put_files_to_docker(container, "/", tempdir)
     finally:
         shutil.rmtree(tempdir)
@@ -270,3 +233,12 @@ def _wait_for_puppet_in_container(container, attempts, delay):
         raise Exception("Timeout waiting for container %s to complete "
                         "puppet agent run after %d seconds" %
                         (container, attempts * delay))
+
+
+@contextlib.contextmanager
+def applied_patches(container, prefix, *patches):
+    apply_patches(container, prefix, *patches)
+    try:
+        yield
+    finally:
+        apply_patches(container, prefix, *patches, revert=True)
