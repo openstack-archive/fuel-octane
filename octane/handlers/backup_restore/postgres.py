@@ -11,16 +11,11 @@
 # under the License.
 
 import json
-import logging
 import os
-import requests
 import shutil
 import six
-import urlparse
-import yaml
 
 from fuelclient.objects import node
-from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
@@ -29,9 +24,6 @@ from octane.util import fuel_client
 from octane.util import helpers
 from octane.util import sql
 from octane.util import subprocess
-
-
-LOG = logging.getLogger(__name__)
 
 
 class PostgresArchivatorMeta(type):
@@ -73,29 +65,13 @@ class PostgresArchivator(base.CmdArchivator):
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
 
-    def __post_data_to_nailgun(self, url, data, user, password):
-        ksclient = keystoneclient(
-            auth_url=magic_consts.KEYSTONE_API_URL,
-            username=user,
-            password=password,
-            tenant_name=magic_consts.KEYSTONE_TENANT_NAME,
-        )
-        resp = requests.post(
-            urlparse.urljoin(magic_consts.NAILGUN_URL, url),
-            json.dumps(data),
-            headers={
-                "X-Auth-Token": ksclient.auth_token,
-                "Content-Type": "application/json",
-            })
-        LOG.debug(resp.content)
-        return resp
-
     def restore(self):
         for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
             docker.apply_patches(*args)
         try:
             super(NailgunArchivator, self).restore()
-            self._post_restore_action()
+            self._repair_database_consistency()
+            self._create_links_on_remote_logs()
         finally:
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
@@ -123,31 +99,7 @@ class NailgunArchivator(PostgresArchivator):
         finally:
             docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
 
-    def _post_restore_action(self):
-        data, _ = docker.run_in_container(
-            "nailgun",
-            ["cat", magic_consts.OPENSTACK_FIXTURES],
-            stdout=subprocess.PIPE)
-        fixtures = yaml.load(data)
-        base_release_fields = fixtures[0]['fields']
-        for fixture in fixtures[1:]:
-            release = helpers.merge_dicts(
-                base_release_fields, fixture['fields'])
-            self.__post_data_to_nailgun(
-                "/api/v1/releases/",
-                release,
-                self.context.user,
-                self.context.password)
-        subprocess.call(
-            [
-                "fuel",
-                "release",
-                "--sync-deployment-tasks",
-                "--dir",
-                "/etc/puppet/",
-            ],
-            env=self.context.get_credentials_env())
-
+    def _repair_database_consistency(self):
         values = []
         for line in sql.run_psql_in_container(
                 "select id, generated from attributes;", self.db):
@@ -162,7 +114,6 @@ class NailgunArchivator(PostgresArchivator):
                 'from (values {0}) as b(id, generated) '
                 'where a.id = b.id;'.format(','.join(values)),
                 self.db)
-        self._create_links_on_remote_logs()
 
 
 class KeystoneArchivator(PostgresArchivator):
