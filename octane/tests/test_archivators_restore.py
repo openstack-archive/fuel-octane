@@ -224,7 +224,7 @@ def test_cobbler_archivator(mocker):
         postgres.NailgunArchivator,
         "nailgun",
         ["nailgun_syncdb"],
-        ["_repair_database_consistency", "_create_links_on_remote_logs"],
+        ["_repair_database_consistency"],
     ),
     (
         postgres.KeystoneArchivator,
@@ -590,8 +590,7 @@ def test_post_restore_puppet_apply_host(mocker):
 ])
 @pytest.mark.parametrize("is_dir", [True, False])
 @pytest.mark.parametrize("exception", [True, False])
-def test_create_links_on_remote_logs(
-        mocker, mock_open, nodes, is_dir, exception):
+def test_logs_restore(mocker, mock_open, nodes, is_dir, exception):
     domain_name = "test_domain"
     mocker.patch("yaml.load", return_value={"DNS_DOMAIN": domain_name})
     domain_names = []
@@ -618,7 +617,7 @@ def test_create_links_on_remote_logs(
             moved_nodes.append((node_domain_name, ip_addr))
     is_link_mock = mocker.patch("os.path.islink", side_effect=is_link_exists)
     mocker.patch("os.path.isdir", return_value=is_dir)
-    mocker.patch("fuelclient.objects.node.Node.get_all",
+    mocker.patch("fuelclient.objects.Node.get_all",
                  return_value=fuel_client_values)
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container")
@@ -627,7 +626,7 @@ def test_create_links_on_remote_logs(
     mkdir_mock = mocker.patch("os.mkdir")
     context = backup_restore.NailgunCredentialsContext(
         user="admin", password="user_pswd")
-    archivator = backup_restore.postgres.NailgunArchivator(None, context)
+    archivator = backup_restore.logs.LogsArchivator(None, context)
     if not exception:
 
         class TestException(Exception):
@@ -635,11 +634,11 @@ def test_create_links_on_remote_logs(
 
         is_link_mock.side_effect = TestException("test exc")
         with pytest.raises(TestException):
-            archivator._create_links_on_remote_logs()
+            archivator.restore()
         assert not mkdir_mock.called
         assert not rename_mock.called
     else:
-        archivator._create_links_on_remote_logs()
+        archivator.restore()
         path = "/var/log/docker-logs/remote/"
         path_pairs = [(os.path.join(path, d), os.path.join(path, i))
                       for d, i in moved_nodes]
