@@ -24,6 +24,7 @@ from octane.handlers.backup_restore import fuel_uuid
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
+from octane.handlers.backup_restore import release
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 from octane import magic_consts
@@ -218,24 +219,25 @@ def test_cobbler_archivator(mocker):
     start_container.assert_called_once_with("cobbler")
 
 
-@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
+@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_actions_names", [
     (
         postgres.NailgunArchivator,
         "nailgun",
         ["nailgun_syncdb"],
-        "_post_restore_action",
+        ["_repair_database_consistency", "_create_links_on_remote_logs"],
     ),
     (
         postgres.KeystoneArchivator,
         "keystone",
         ["keystone-manage", "db_sync"],
-        None
+        [],
     ),
 ])
-def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
+def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_actions_names):
     patch_mock = mocker.patch("octane.util.docker.apply_patches")
-    if mocked_action_name:
-        mocked_action = mocker.patch.object(cls, mocked_action_name)
+    mocked_actions = []
+    for mocked_action_name in mocked_actions_names:
+        mocked_actions.append(mocker.patch.object(cls, mocked_action_name))
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
     actions = []
@@ -301,7 +303,7 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
     ])
     side_effect_in_container.return_value.stdin.write.assert_called_once_with(
         member.dump)
-    if mocked_action_name:
+    for mocked_action in mocked_actions:
         mocked_action.assert_called_once_with()
 
 
@@ -488,11 +490,10 @@ def test_post_restore_action_astute(mocker):
     assert not stopped
 
 
-@pytest.mark.parametrize("dump, calls, data_for_update", [
+@pytest.mark.parametrize(("dump", "calls"), [
     (
         [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
         [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
-        "1|{}",
     ),
     (
         [
@@ -504,20 +505,13 @@ def test_post_restore_action_astute(mocker):
             {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
             {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
         ],
-        "1|{}",
     ),
 ])
-def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
-    mock_links = mocker.patch.object(
-        postgres.NailgunArchivator, "_create_links_on_remote_logs")
+def test_release_restore(mocker, mock_open, dump, calls):
     data = yaml.dump(dump)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
     run_in_container_mock = mocker.patch(
         "octane.util.docker.run_in_container", return_value=(data, None))
-    run_sql_mock = mocker.patch(
-        "octane.util.sql.run_psql_in_container",
-        return_value=[data_for_update]
-    )
     json_mock = mocker.patch("json.dumps")
     token = "123"
 
@@ -527,11 +521,11 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     mocker.patch.object(keystoneclient, "__init__", mock_init)
     post_data = mocker.patch("requests.post")
     mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
-    postgres.NailgunArchivator(
+    release.ReleaseArchivator(
         None,
         backup_restore.NailgunCredentialsContext(
             user="admin", password="password")
-    )._post_restore_action()
+    ).restore()
 
     headers = {
         "X-Auth-Token": token,
@@ -542,7 +536,7 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     for call in post_data.call_args_list:
         assert post_call == call
     json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
-    assert json_mock.call_count == 3
+    assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
         env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
@@ -553,8 +547,22 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
         ["cat", magic_consts.OPENSTACK_FIXTURES],
         stdout=subprocess.PIPE
     )
-    json_mock.assert_called_with({"deployed_before": {"value": True}})
-    mock_links.assert_called_once_with()
+
+
+def test_repair_database_consistency(mocker, mock_open):
+    run_sql_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
+        return_value=["1|{}"],
+    )
+    json_mock = mocker.patch("json.dumps")
+
+    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
+    context = backup_restore.NailgunCredentialsContext(
+        user="admin", password="password")
+    archivator = postgres.NailgunArchivator(None, context)
+    archivator._repair_database_consistency()
+
+    json_mock.assert_called_once_with({"deployed_before": {"value": True}})
     run_sql_mock.assert_has_calls([
         mock.call("select id, generated from attributes;", "nailgun"),
     ])
