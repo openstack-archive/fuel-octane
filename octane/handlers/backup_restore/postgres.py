@@ -11,17 +11,12 @@
 # under the License.
 
 import json
-import os
 import shutil
 import six
-
-from fuelclient.objects import node
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
-from octane.util import fuel_client
-from octane.util import helpers
 from octane.util import sql
 from octane.util import subprocess
 
@@ -71,33 +66,9 @@ class NailgunArchivator(PostgresArchivator):
         try:
             super(NailgunArchivator, self).restore()
             self._repair_database_consistency()
-            self._create_links_on_remote_logs()
         finally:
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
-
-    def _create_links_on_remote_logs(self):
-        domain = helpers.get_astute_dict()["DNS_DOMAIN"]
-        dirname = "/var/log/docker-logs/remote/"
-        with fuel_client.set_auth_context(self.context):
-            pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
-                     for n in node.Node.get_all()]
-        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
-        try:
-            for fqdn, ip_addr in pairs:
-                if not fqdn.endswith(domain):
-                    continue
-                ip_addr_path = os.path.join(dirname, ip_addr)
-                fqdn_path = os.path.join(dirname, fqdn)
-                if os.path.islink(ip_addr_path):
-                    continue
-                if os.path.isdir(ip_addr_path):
-                    os.rename(ip_addr_path, fqdn_path)
-                else:
-                    os.mkdir(fqdn_path)
-                os.symlink(fqdn, ip_addr_path)
-        finally:
-            docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
 
     def _repair_database_consistency(self):
         values = []
