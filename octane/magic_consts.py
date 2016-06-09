@@ -72,3 +72,7 @@ UPGRADE_NODE_PATCHES = [
 ]
 
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+
+ACTIVE_IMG_REQUIRED_FILES = ["vmlinuz", "initrd.img"]

@@ -1,5 +1,5 @@
---- usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
-+++ usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
+--- a/usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
++++ b/usr/lib/python2.7/dist-packages/fuel_agent/drivers/nailgun.py
 @@ -321,10 +321,6 @@
                  LOG.debug('Adding bios_grub partition on disk %s: size=24' %
                            disk['name'])
