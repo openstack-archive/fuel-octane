@@ -10,6 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
+import os
+import shutil
+import tempfile
 import yaml
 
 
@@ -26,3 +30,16 @@ def merge_dicts(base_dict, update_dict):
 def get_astute_dict():
     with open("/etc/fuel/astute.yaml", "r") as current:
         return yaml.load(current)
+
+
+def get_tempname(dir=None, prefix=None):
+    fd, tmp_file_name = tempfile.mkstemp(dir=dir, prefix=prefix)
+    os.close(fd)
+    return tmp_file_name
+
+
+@contextlib.contextmanager
+def temp_dir():
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
