@@ -33,7 +33,7 @@ def get_astute_dict():
 
 
 def get_tempname(dir=None, prefix=None):
-    fd, tmp_file_name = tempfile.mkstemp(dir=dir, prefix=prefix)
+    fd, tmp_file_name = tempfile.mkstemp(dir=dir, prefix=tempfile.template)
     os.close(fd)
     return tmp_file_name
 
