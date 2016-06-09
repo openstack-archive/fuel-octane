@@ -1,0 +1,74 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import logging
+import os
+import tarfile
+
+from cliff import command
+
+import uuid
+import yaml
+
+from octane import magic_consts
+from octane.util import helpers
+from octane.util import patch
+from octane.util import subprocess
+
+
+LOG = logging.getLogger(__name__)
+
+
+def _patch_squashfs(root_img, img_dir, *patches):
+    patched_img = os.path.join(img_dir, "root.squashfs")
+    with helpers.temp_dir() as patch_dir:
+        LOG.info("unsquash root image to temporary directory")
+        subprocess.call(["unsquashfs", "-f", "-d", patch_dir, root_img])
+        LOG.info("apply patch to root image")
+        patch.patch_apply(patch_dir, patches)
+        LOG.info("create new root.squashfs image")
+        subprocess.call(["mksquashfs", patch_dir, patched_img])
+    return patched_img
+
+
+def patch_img():
+    active_img_dir = "/var/www/nailgun/bootstraps/active_bootstrap/"
+    root_img = os.path.join(active_img_dir, "root.squashfs")
+    patch_file = os.path.join(magic_consts.CWD, "patches/fuel_agent/patch")
+    with helpers.temp_dir() as temp_dir:
+        patched_img = _patch_squashfs(root_img, temp_dir, patch_file)
+        metadata_path = helpers.get_tempname(temp_dir)
+        with open(os.path.join(active_img_dir, "metadata.yaml")) as fd:
+            metadata = yaml.load(fd)
+        metadata["label"] = "patched_image"
+        uuid_val = "{0}".format(uuid.uuid1())
+        metadata["uuid"] = uuid_val
+        with open(metadata_path, "w") as new_metadata_file:
+            yaml.dump(metadata, new_metadata_file)
+        archive_name = os.path.join(temp_dir, "upload_bootstrap_img")
+        LOG.info("Generate archive to import using fuel-bootstrap")
+        with tarfile.open(name=archive_name, mode="w:gz") as archive:
+            archive.add(patched_img, "root.squashfs")
+            archive.add(
+                os.path.join(active_img_dir, "initrd.img"), "initrd.img")
+            archive.add(os.path.join(active_img_dir, "vmlinuz"), "vmlinuz")
+            archive.add(metadata_path, "metadata.yaml")
+        LOG.info("Import image using fuel-bootstrap")
+        subprocess.call(["fuel-bootstrap", "import", archive_name])
+        LOG.info("Activate image using "
+                 "`fuel-bootstrap activate {0}`".format(uuid_val))
+
+
+class PatchImgCommand(command.Command):
+
+    def take_action(self, parsed_args):
+        patch_img()
