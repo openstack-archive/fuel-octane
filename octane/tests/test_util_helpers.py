@@ -1,0 +1,52 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import mock
+import pytest
+import tempfile
+
+from octane.util import helpers
+
+
+@pytest.mark.parametrize("dir", ["dir_1", "dir_2", None])
+@pytest.mark.parametrize("prefix ", ["prefix_1", "prefix_2", None])
+def test_get_tempname(mocker, dir, prefix):
+    fd = mock.Mock()
+    tmp_file_name = mock.Mock()
+    mock_mkstemp = mocker.patch(
+        "tempfile.mkstemp",
+        return_value=(fd, tmp_file_name))
+    os_close_mock = mocker.patch("os.close")
+    assert tmp_file_name == helpers.get_tempname(dir, prefix)
+    mock_mkstemp.assert_called_once_with(
+        dir=dir, prefix=(prefix or tempfile.template))
+    os_close_mock.assert_called_once_with(fd)
+
+
+@pytest.mark.parametrize("is_exception", [True, False])
+def test_temp_dir(mocker, is_exception):
+
+    class TestException(Exception):
+        pass
+
+    temp_dir_name = mock.Mock()
+    patch_mock = mocker.patch("tempfile.mkdtemp", return_value=temp_dir_name)
+    rm_tree_mock = mocker.patch("shutil.rmtree")
+    if is_exception:
+        with pytest.raises(TestException):
+            with helpers.temp_dir():
+                raise TestException
+    else:
+        with helpers.temp_dir():
+            pass
+    patch_mock.assert_called_once_with()
+    rm_tree_mock.assert_called_once_with(temp_dir_name)
