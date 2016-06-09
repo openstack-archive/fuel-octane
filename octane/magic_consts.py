@@ -82,3 +82,6 @@ COBBLER_DROP_VERSION = "7.0"
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
 RELEASE_STATUS_MANAGED = "manageonly"
+
+
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
