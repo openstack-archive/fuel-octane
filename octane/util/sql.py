@@ -30,3 +30,10 @@ def run_psql_in_container(sql, db):
         ],
         stdout=subprocess.PIPE)
     return results.strip().splitlines()
+
+
+def run_psql(sql, db):
+    output = subprocess.call_output(
+        ["sudo", "-u", "postgres", "psql", db, "--tuples-only", "--no-align",
+         "-c", sql])
+    return output.strip().splitlines()

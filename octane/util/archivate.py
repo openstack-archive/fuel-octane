@@ -61,6 +61,15 @@ def archivate_container_cmd_output(archive, container, cmd, filename):
     archive.addfile(info, dump)
 
 
+def archivate_cmd_output(archive, cmd, filename):
+    suffix = ".{0}".format(os.path.basename(filename))
+    with tempfile.NamedTemporaryFile(suffix=suffix) as f:
+        with subprocess.popen(cmd, stdout=subprocess.PIPE) as process:
+            shutil.copyfileobj(process.stdout, f)
+        f.flush()
+        archive.add(f.name, filename)
+
+
 def filter_members(archive, dir_name):
     if '/' not in dir_name:
         dir_name = "{0}/".format(dir_name)

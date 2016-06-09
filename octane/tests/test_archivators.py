@@ -108,11 +108,10 @@ def test_path_filter_backup(mocker, cls, banned_files, backup_directory,
 def test_posgres_archivator(mocker, cls, db):
     test_archive = mocker.Mock()
     archive_mock = mocker.patch(
-        "octane.util.archivate.archivate_container_cmd_output")
+        "octane.util.archivate.archivate_cmd_output")
     cls(test_archive).backup()
     archive_mock.assert_called_once_with(
         test_archive,
-        "postgres",
         ["sudo", "-u", "postgres", "pg_dump", "-C", db],
         "postgres/{0}.sql".format(db))
 

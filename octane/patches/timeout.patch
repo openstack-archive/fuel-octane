@@ -1,12 +1,12 @@
-diff --git a/deployment/puppet/nailgun/manifests/venv.pp b/deployment/puppet/nailgun/manifests/venv.pp
-index 3313333..c383160 100644
---- venv.pp
-+++ venv.pp
-@@ -96,6 +96,7 @@ class nailgun::venv(
-                     ],
-         tries     => 50,
-         try_sleep => 5,
-+        timeout => 0,
-       }
-       exec {"nailgun_upload_fixtures":
-         command   => "${venv}/bin/nailgun_fixtures",
+diff --git a/fuel/manifests/nailgun/server.pp b/fuel/manifests/nailgun/server.pp
+index a7624b0..1c9c831 100644
+--- a/fuel/manifests/nailgun/server.pp
++++ b/fuel/manifests/nailgun/server.pp
+@@ -116,6 +116,7 @@ class fuel::nailgun::server (
+     subscribe   => File["/etc/nailgun/settings.yaml"],
+     tries       => 50,
+     try_sleep   => 5,
++    timeout     => 0,
+   }
+ 
+   exec {"nailgun_upload_fixtures":
