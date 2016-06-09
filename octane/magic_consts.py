@@ -70,3 +70,5 @@ RELEASE_STATUS_MANAGED = "manageonly"
 UPGRADE_NODE_PATCHES = [
     os.path.join(CWD, "patches/puppet/fix_mysql.patch")
 ]
+
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
