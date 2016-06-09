@@ -68,10 +68,7 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
         if network_template:
             env_util.set_network_template(env, network_template)
         call_handlers('predeploy')
-        if isolated or len(nodes) == 1:
-            env_util.deploy_nodes(env, nodes)
-        else:
-            env_util.deploy_changes(env, nodes)
+        env_util.deploy_changes(env, nodes)
         call_handlers('postdeploy')
 
 
