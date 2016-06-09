@@ -89,3 +89,10 @@ UPGRADE_NODE_PATCHES = [
 
 # NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
 CONFIGDRIVE_PART_SIZE = 10
+BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+# NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
+CONFIGDRIVE_PART_SIZE = 10
+
+KEYSTONE_CONF = "/etc/keystone/keystone.conf"
+KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
