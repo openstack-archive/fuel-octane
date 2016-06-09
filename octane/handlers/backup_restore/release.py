@@ -20,7 +20,6 @@ from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
-from octane.util import docker
 from octane.util import helpers
 from octane.util import subprocess
 
@@ -32,11 +31,8 @@ class ReleaseArchivator(base.Base):
         pass
 
     def restore(self):
-        data, _ = docker.run_in_container(
-            "nailgun",
-            ["cat", magic_consts.OPENSTACK_FIXTURES],
-            stdout=subprocess.PIPE)
-        fixtures = yaml.load(data)
+        with open(magic_consts.OPENSTACK_FIXTURES) as f:
+            fixtures = yaml.load(f)
         base_release_fields = fixtures[0]['fields']
         for fixture in fixtures[1:]:
             release = helpers.merge_dicts(

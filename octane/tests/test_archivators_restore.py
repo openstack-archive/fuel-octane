@@ -9,6 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import io
 import mock
 import os
 import pytest
@@ -473,10 +474,8 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
     ),
 ])
 def test_release_restore(mocker, mock_open, dump, calls):
-    data = yaml.dump(dump)
+    mock_open.return_value = io.BytesIO(yaml.dump(dump))
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    run_in_container_mock = mocker.patch(
-        "octane.util.docker.run_in_container", return_value=(data, None))
     json_mock = mocker.patch("json.dumps")
     token = "123"
 
@@ -506,12 +505,7 @@ def test_release_restore(mocker, mock_open, dump, calls):
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
         env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
     )
-
-    run_in_container_mock.assert_called_once_with(
-        "nailgun",
-        ["cat", magic_consts.OPENSTACK_FIXTURES],
-        stdout=subprocess.PIPE
-    )
+    mock_open.assert_called_once_with(magic_consts.OPENSTACK_FIXTURES)
 
 
 def test_repair_database_consistency(mocker, mock_open):
