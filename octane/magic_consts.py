@@ -86,3 +86,11 @@ RELEASE_STATUS_MANAGED = "manageonly"
 UPGRADE_NODE_PATCHES = [
     os.path.join(CWD, "patches/puppet/fix_mysql.patch")
 ]
+
+BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+# NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
+CONFIGDRIVE_PART_SIZE = 10
+
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+
+ACTIVE_IMG_REQUIRED_FILES = ["vmlinuz", "initrd.img"]
