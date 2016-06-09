@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import logging
 import requests
 import urlparse
@@ -31,15 +30,22 @@ class ReleaseArchivator(base.Base):
         pass
 
     def restore(self):
+        def get_release_key(release):
+            return (release['version'], release['name'])
+
         with open(magic_consts.OPENSTACK_FIXTURES) as f:
             fixtures = yaml.load(f)
+        loaded_existing_releases = self.__get_request("/api/v1/releases/")
+        existing_releases = set(map(get_release_key, loaded_existing_releases))
         releases = self.extend_fixtures(fixtures)
         for release in releases:
-            self.__post_data_to_nailgun(
-                "/api/v1/releases/",
-                release,
-                self.context.user,
-                self.context.password)
+            key = get_release_key(release)
+            if key in existing_releases:
+                LOG.debug("Skipping to upload of the already existing "
+                          "release: %s - %s",
+                          release['name'], release['version'])
+                continue
+            self.__post_request("/api/v1/releases/", release)
         subprocess.call(
             [
                 "fuel",
@@ -63,16 +69,29 @@ class ReleaseArchivator(base.Base):
                 continue
             yield extend(fixture)["fields"]
 
-    def __post_data_to_nailgun(self, url, data, user, password):
+    def __post_request(self, url, data):
+        self.__request("POST", url,
+                       user=self.context.user,
+                       password=self.context.password,
+                       data=data)
+
+    def __get_request(self, url):
+        resp = self.__request("GET", url,
+                              user=self.context.user,
+                              password=self.context.password)
+        return resp.json()
+
+    def __request(self, method, url, user, password, data=None):
         ksclient = keystoneclient(
             auth_url=magic_consts.KEYSTONE_API_URL,
             username=user,
             password=password,
             tenant_name=magic_consts.KEYSTONE_TENANT_NAME,
         )
-        resp = requests.post(
+        resp = requests.request(
+            method,
             urlparse.urljoin(magic_consts.NAILGUN_URL, url),
-            json.dumps(data),
+            json=data,
             headers={
                 "X-Auth-Token": ksclient.auth_token,
                 "Content-Type": "application/json",
