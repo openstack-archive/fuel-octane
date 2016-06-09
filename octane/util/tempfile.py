@@ -34,3 +34,12 @@ def temp_dir():
         yield temp_dir
     finally:
         shutil.rmtree(temp_dir)
+
+
+@contextlib.contextmanager
+def temp_file(dir=None, prefix=None):
+    filename = get_tempname(dir, prefix)
+    try:
+        yield filename
+    finally:
+        shutil.rmtree(filename)
