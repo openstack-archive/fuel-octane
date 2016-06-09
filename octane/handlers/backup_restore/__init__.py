@@ -21,7 +21,7 @@ from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
-# from octane.handlers.backup_restore import release
+from octane.handlers.backup_restore import release
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 
@@ -41,7 +41,7 @@ ARCHIVATORS = [
     puppet.PuppetArchivator,
     # Restore of Nailgun DB should go after restore of Puppet modules.
     postgres.DatabasesArchivator,
-    # release.ReleaseArchivator,
+    release.ReleaseArchivator,
     # logs.LogsArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
