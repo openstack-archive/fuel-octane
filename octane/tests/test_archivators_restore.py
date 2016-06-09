@@ -456,34 +456,31 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
         ]
 
 
-@pytest.mark.parametrize(("dump", "calls"), [
+@pytest.mark.parametrize(("dump", "existing_releases", "calls"), [
     (
-        [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
-        [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
-    ),
-    (
-        [
-            {"fields": {"k": 1, "p": 2, "c": {"k": 1, "p": {"a": 1}}}},
-            {"fields": {}},
-            {"fields": {"k": 3, "c": {"k": 3, "p": {"c": 4}}}},
-        ],
-        [
-            {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
-            {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
-        ],
+        [{"fields": {"k": 0, "p": 2}},
+         {"fields": {"version": 1, "operating_system": 1, "k": 1}},
+         {"fields": {"version": 1, "operating_system": 2, "k": 2}},
+         {"fields": {"version": 1, "operating_system": 3, "p": 3}}],
+
+        [{"version": 1, "operating_system": 2}],
+
+        [{"version": 1, "operating_system": 1, "k": 1, "p": 2},
+         {"version": 1, "operating_system": 3, "k": 0, "p": 3}],
     ),
 ])
-def test_release_restore(mocker, mock_open, dump, calls):
+def test_release_restore(mocker, mock_open, dump, existing_releases, calls):
     mock_open.return_value = io.BytesIO(yaml.dump(dump))
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    json_mock = mocker.patch("json.dumps")
+    mocker.patch("json.loads", return_value=existing_releases)
+    mock_json_dumps = mocker.patch("json.dumps")
     token = "123"
 
     def mock_init(self, *args, **kwargs):
         self.auth_token = token
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
-    post_data = mocker.patch("requests.post")
+    mock_request = mocker.patch("requests.request")
     mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
     release.ReleaseArchivator(
         None,
@@ -495,12 +492,16 @@ def test_release_restore(mocker, mock_open, dump, calls):
         "X-Auth-Token": token,
         "Content-Type": "application/json"
     }
-    post_url = 'http://127.0.0.1:8000/api/v1/releases/'
-    post_call = mock.call(post_url, json_mock.return_value, headers=headers)
-    for call in post_data.call_args_list:
+    url = 'http://127.0.0.1:8000/api/v1/releases/'
+    get_call = mock.call("GET", url, data=None, headers=headers)
+    assert get_call == mock_request.call_args_list[0]
+    post_call = mock.call("POST", url,
+                          data=mock_json_dumps.return_value, headers=headers)
+    for call in mock_request.call_args_list[1:]:
         assert post_call == call
-    json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
-    assert json_mock.call_count == 2
+    mock_json_dumps.assert_has_calls([mock.call(d) for d in calls],
+                                     any_order=True)
+    assert mock_json_dumps.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
         env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
