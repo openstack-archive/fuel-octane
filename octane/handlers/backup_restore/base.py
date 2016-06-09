@@ -123,18 +123,14 @@ class PathFilterArchivator(Base):
 
 
 class CmdArchivator(Base):
-
-    container = None
     cmd = None
     filename = None
 
     def backup(self):
         assert self.cmd
-        assert self.container
         assert self.filename
 
-        archivate.archivate_container_cmd_output(
-            self.archive, self.container, self.cmd, self.filename)
+        archivate.archivate_cmd_output(self.archive, self.cmd, self.filename)
 
 
 class DirsArchivator(Base):

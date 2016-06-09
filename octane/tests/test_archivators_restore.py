@@ -210,90 +210,94 @@ def test_cobbler_archivator(mocker, mock_subprocess):
     mock_puppet.assert_called_once_with("cobbler")
 
 
-@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_actions_names", [
+def test_databases_archivator(mocker):
+    mock_call = mock.Mock()
+    mocker.patch.object(postgres.NailgunArchivator, "restore",
+                        new=mock_call.nailgun.restore)
+    mocker.patch.object(postgres.KeystoneArchivator, "restore",
+                        new=mock_call.keystone.restore)
+    mocker.patch("octane.util.puppet.apply_task",
+                 new=mock_call.puppet.apply_task)
+
+    archivator = postgres.DatabasesArchivator(mock.Mock(), mock.Mock())
+    archivator.restore()
+
+    assert mock_call.mock_calls == [
+        mock.call.puppet.apply_task("postgresql"),
+        mock.call.keystone.restore(),
+        mock.call.nailgun.restore(),
+    ]
+
+
+@pytest.mark.parametrize("cls,db,services,mocked_actions_names", [
     (
         postgres.NailgunArchivator,
         "nailgun",
-        ["nailgun_syncdb"],
+        [
+            "nailgun",
+            "oswl_flavor_collectord",
+            "oswl_image_collectord",
+            "oswl_keystone_user_collectord",
+            "oswl_tenant_collectord",
+            "oswl_vm_collectord",
+            "oswl_volume_collectord",
+            "receiverd",
+            "statsenderd",
+            "assassind",
+        ],
         ["_repair_database_consistency"],
     ),
     (
         postgres.KeystoneArchivator,
         "keystone",
-        ["keystone-manage", "db_sync"],
+        ["openstack-keystone"],
         [],
     ),
 ])
-def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_actions_names):
-    patch_mock = mocker.patch("octane.util.docker.apply_patches")
+def test_postgres_restore(mocker, cls, db, services, mocked_actions_names):
     mocked_actions = []
     for mocked_action_name in mocked_actions_names:
         mocked_actions.append(mocker.patch.object(cls, mocked_action_name))
+
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
-    actions = []
 
-    def foo(action):
-        return_mock_object = mocker.Mock()
+    mock_subprocess = mock.MagicMock()
+    mocker.patch("octane.util.subprocess.call", new=mock_subprocess.call)
+    mocker.patch("octane.util.subprocess.popen", new=mock_subprocess.popen)
 
-        def mock_foo(*args, **kwargs):
-            actions.append(action)
-            return return_mock_object
-        mock_foo.return_value = return_mock_object
-        return mock_foo
+    mock_patch = mocker.patch("octane.util.patch.applied_patch")
+    mock_copyfileobj = mocker.patch("shutil.copyfileobj")
+    mock_apply_task = mocker.patch("octane.util.puppet.apply_task")
 
-    call_mock = mocker.patch("octane.util.subprocess.call",
-                             side_effect=foo("call"))
-    in_container_mock = mocker.patch("octane.util.docker.in_container")
-    side_effect_in_container = foo("in_container")
-    in_container_mock.return_value.__enter__.side_effect = \
-        side_effect_in_container
-    run_in_container = mocker.patch(
-        "octane.util.docker.run_in_container",
-        side_effect=foo("run_in_container"))
-    mocker.patch("octane.util.docker.stop_container",
-                 side_effect=foo("stop_container"))
-    mocker.patch("octane.util.docker.start_container",
-                 side_effect=foo("start_container"))
-    mocker.patch("octane.util.docker.wait_for_container",
-                 side_effect=foo("wait_for_container"))
     cls(archive).restore()
     member.assert_extract()
-    args = ["call", "stop_container", "run_in_container", "in_container",
-            "start_container", "wait_for_container", "call"]
-    assert args == actions
-    if cls is postgres.NailgunArchivator:
-        assert [
-            mock.call(
-                'nailgun',
-                '/etc/puppet/modules/nailgun/manifests/',
-                os.path.join(magic_consts.CWD, "patches/timeout.patch")
-            ),
-            mock.call(
-                'nailgun',
-                '/etc/puppet/modules/nailgun/manifests/',
-                os.path.join(magic_consts.CWD, "patches/timeout.patch"),
-                revert=True
-            ),
-        ] == patch_mock.call_args_list
-    else:
-        assert not patch_mock.called
 
-    call_mock.assert_has_calls([
-        mock.call(["systemctl", "stop", "docker-{0}.service".format(db)]),
-        mock.call(["systemctl", "start", "docker-{0}.service".format(db)])
-    ])
-    in_container_mock.assert_called_once_with(
-        "postgres",
-        ["sudo", "-u", "postgres", "psql"],
-        stdin=subprocess.PIPE
+    assert mock_subprocess.mock_calls == [
+        mock.call.call(["systemctl", "stop"] + services),
+        mock.call.call(["sudo", "-u", "postgres", "dropdb", "--if-exists",
+                        db]),
+        mock.call.popen(["sudo", "-u", "postgres", "psql"],
+                        stdin=subprocess.PIPE),
+        mock.call.popen().__enter__(),
+        mock.call.popen().__exit__(None, None, None),
+    ]
+    mock_copyfileobj.assert_called_once_with(
+        member,
+        mock_subprocess.popen.return_value.__enter__.return_value.stdin,
     )
-    run_in_container.assert_has_calls([
-        mock.call("postgres",
-                  ["sudo", "-u", "postgres", "dropdb", "--if-exists", db]),
-    ])
-    side_effect_in_container.return_value.stdin.write.assert_called_once_with(
-        member.dump)
+    mock_apply_task.assert_called_once_with(db)
+
+    if cls is postgres.NailgunArchivator:
+        assert mock_patch.call_args_list == [
+            mock.call(
+                '/etc/puppet/modules',
+                os.path.join(magic_consts.CWD, "patches/timeout.patch"),
+            ),
+        ]
+    else:
+        assert not mock_patch.called
+
     for mocked_action in mocked_actions:
         mocked_action.assert_called_once_with()
 
@@ -526,7 +530,7 @@ def test_release_restore(mocker, mock_open, dump, calls):
 
 def test_repair_database_consistency(mocker, mock_open):
     run_sql_mock = mocker.patch(
-        "octane.util.sql.run_psql_in_container",
+        "octane.util.sql.run_psql",
         return_value=["1|{}"],
     )
     json_mock = mocker.patch("json.dumps")

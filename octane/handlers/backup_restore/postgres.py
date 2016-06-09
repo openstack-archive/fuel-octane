@@ -16,16 +16,15 @@ import six
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
-from octane.util import docker
+from octane.util import patch
+from octane.util import puppet
 from octane.util import sql
 from octane.util import subprocess
 
 
 class PostgresArchivatorMeta(type):
-
     def __init__(cls, name, bases, attr):
         super(PostgresArchivatorMeta, cls).__init__(name, bases, attr)
-        cls.container = "postgres"
         if cls.db is not None and cls.cmd is None:
             cls.cmd = ["sudo", "-u", "postgres", "pg_dump", "-C", cls.db]
         if cls.db is not None and cls.filename is None:
@@ -35,44 +34,43 @@ class PostgresArchivatorMeta(type):
 @six.add_metaclass(PostgresArchivatorMeta)
 class PostgresArchivator(base.CmdArchivator):
     db = None
+    services = []
 
     def restore(self):
         dump = self.archive.extractfile(self.filename)
-        subprocess.call([
-            "systemctl", "stop", "docker-{0}.service".format(self.db)
-        ])
-        docker.stop_container(self.db)
-        docker.run_in_container(
-            "postgres",
-            ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
-        )
-        with docker.in_container("postgres",
-                                 ["sudo", "-u", "postgres", "psql"],
-                                 stdin=subprocess.PIPE) as process:
+        subprocess.call(["systemctl", "stop"] + self.services)
+        subprocess.call(["sudo", "-u", "postgres", "dropdb", "--if-exists",
+                         self.db])
+        with subprocess.popen(["sudo", "-u", "postgres", "psql"],
+                              stdin=subprocess.PIPE) as process:
             shutil.copyfileobj(dump, process.stdin)
-        docker.start_container(self.db)
-        docker.wait_for_container(self.db)
-        subprocess.call([
-            "systemctl", "start", "docker-{0}.service".format(self.db)
-        ])
+        puppet.apply_task(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
+    services = [
+        "nailgun",
+        "oswl_flavor_collectord",
+        "oswl_image_collectord",
+        "oswl_keystone_user_collectord",
+        "oswl_tenant_collectord",
+        "oswl_vm_collectord",
+        "oswl_volume_collectord",
+        "receiverd",
+        "statsenderd",
+        "assassind",
+    ]
+    patches = magic_consts.NAILGUN_ARCHIVATOR_PATCHES
 
     def restore(self):
-        for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-            docker.apply_patches(*args)
-        try:
+        with patch.applied_patch(*self.patches):
             super(NailgunArchivator, self).restore()
             self._repair_database_consistency()
-        finally:
-            for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-                docker.apply_patches(*args, revert=True)
 
     def _repair_database_consistency(self):
         values = []
-        for line in sql.run_psql_in_container(
+        for line in sql.run_psql(
                 "select id, generated from attributes;", self.db):
             c_id, c_data = line.split("|", 1)
             data = json.loads(c_data)
@@ -80,7 +78,7 @@ class NailgunArchivator(PostgresArchivator):
             values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
 
         if values:
-            sql.run_psql_in_container(
+            sql.run_psql(
                 'update attributes as a set generated = b.generated '
                 'from (values {0}) as b(id, generated) '
                 'where a.id = b.id;'.format(','.join(values)),
@@ -89,3 +87,15 @@ class NailgunArchivator(PostgresArchivator):
 
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
+    services = ["openstack-keystone"]
+
+
+class DatabasesArchivator(base.CollectionArchivator):
+    archivators_classes = [
+        KeystoneArchivator,
+        NailgunArchivator,
+    ]
+
+    def restore(self):
+        puppet.apply_task("postgresql")
+        super(DatabasesArchivator, self).restore()
