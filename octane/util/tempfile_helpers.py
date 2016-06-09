@@ -10,25 +10,25 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import shutil
-import yaml
-
 import contextlib
+import os
+import shutil
+import tempfile
 
-from octane.util import helpers
-from octane.util import tempfile_helpers
+
+def get_tempname(dir=None, prefix=None):
+    kwargs = {}
+    if prefix is not None:
+        kwargs["prefix"] = prefix
+    fd, tmp_file_name = tempfile.mkstemp(dir=dir, **kwargs)
+    os.close(fd)
+    return tmp_file_name
 
 
 @contextlib.contextmanager
-def set_astute_password(auth_context):
-    tmp_file_name = tempfile_helpers.get_tempname(
-        dir="/etc/fuel", prefix=".astute.yaml.octane")
-    shutil.copy2("/etc/fuel/astute.yaml", tmp_file_name)
+def temp_dir():
+    temp_dir = tempfile.mkdtemp()
     try:
-        data = helpers.get_astute_dict()
-        data["FUEL_ACCESS"]["password"] = auth_context.password
-        with open("/etc/fuel/astute.yaml", "w") as current:
-            yaml.safe_dump(data, current, default_flow_style=False)
-        yield
+        yield temp_dir
     finally:
-        shutil.move(tmp_file_name, "/etc/fuel/astute.yaml")
+        shutil.rmtree(temp_dir)
