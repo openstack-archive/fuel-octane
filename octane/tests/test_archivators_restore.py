@@ -477,27 +477,29 @@ FAKE_OPENSTACK_YAML = """\
 """
 
 
-@pytest.mark.parametrize(("content", "calls"), [
+@pytest.mark.parametrize(("content", "existing_releases", "calls"), [
     (
         FAKE_OPENSTACK_YAML,
 
+        [{"version": 1, "name": "second"}],
+
         [{"version": 1, "name": "first", "k": 1, "p": 2},
-         {"version": 1, "name": "second", "k": 2, "p": 2},
          {"version": 1, "name": "third", "k": 2, "p": 3}],
     ),
 ])
-def test_release_restore(mocker, mock_open, content, calls):
+def test_release_restore(mocker, mock_open, content, existing_releases, calls):
     mock_open.return_value = io.BytesIO(content)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    mock_json_dumps = mocker.patch("json.dumps")
-    token = "123"
+    fake_token = "123"
 
     def mock_init(self, *args, **kwargs):
-        self.auth_token = token
+        self.auth_token = fake_token
 
     mocker.patch.object(keystoneclient, "__init__", mock_init)
-    post_data = mocker.patch("requests.post")
+    mock_request = mocker.patch("requests.request")
+    mock_request.return_value.json.return_value = existing_releases
     mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
+
     release.ReleaseArchivator(
         None,
         backup_restore.NailgunCredentialsContext(
@@ -505,16 +507,17 @@ def test_release_restore(mocker, mock_open, content, calls):
     ).restore()
 
     headers = {
-        "X-Auth-Token": token,
+        "X-Auth-Token": fake_token,
         "Content-Type": "application/json"
     }
-    post_url = 'http://127.0.0.1:8000/api/v1/releases/'
-    post_call = mock.call(
-        post_url, mock_json_dumps.return_value, headers=headers)
-    for call in post_data.call_args_list:
-        assert post_call == call
-    expected_dumps_calls = [mock.call(d) for d in calls]
-    assert mock_json_dumps.mock_calls == expected_dumps_calls
+    url = 'http://127.0.0.1:8000/api/v1/releases/'
+    expected_calls = [
+        mock.call("GET", url, json=None, headers=headers)
+    ] + [
+        mock.call("POST", url, json=call, headers=headers)
+        for call in calls
+    ]
+    assert mock_request.call_args_list == expected_calls
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
         env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
