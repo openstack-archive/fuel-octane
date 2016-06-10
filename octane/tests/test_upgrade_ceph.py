@@ -10,6 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
+import pytest
+
+from octane.handlers.upgrade import ceph_osd
+
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_ceph.upgrade_ceph')
@@ -17,3 +22,40 @@ def test_parser(mocker, octane_app):
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2)
+
+
+@pytest.mark.parametrize("env_node_ids", [
+    # [(env_id, node_id), ... ]
+    [(1, 1)],
+    [(1, 1), (1, 2)],
+    [(1, 1), (2, 2)]
+    ])
+def test_patch_and_revert_only_once(mocker, env_node_ids):
+    patch_mock = mocker.patch("octane.util.puppet.patch_modules")
+    mocker.patch("octane.util.ceph.check_cluster")
+    mocker.patch("octane.util.node.preserve_partition")
+    set_ceph_noout_mock = mocker.patch("octane.util.ceph.set_osd_noout")
+    unset_ceph_noout_mock = mocker.patch("octane.util.ceph.unset_osd_noout")
+    handlers = []
+    envs = {}
+    for env_id, node_id in env_node_ids:
+        try:
+            env = envs[env_id]
+        except KeyError:
+            env = mock.Mock()
+            env.data = {
+                "id": env_id,
+                "fuel_version": "xxx"
+            }
+            envs[env_id] = env
+        node = mock.Mock()
+        node.env = env
+        node.data = {"id": node_id}
+        handlers.append(ceph_osd.CephOsdUpgrade(node, env, False))
+    [h.preupgrade() for h in handlers]
+    [h.prepare() for h in handlers]
+    [h.postdeploy() for h in handlers]
+    assert [mock.call(), mock.call(revert=True)] == patch_mock.call_args_list
+    env_calls = [mock.call(e) for e in envs.values()]
+    assert env_calls == set_ceph_noout_mock.call_args_list
+    assert env_calls == unset_ceph_noout_mock.call_args_list
