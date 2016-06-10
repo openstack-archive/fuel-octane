@@ -547,7 +547,8 @@ def test_post_restore_puppet_apply_host(mocker):
 ])
 @pytest.mark.parametrize("is_dir", [True, False])
 @pytest.mark.parametrize("exception", [True, False])
-def test_logs_restore(mocker, mock_open, nodes, is_dir, exception):
+def test_logs_restore(
+        mocker, mock_open, mock_subprocess, nodes, is_dir, exception):
     domain_name = "test_domain"
     mocker.patch("yaml.load", return_value={"DNS_DOMAIN": domain_name})
     domain_names = []
@@ -576,8 +577,6 @@ def test_logs_restore(mocker, mock_open, nodes, is_dir, exception):
     mocker.patch("os.path.isdir", return_value=is_dir)
     mocker.patch("fuelclient.objects.Node.get_all",
                  return_value=fuel_client_values)
-    run_in_container_mock = mocker.patch(
-        "octane.util.docker.run_in_container")
     rename_mock = mocker.patch("os.rename")
     symlink_mock = mocker.patch("os.symlink")
     mkdir_mock = mocker.patch("os.mkdir")
@@ -596,7 +595,7 @@ def test_logs_restore(mocker, mock_open, nodes, is_dir, exception):
         assert not rename_mock.called
     else:
         archivator.restore()
-        path = "/var/log/docker-logs/remote/"
+        path = "/var/log/remote/"
         path_pairs = [(os.path.join(path, d), os.path.join(path, i))
                       for d, i in moved_nodes]
         sym_calls = [mock.call(d, os.path.join(path, i))
@@ -610,6 +609,7 @@ def test_logs_restore(mocker, mock_open, nodes, is_dir, exception):
                 mkdir_mock.call_args_list
             assert not rename_mock.called
         assert sym_calls == symlink_mock.call_args_list
-    assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
-            mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
-        run_in_container_mock.call_args_list
+    assert mock_subprocess.call_args_list == [
+        mock.call(["systemctl", "stop", "rsyslog"]),
+        mock.call(["systemctl", "start", "rsyslog"]),
+    ]
