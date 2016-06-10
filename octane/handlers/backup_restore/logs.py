@@ -15,9 +15,9 @@ import os
 from fuelclient import objects
 
 from octane.handlers.backup_restore import base
-from octane.util import docker
 from octane.util import fuel_client
 from octane.util import helpers
+from octane.util import subprocess
 
 
 class LogsArchivator(base.Base):
@@ -26,11 +26,11 @@ class LogsArchivator(base.Base):
 
     def restore(self):
         domain = helpers.get_astute_dict()["DNS_DOMAIN"]
-        dirname = "/var/log/docker-logs/remote/"
+        dirname = "/var/log/remote/"
         with fuel_client.set_auth_context(self.context):
             pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
                      for n in objects.Node.get_all()]
-        docker.run_in_container("rsyslog", ["service", "rsyslog", "stop"])
+        subprocess.call(["systemctl", "stop", "rsyslog"])
         try:
             for fqdn, ip_addr in pairs:
                 if not fqdn.endswith(domain):
@@ -45,4 +45,4 @@ class LogsArchivator(base.Base):
                     os.mkdir(fqdn_path)
                 os.symlink(fqdn, ip_addr_path)
         finally:
-            docker.run_in_container("rsyslog", ["service", "rsyslog", "start"])
+            subprocess.call(["systemctl", "start", "rsyslog"])

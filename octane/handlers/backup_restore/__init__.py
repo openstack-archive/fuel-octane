@@ -16,7 +16,7 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
-# from octane.handlers.backup_restore import logs
+from octane.handlers.backup_restore import logs
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
@@ -42,7 +42,7 @@ ARCHIVATORS = [
     # Restore of Nailgun DB should go after restore of Puppet modules.
     postgres.DatabasesArchivator,
     release.ReleaseArchivator,
-    # logs.LogsArchivator,
+    logs.LogsArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
     # puppet.PuppetApplyHost,
