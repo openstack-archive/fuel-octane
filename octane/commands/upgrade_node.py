@@ -21,6 +21,7 @@ from octane.handlers import upgrade as upgrade_handlers
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
+from octane.util import patch
 
 LOG = logging.getLogger(__name__)
 
@@ -51,19 +52,21 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
     # for later use
     copy_patches_folder_to_nailgun()
 
-    call_handlers = upgrade_handlers.get_nodes_handlers(
-        nodes, env, isolated, live_migration)
-    call_handlers('preupgrade')
-    call_handlers('prepare')
-    env_util.move_nodes(env, nodes)
-    if network_template:
-        env_util.set_network_template(env, network_template)
-    call_handlers('predeploy')
-    if isolated or len(nodes) == 1:
-        env_util.deploy_nodes(env, nodes)
-    else:
-        env_util.deploy_changes(env, nodes)
-    call_handlers('postdeploy')
+    with patch.applied_patch(
+            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES):
+        call_handlers = upgrade_handlers.get_nodes_handlers(
+            nodes, env, isolated, live_migration)
+        call_handlers('preupgrade')
+        call_handlers('prepare')
+        env_util.move_nodes(env, nodes)
+        if network_template:
+            env_util.set_network_template(env, network_template)
+        call_handlers('predeploy')
+        if isolated or len(nodes) == 1:
+            env_util.deploy_nodes(env, nodes)
+        else:
+            env_util.deploy_changes(env, nodes)
+        call_handlers('postdeploy')
 
 
 def copy_patches_folder_to_nailgun():
