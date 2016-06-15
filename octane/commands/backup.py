@@ -37,9 +37,10 @@ def backup(path_to_backup, archivators):
         tar_obj = tarfile.open(fileobj=temp, mode="w|{0}".format(ext))
         with contextlib.closing(tar_obj) as archive:
             for manager in archivators:
-                LOG.info("Start backup {0}".format(manager.archivator_name))
-                manager(archive).backup()
-                LOG.info("Finish backup {0}".format(manager.archivator_name))
+                archivator = manager(archive)
+                LOG.info("Start backup {0}".format(archivator.archivator_name))
+                archivator.backup()
+                LOG.info("Finish backup {0}".format(archivator.archivator_name))
             if not archive.getmembers():
                 raise Exception("Nothing to backup")
         shutil.move(temp.name, abs_path_to_backup)
