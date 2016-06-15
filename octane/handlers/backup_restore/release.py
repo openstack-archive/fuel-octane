@@ -33,13 +33,11 @@ class ReleaseArchivator(base.Base):
     def restore(self):
         with open(magic_consts.OPENSTACK_FIXTURES) as f:
             fixtures = yaml.load(f)
-        base_release_fields = fixtures[0]['fields']
+        releases = self.extend_fixtures(fixtures)
         existing_releases = set(
             (release['version'], release['operating_system'])
             for release in json.loads(self.__get_request("/api/v1/releases/")))
-        for fixture in fixtures[1:]:
-            release = dict(helpers.merge_dicts(
-                base_release_fields, fixture['fields']))
+        for release in releases:
             key = (release['version'], release['operating_system'])
             if key in existing_releases:
                 LOG.debug("Skipping to upload of the already existing "
@@ -56,6 +54,19 @@ class ReleaseArchivator(base.Base):
                 "/etc/puppet/",
             ],
             env=self.context.get_credentials_env())
+
+    @staticmethod
+    def extend_fixtures(fixtures):
+        def extend(obj):
+            if 'extend' in obj:
+                obj['extend'] = extend(obj['extend'])
+                return helpers.merge_dicts(obj['extend'], obj)
+            return obj
+
+        for fixture in fixtures:
+            if "pk" not in fixture or fixture["pk"] is None:
+                continue
+            yield extend(fixture)["fields"]
 
     def __post_request(self, url, data):
         self.__request("POST", url,
