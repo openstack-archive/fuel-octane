@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
+
 from octane.util import subprocess
 
 
@@ -26,3 +28,12 @@ def patch_apply(cwd, patches, revert=False):
             if not revert:
                 patch.seek(0)
                 subprocess.call(["patch", "-N", "-p1"], stdin=patch, cwd=cwd)
+
+
+@contextlib.contextmanager
+def applied_patch(cwd, *patches):
+    patch_apply(cwd, patches)
+    try:
+        yield
+    finally:
+        patch_apply(cwd, patches, revert=True)
