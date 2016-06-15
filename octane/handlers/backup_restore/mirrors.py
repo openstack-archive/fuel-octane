@@ -32,7 +32,7 @@ class NaigunWWWBackup(base.PathArchivator):
 
     def _get_mirrors(self):
         ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-        rows = sql.run_psql_in_container(self.sql, self.db)
+        rows = sql.run_psql(self.sql, self.db)
         dirs_to_backup = set()
         for line in rows:
             data = json.loads(line)
@@ -73,7 +73,7 @@ class FullMirrorsBackup(NaigunWWWBackup):
     sql = "select array_to_json(array_agg(distinct version)) from releases;"
 
     def _get_mirrors(self):
-        results = sql.run_psql_in_container(self.sql, self.db)
+        results = sql.run_psql(self.sql, self.db)
         releases = []
         for dir_name in magic_consts.MIRRORS_EXTRA_DIRS:
             if os.path.exists(os.path.join(self.path, dir_name)):

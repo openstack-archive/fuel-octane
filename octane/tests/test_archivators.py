@@ -237,7 +237,7 @@ def test_repos_backup(
     yaml_mocker = mocker.patch(
         "yaml.load",
         return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
-    sql_mock = mocker.patch("octane.util.sql.run_psql_in_container")
+    sql_mock = mocker.patch("octane.util.sql.run_psql")
     test_archive = mocker.Mock()
     path = "/var/www/nailgun/"
     sql_mock.return_value = sql_output
