@@ -1,0 +1,12 @@
+--- /osnailyfacter/modular/roles/mongo.pp
++++ /osnailyfacter/modular/roles/mongo.pp
+@@ -23,6 +23,8 @@
+   mongo_version              => '2.6.10',
+   use_syslog                 => $use_syslog,
+   debug                      => $debug,
++  directoryperdb             => false,
++  dbpath                     => '/var/lib/mongo',
+ }
+
+ if ! roles_include(['controller', 'primary-controller']) {
+

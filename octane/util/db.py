@@ -57,3 +57,4 @@ def db_sync(env):
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
               'upgrade', 'head'], node=node, parse_levels='^(?P<level>[A-Z]+)')
     ssh.call(['cinder-manage', 'db', 'sync'], node=node, parse_levels=True)
+    ssh.call(['ceilometer-dbsync'], node=node, parse_levels=True)
