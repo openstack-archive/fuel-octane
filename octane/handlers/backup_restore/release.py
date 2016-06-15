@@ -33,10 +33,8 @@ class ReleaseArchivator(base.Base):
     def restore(self):
         with open(magic_consts.OPENSTACK_FIXTURES) as f:
             fixtures = yaml.load(f)
-        base_release_fields = fixtures[0]['fields']
-        for fixture in fixtures[1:]:
-            release = helpers.merge_dicts(
-                base_release_fields, fixture['fields'])
+        releases = self.extend_fixtures(fixtures)
+        for release in releases:
             self.__post_data_to_nailgun(
                 "/api/v1/releases/",
                 release,
@@ -51,6 +49,19 @@ class ReleaseArchivator(base.Base):
                 "/etc/puppet/",
             ],
             env=self.context.get_credentials_env())
+
+    @staticmethod
+    def extend_fixtures(fixtures):
+        def extend(obj):
+            if 'extend' in obj:
+                obj['extend'] = extend(obj['extend'])
+                return helpers.merge_dicts(obj['extend'], obj)
+            return obj
+
+        for fixture in fixtures:
+            if "pk" not in fixture or fixture["pk"] is None:
+                continue
+            yield extend(fixture)["fields"]
 
     def __post_data_to_nailgun(self, url, data, user, password):
         ksclient = keystoneclient(

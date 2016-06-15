@@ -13,7 +13,6 @@ import io
 import mock
 import os
 import pytest
-import yaml
 
 from keystoneclient.v2_0 import Client as keystoneclient
 
@@ -461,27 +460,36 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
         ]
 
 
-@pytest.mark.parametrize(("dump", "calls"), [
+FAKE_OPENSTACK_YAML = """\
+---
+- &base_release
+  fields: {"k": 0, "p": 2}
+- pk: 1
+  extend: *base_release
+  fields: {"version": 1, "name": "first", "k": 1}
+- &release2
+  pk: 2
+  extend: *base_release
+  fields: {"version": 1, "name": "second", "k": 2}
+- pk: 3
+  extend: *release2
+  fields: {"name": "third", "p": 3}
+"""
+
+
+@pytest.mark.parametrize(("content", "calls"), [
     (
-        [{"fields": {"k": 1, "p": 2}}, {"fields": {}}, {"fields": {"k": 3}}],
-        [{"p": 2, "k": 1}, {"p": 2, "k": 3}],
-    ),
-    (
-        [
-            {"fields": {"k": 1, "p": 2, "c": {"k": 1, "p": {"a": 1}}}},
-            {"fields": {}},
-            {"fields": {"k": 3, "c": {"k": 3, "p": {"c": 4}}}},
-        ],
-        [
-            {"p": 2, "c": {"p": {"a": 1}, "k": 1}, "k": 1},
-            {'p': 2, 'c': {'p': {'a': 1, 'c': 4}, 'k': 3}, 'k': 3},
-        ],
+        FAKE_OPENSTACK_YAML,
+
+        [{"version": 1, "name": "first", "k": 1, "p": 2},
+         {"version": 1, "name": "second", "k": 2, "p": 2},
+         {"version": 1, "name": "third", "k": 2, "p": 3}],
     ),
 ])
-def test_release_restore(mocker, mock_open, dump, calls):
-    mock_open.return_value = io.BytesIO(yaml.dump(dump))
+def test_release_restore(mocker, mock_open, content, calls):
+    mock_open.return_value = io.BytesIO(content)
     mock_subprocess_call = mocker.patch("octane.util.subprocess.call")
-    json_mock = mocker.patch("json.dumps")
+    mock_json_dumps = mocker.patch("json.dumps")
     token = "123"
 
     def mock_init(self, *args, **kwargs):
@@ -501,11 +509,12 @@ def test_release_restore(mocker, mock_open, dump, calls):
         "Content-Type": "application/json"
     }
     post_url = 'http://127.0.0.1:8000/api/v1/releases/'
-    post_call = mock.call(post_url, json_mock.return_value, headers=headers)
+    post_call = mock.call(
+        post_url, mock_json_dumps.return_value, headers=headers)
     for call in post_data.call_args_list:
         assert post_call == call
-    json_mock.assert_has_calls([mock.call(d) for d in calls], any_order=True)
-    assert json_mock.call_count == 2
+    expected_dumps_calls = [mock.call(d) for d in calls]
+    assert mock_json_dumps.mock_calls == expected_dumps_calls
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
         env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
