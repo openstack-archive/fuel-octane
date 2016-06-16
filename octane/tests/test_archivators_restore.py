@@ -229,7 +229,7 @@ def test_databases_archivator(mocker):
     ]
 
 
-@pytest.mark.parametrize("cls,db,services,mocked_actions_names", [
+@pytest.mark.parametrize("cls,db,services", [
     (
         postgres.NailgunArchivator,
         "nailgun",
@@ -245,20 +245,14 @@ def test_databases_archivator(mocker):
             "statsenderd",
             "assassind",
         ],
-        ["_repair_database_consistency"],
     ),
     (
         postgres.KeystoneArchivator,
         "keystone",
         ["openstack-keystone"],
-        [],
     ),
 ])
-def test_postgres_restore(mocker, cls, db, services, mocked_actions_names):
-    mocked_actions = []
-    for mocked_action_name in mocked_actions_names:
-        mocked_actions.append(mocker.patch.object(cls, mocked_action_name))
-
+def test_postgres_restore(mocker, cls, db, services):
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
 
@@ -297,9 +291,6 @@ def test_postgres_restore(mocker, cls, db, services, mocked_actions_names):
         ]
     else:
         assert not mock_patch.called
-
-    for mocked_action in mocked_actions:
-        mocked_action.assert_called_once_with()
 
 
 @pytest.mark.parametrize("keys_in_dump_file,restored", [
@@ -526,25 +517,6 @@ def test_release_restore(mocker, mock_open, dump, calls):
         ["cat", magic_consts.OPENSTACK_FIXTURES],
         stdout=subprocess.PIPE
     )
-
-
-def test_repair_database_consistency(mocker, mock_open):
-    run_sql_mock = mocker.patch(
-        "octane.util.sql.run_psql",
-        return_value=["1|{}"],
-    )
-    json_mock = mocker.patch("json.dumps")
-
-    mocker.patch("os.environ", new_callable=mock.PropertyMock(return_value={}))
-    context = backup_restore.NailgunCredentialsContext(
-        user="admin", password="password")
-    archivator = postgres.NailgunArchivator(None, context)
-    archivator._repair_database_consistency()
-
-    json_mock.assert_called_once_with({"deployed_before": {"value": True}})
-    run_sql_mock.assert_has_calls([
-        mock.call("select id, generated from attributes;", "nailgun"),
-    ])
 
 
 def test_post_restore_puppet_apply_host(mocker):

@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import shutil
 import six
 
@@ -18,7 +17,6 @@ from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import patch
 from octane.util import puppet
-from octane.util import sql
 from octane.util import subprocess
 
 
@@ -66,23 +64,6 @@ class NailgunArchivator(PostgresArchivator):
     def restore(self):
         with patch.applied_patch(*self.patches):
             super(NailgunArchivator, self).restore()
-            self._repair_database_consistency()
-
-    def _repair_database_consistency(self):
-        values = []
-        for line in sql.run_psql(
-                "select id, generated from attributes;", self.db):
-            c_id, c_data = line.split("|", 1)
-            data = json.loads(c_data)
-            data["deployed_before"] = {"value": True}
-            values.append("({0}, '{1}')".format(c_id, json.dumps(data)))
-
-        if values:
-            sql.run_psql(
-                'update attributes as a set generated = b.generated '
-                'from (values {0}) as b(id, generated) '
-                'where a.id = b.id;'.format(','.join(values)),
-                self.db)
 
 
 class KeystoneArchivator(PostgresArchivator):
