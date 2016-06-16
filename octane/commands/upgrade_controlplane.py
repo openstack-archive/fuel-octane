@@ -33,28 +33,40 @@ def upgrade_control_plane(orig_id, seed_id):
     seed_env = environment_obj.Environment(seed_id)
     controllers = list(env_util.get_controllers(seed_env))
     update_neutron_config(orig_env, seed_env)
+
     # enable all services on seed env
     if len(controllers) > 1:
         maintenance.stop_cluster(seed_env)
     else:
         maintenance.start_corosync_services(seed_env)
         maintenance.start_upstart_services(seed_env)
+
     # disable cluster services on orig env
     maintenance.stop_cluster(orig_env)
+
     # switch networks to seed env
     roles = ['primary-controller', 'controller']
+
     # disable physical connectivity for orig env
     for node, info in env_util.iter_deployment_info(orig_env, roles):
         network.delete_patch_ports(node, info)
+
     # enable physical connectivity for seed env
     for node, info in env_util.iter_deployment_info(seed_env, roles):
         network.delete_overlay_networks(node, info)
         network.create_patch_ports(node, info)
+
     # enable all services on seed env
     if len(controllers) > 1:
         maintenance.start_cluster(seed_env)
         maintenance.start_corosync_services(seed_env)
         maintenance.start_upstart_services(seed_env)
+
+    # Sync Ceilometer DB if MongoDB role is present in seed env
+    if next(env_util.iter_deployment_info(seed_env, ['mongo']), None):
+        first_controller = next(env_util.iter_deployment_info(seed_env, roles))
+        ssh.call(
+            ['ceilometer-dbsync'], node=first_controller, parse_levels=True)
 
 
 class UpgradeControlPlaneCommand(cmd.Command):
