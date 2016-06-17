@@ -17,6 +17,7 @@ import six
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import helpers
 from octane.util import sql
 from octane.util import subprocess
 
@@ -59,6 +60,12 @@ class PostgresArchivator(base.CmdArchivator):
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
+    select_admin_net_query = ("SELECT id FROM network_groups "
+                              "WHERE name = 'fuelweb_admin'")
+    set_admin_gateway_query = ("UPDATE network_groups SET gateway = '{0}' "
+                               "WHERE id = '{1}' AND gateway = ''")
+    set_admin_viptype_query = ("UPDATE ipaddrs SET vip_type = NULL "
+                               "WHERE id = '{0}' AND vip_type = ''")
 
     def restore(self):
         for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
@@ -66,6 +73,7 @@ class NailgunArchivator(PostgresArchivator):
         try:
             super(NailgunArchivator, self).restore()
             self._repair_database_consistency()
+            self._fix_admin_network()
         finally:
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
@@ -85,6 +93,15 @@ class NailgunArchivator(PostgresArchivator):
                 'from (values {0}) as b(id, generated) '
                 'where a.id = b.id;'.format(','.join(values)),
                 self.db)
+
+    def _fix_admin_network(self):
+        gateway = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
+        for net_id in sql.run_psql_in_container(self.select_admin_net_query,
+                                                self.db):
+            sql.run_psql_in_container(
+                self.set_admin_gateway_query.format(gateway, net_id), self.db)
+            sql.run_psql_in_container(
+                self.set_admin_viptype_query.format(net_id), self.db)
 
 
 class KeystoneArchivator(PostgresArchivator):

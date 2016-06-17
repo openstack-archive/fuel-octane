@@ -225,7 +225,7 @@ def test_cobbler_archivator(mocker):
         postgres.NailgunArchivator,
         "nailgun",
         ["nailgun_syncdb"],
-        ["_repair_database_consistency"],
+        ["_repair_database_consistency", "_fix_admin_network"],
     ),
     (
         postgres.KeystoneArchivator,
@@ -566,6 +566,30 @@ def test_repair_database_consistency(mocker, mock_open):
     json_mock.assert_called_once_with({"deployed_before": {"value": True}})
     run_sql_mock.assert_has_calls([
         mock.call("select id, generated from attributes;", "nailgun"),
+    ])
+
+
+def test_fix_admin_network(mocker, mock_open):
+    test_ip = "10.10.10.10"
+    test_net_id = "1"
+    run_sql_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
+        return_value=[test_net_id]
+    )
+    mocker.patch("octane.util.helpers.get_astute_dict",
+                 return_value={"ADMIN_NETWORK": {"ipaddress": test_ip}})
+    context = backup_restore.NailgunCredentialsContext(
+        user="admin", password="password")
+    archivator = postgres.NailgunArchivator(None, context)
+    archivator._fix_admin_network()
+
+    run_sql_mock.assert_has_calls([
+        mock.call(archivator.select_admin_net_query, archivator.db),
+        mock.call(
+            archivator.set_admin_gateway_query.format(test_ip, test_net_id),
+            archivator.db),
+        mock.call(archivator.set_admin_viptype_query.format(test_net_id),
+                  archivator.db),
     ])
 
 
