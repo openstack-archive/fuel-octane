@@ -157,7 +157,7 @@ def test_path_restore(mocker, cls, path, members):
     if cls is ssh.SshArchivator:
         subprocess_mock.assert_called_once_with(
             ["fuel-bootstrap", "build", "--activate"],
-            env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'user'})
+            env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'user'})
     else:
         assert not subprocess_mock.called
 
@@ -540,7 +540,7 @@ def test_release_restore(mocker, mock_open, dump, calls):
     assert json_mock.call_count == 2
     mock_subprocess_call.assert_called_once_with([
         "fuel", "release", "--sync-deployment-tasks", "--dir", "/etc/puppet/"],
-        env={'KEYSTONE_PASS': 'password', 'KEYSTONE_USER': 'admin'}
+        env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'admin'}
     )
 
     run_in_container_mock.assert_called_once_with(
