@@ -218,24 +218,25 @@ def test_cobbler_archivator(mocker):
     start_container.assert_called_once_with("cobbler")
 
 
-@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_name", [
+@pytest.mark.parametrize("cls,db,sync_db_cmd,mocked_action_names", [
     (
         postgres.NailgunArchivator,
         "nailgun",
         ["nailgun_syncdb"],
-        "_post_restore_action",
+        ["_post_restore_action", "_fix_admin_network"],
     ),
     (
         postgres.KeystoneArchivator,
         "keystone",
         ["keystone-manage", "db_sync"],
-        None
+        []
     ),
 ])
-def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
+def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_names):
     patch_mock = mocker.patch("octane.util.docker.apply_patches")
-    if mocked_action_name:
-        mocked_action = mocker.patch.object(cls, mocked_action_name)
+    mocked_actions = []
+    for mocked_action_name in mocked_action_names:
+        mocked_actions.append(mocker.patch.object(cls, mocked_action_name))
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
     actions = []
@@ -301,7 +302,7 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_name):
     ])
     side_effect_in_container.return_value.stdin.write.assert_called_once_with(
         member.dump)
-    if mocked_action_name:
+    for mocked_action in mocked_actions:
         mocked_action.assert_called_once_with()
 
 
@@ -557,6 +558,30 @@ def test_post_restore_nailgun(mocker, mock_open, dump, calls, data_for_update):
     mock_links.assert_called_once_with()
     run_sql_mock.assert_has_calls([
         mock.call("select id, generated from attributes;", "nailgun"),
+    ])
+
+
+def test_fix_admin_network(mocker, mock_open):
+    test_ip = "10.10.10.10"
+    test_net_id = "1"
+    run_sql_mock = mocker.patch(
+        "octane.util.sql.run_psql_in_container",
+        return_value=[test_net_id]
+    )
+    mocker.patch("octane.util.helpers.get_astute_dict",
+                 return_value={"ADMIN_NETWORK": {"ipaddress": test_ip}})
+    context = backup_restore.NailgunCredentialsContext(
+        user="admin", password="password")
+    archivator = postgres.NailgunArchivator(None, context)
+    archivator._fix_admin_network()
+
+    run_sql_mock.assert_has_calls([
+        mock.call(archivator.select_admin_net_query, archivator.db),
+        mock.call(
+            archivator.set_admin_gateway_query.format(test_ip, test_net_id),
+            archivator.db),
+        mock.call(archivator.set_admin_viptype_query.format(test_net_id),
+                  archivator.db),
     ])
 
 

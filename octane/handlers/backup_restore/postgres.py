@@ -72,6 +72,12 @@ class PostgresArchivator(base.CmdArchivator):
 
 class NailgunArchivator(PostgresArchivator):
     db = "nailgun"
+    select_admin_net_query = ("SELECT id FROM network_groups "
+                              "WHERE name = 'fuelweb_admin'")
+    set_admin_gateway_query = ("UPDATE network_groups SET gateway = '{0}' "
+                               "WHERE id = '{1}' AND gateway = ''")
+    set_admin_viptype_query = ("UPDATE ipaddrs SET vip_type = NULL "
+                               "WHERE id = '{0}' AND vip_type = ''")
 
     def __post_data_to_nailgun(self, url, data, user, password):
         ksclient = keystoneclient(
@@ -96,6 +102,7 @@ class NailgunArchivator(PostgresArchivator):
         try:
             super(NailgunArchivator, self).restore()
             self._post_restore_action()
+            self._fix_admin_network()
         finally:
             for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
                 docker.apply_patches(*args, revert=True)
@@ -163,6 +170,15 @@ class NailgunArchivator(PostgresArchivator):
                 'where a.id = b.id;'.format(','.join(values)),
                 self.db)
         self._create_links_on_remote_logs()
+
+    def _fix_admin_network(self):
+        gateway = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
+        for net_id in sql.run_psql_in_container(self.select_admin_net_query,
+                                                self.db):
+            sql.run_psql_in_container(
+                self.set_admin_gateway_query.format(gateway, net_id), self.db)
+            sql.run_psql_in_container(
+                self.set_admin_viptype_query.format(net_id), self.db)
 
 
 class KeystoneArchivator(PostgresArchivator):
