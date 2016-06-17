@@ -262,9 +262,12 @@ def test_postgres_restore(mocker, cls, db, services):
 
     mock_patch = mocker.patch("octane.util.patch.applied_patch")
     mock_copyfileobj = mocker.patch("shutil.copyfileobj")
+    mock_set_astute_password = mocker.patch(
+        "octane.util.auth.set_astute_password")
     mock_apply_task = mocker.patch("octane.util.puppet.apply_task")
+    mock_context = mock.Mock()
 
-    cls(archive).restore()
+    cls(archive, mock_context).restore()
     member.assert_extract()
 
     assert mock_subprocess.mock_calls == [
@@ -291,6 +294,7 @@ def test_postgres_restore(mocker, cls, db, services):
         ]
     else:
         assert not mock_patch.called
+    mock_set_astute_password.assert_called_once_with(mock_context)
 
 
 @pytest.mark.parametrize("keys_in_dump_file,restored", [

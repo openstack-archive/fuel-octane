@@ -15,6 +15,7 @@ import six
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
+from octane.util import auth
 from octane.util import patch
 from octane.util import puppet
 from octane.util import subprocess
@@ -42,7 +43,8 @@ class PostgresArchivator(base.CmdArchivator):
         with subprocess.popen(["sudo", "-u", "postgres", "psql"],
                               stdin=subprocess.PIPE) as process:
             shutil.copyfileobj(dump, process.stdin)
-        puppet.apply_task(self.db)
+        with auth.set_astute_password(self.context):
+            puppet.apply_task(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):
