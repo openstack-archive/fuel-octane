@@ -96,5 +96,4 @@ class ReleaseArchivator(base.Base):
                 "X-Auth-Token": ksclient.auth_token,
                 "Content-Type": "application/json",
             })
-        LOG.debug(resp.content)
         return resp
