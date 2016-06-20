@@ -13,6 +13,7 @@
 from octane.handlers.backup_restore import base
 from octane.util import auth
 from octane.util import puppet
+from octane.util import subprocess
 
 
 class PuppetArchivator(base.DirsArchivator):
@@ -21,10 +22,17 @@ class PuppetArchivator(base.DirsArchivator):
 
 
 class PuppetApplyTasks(base.Base):
+    services = [
+        "ostf",
+        "rabbitmq-server",
+        "astute",
+        "mcollective",
+    ]
 
     def backup(self):
         pass
 
     def restore(self):
+        subprocess.call(["systemctl", "stop"] + self.services)
         with auth.set_astute_password(self.context):
             puppet.apply_all_tasks()
