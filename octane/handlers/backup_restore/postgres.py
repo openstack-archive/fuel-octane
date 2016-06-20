@@ -16,6 +16,7 @@ import six
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import auth
+from octane.util import keystone
 from octane.util import patch
 from octane.util import puppet
 from octane.util import subprocess
@@ -71,6 +72,15 @@ class NailgunArchivator(PostgresArchivator):
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
     services = ["openstack-keystone"]
+
+    def restore(self):
+        keystone.unset_default_domain_id(magic_consts.KEYSTONE_CONF)
+        keystone.add_admin_token_auth(magic_consts.KEYSTONE_PASTE, [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+            "pipeline:api_v3",
+        ])
+        super(KeystoneArchivator, self).restore()
 
 
 class DatabasesArchivator(base.CollectionArchivator):
