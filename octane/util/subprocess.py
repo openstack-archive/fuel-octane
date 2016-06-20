@@ -18,6 +18,7 @@ import io
 import logging
 import os
 import pipes
+import random
 import re
 import subprocess
 import threading
@@ -202,3 +203,37 @@ def call(cmd, **kwargs):
 
 def call_output(cmd, **kwargs):
     return call(cmd, stdout=PIPE, **kwargs)[0]
+
+
+class DontUpdateException(Exception):
+    pass
+
+
+@contextlib.contextmanager
+def update_file(filename):
+    old = open(filename, 'r')
+    try:
+        temp_filename = '%s.octane.%08x' % (filename,
+                                            random.randrange(1 << 8 * 4))
+        new = open(temp_filename, 'wx')
+    except IOError:  # we're unlucky, try other name (or fail)
+        temp_filename = '%s.octane.%08x' % (filename,
+                                            random.randrange(1 << 8 * 4))
+        new = open(temp_filename, 'wx')
+    with contextlib.nested(old, new):
+        try:
+            yield old, new
+        except DontUpdateException:
+            os.unlink(temp_filename)
+            return
+        except Exception:
+            os.unlink(temp_filename)
+            raise
+        stat = os.stat(filename)
+        os.chmod(temp_filename, stat.st_mode)
+        os.chown(temp_filename, stat.st_uid, stat.st_gid)
+
+    bak_filename = filename + '.octane.bak'
+    os.rename(filename, bak_filename)
+    os.rename(temp_filename, filename)
+    os.unlink(bak_filename)
