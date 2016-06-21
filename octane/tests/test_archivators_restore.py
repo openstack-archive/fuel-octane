@@ -264,6 +264,9 @@ def test_postgres_restore(mocker, cls, db, services):
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
 
+    mock_keystone = mocker.patch(
+        "octane.util.keystone.unset_default_domain_id")
+
     mock_subprocess = mock.MagicMock()
     mocker.patch("octane.util.subprocess.call", new=mock_subprocess.call)
     mocker.patch("octane.util.subprocess.popen", new=mock_subprocess.popen)
@@ -300,8 +303,10 @@ def test_postgres_restore(mocker, cls, db, services):
                 os.path.join(magic_consts.CWD, "patches/timeout.patch"),
             ),
         ]
+        assert not mock_keystone.called
     else:
         assert not mock_patch.called
+        mock_keystone.assert_called_once_with("/etc/keystone/keystone.conf")
     mock_set_astute_password.assert_called_once_with(mock_context)
 
 
