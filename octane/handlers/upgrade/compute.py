@@ -32,7 +32,10 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         if env_util.incompatible_provision_method(env):
             self.create_configdrive_partition()
             disk.update_node_partition_info(self.node.id)
-        if node_util.is_live_migration_supported(self.node):
+        if not self.live_migration:
+            self.preserve_partition()
+            self.shutoff_vms()
+        elif node_util.is_live_migration_supported(self.node):
             self.evacuate_host()
         else:
             self.backup_iscsi_initiator_info()

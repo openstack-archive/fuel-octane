@@ -25,7 +25,8 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
+                 live_migration=True):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
@@ -50,7 +51,8 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
     # for later use
     copy_patches_folder_to_nailgun()
 
-    call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
+    call_handlers = upgrade_handlers.get_nodes_handlers(
+        nodes, env, isolated, live_migration)
     call_handlers('preupgrade')
     call_handlers('prepare')
     env_util.move_nodes(env, nodes)
@@ -87,9 +89,18 @@ class UpgradeNodeCommand(cmd.Command):
         parser.add_argument(
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
+        parser.add_argument(
+            '--no-live-migration',
+            action='store_false',
+            dest="live_migration",
+            default=True,
+            help="Run migration on ceph-osd or compute nodes in one command. "
+                 "It can prevent to cluster downtime on deploy period. "
+                 "(default: True).")
         return parser
 
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template)
+                     network_template=parsed_args.template,
+                     live_migration=parsed_args.live_migration)
