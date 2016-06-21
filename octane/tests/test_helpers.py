@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import pytest
+import six
 
 from octane.util import helpers
 
@@ -35,3 +36,28 @@ from octane.util import helpers
 ])
 def test_merge_dicts(mocker, base, update, result):
     assert result == helpers.merge_dicts(base, update)
+
+
+@pytest.mark.parametrize(("source", "parameters"), [
+    ([
+        "option1 =  value1\n",
+        "[section1]\n",
+        "# some comment\n",
+        "option2= value2\n",
+        "[section2]\n",
+        " option3  =value3  \n",
+    ], [
+        (None, "option1", "value1"),
+        ("section1", None, None),
+        ("section1", None, None),
+        ("section1", "option2", "value2"),
+        ("section2", None, None),
+        ("section2", "option3", "value3"),
+    ]),
+])
+def test_iterate_parameters(source, parameters):
+    expected_result = []
+    for line, params in six.moves.zip(source, parameters):
+        expected_result.append((line,) + params)
+    result = list(helpers.iterate_parameters(source))
+    assert result == expected_result
