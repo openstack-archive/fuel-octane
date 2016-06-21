@@ -76,3 +76,4 @@ BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
 CONFIGDRIVE_PART_SIZE = 10
 
 KEYSTONE_CONF = "/etc/keystone/keystone.conf"
+KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"

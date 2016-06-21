@@ -264,8 +264,11 @@ def test_postgres_restore(mocker, cls, db, services):
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
 
-    mock_keystone = mocker.patch(
-        "octane.util.keystone.unset_default_domain_id")
+    mock_keystone = mock.Mock()
+    mocker.patch("octane.util.keystone.unset_default_domain_id",
+                 new=mock_keystone.unset)
+    mocker.patch("octane.util.keystone.add_admin_token_auth",
+                 new=mock_keystone.add)
 
     mock_subprocess = mock.MagicMock()
     mocker.patch("octane.util.subprocess.call", new=mock_subprocess.call)
@@ -306,7 +309,14 @@ def test_postgres_restore(mocker, cls, db, services):
         assert not mock_keystone.called
     else:
         assert not mock_patch.called
-        mock_keystone.assert_called_once_with("/etc/keystone/keystone.conf")
+        assert mock_keystone.mock_calls == [
+            mock.call.unset("/etc/keystone/keystone.conf"),
+            mock.call.add("/etc/keystone/keystone-paste.ini", [
+                "pipeline:public_api",
+                "pipeline:admin_api",
+                "pipeline:api_v3",
+            ]),
+        ]
     mock_set_astute_password.assert_called_once_with(mock_context)
 
 
