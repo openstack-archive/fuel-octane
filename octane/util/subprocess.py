@@ -22,6 +22,8 @@ import re
 import subprocess
 import threading
 
+from octane.util import tempfile
+
 LOG = logging.getLogger(__name__)
 PIPE = subprocess.PIPE
 CalledProcessError = subprocess.CalledProcessError
@@ -202,3 +204,32 @@ def call(cmd, **kwargs):
 
 def call_output(cmd, **kwargs):
     return call(cmd, stdout=PIPE, **kwargs)[0]
+
+
+class DontUpdateException(Exception):
+    pass
+
+
+@contextlib.contextmanager
+def update_file(filename):
+    old = open(filename, 'r')
+    dirname = os.path.dirname(filename)
+    prefix = ".{0}.".format(os.path.basename(filename))
+    temp_filename = tempfile.get_tempname(dir=dirname, prefix=prefix)
+    new = open(temp_filename, 'wx')
+    with contextlib.nested(old, new):
+        try:
+            yield old, new
+        except DontUpdateException:
+            os.unlink(temp_filename)
+            return
+        except Exception:
+            os.unlink(temp_filename)
+            raise
+        stat = os.stat(filename)
+        os.chmod(temp_filename, stat.st_mode)
+        os.chown(temp_filename, stat.st_uid, stat.st_gid)
+    bak_filename = filename + '.bak'
+    os.rename(filename, bak_filename)
+    os.rename(temp_filename, filename)
+    os.unlink(bak_filename)
