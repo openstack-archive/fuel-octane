@@ -20,3 +20,16 @@ def unset_default_domain_id(filename):
             if section == "identity" and parameter == "default_domain_id":
                 line = "#{0}".format(line)
             new.write(line)
+
+
+def add_admin_token_auth(filename, pipelines):
+    with subprocess.update_file(filename) as (old, new):
+        for line, section, parameter, value in helpers.iterate_parameters(old):
+            if section in pipelines and parameter == "pipeline" and \
+                    "admin_token_auth" not in value:
+                items = value.split()
+                token_auth_idx = items.index("token_auth")
+                items.insert(token_auth_idx, "admin_token_auth")
+                value = " ".join(items)
+                line = "{0} = {1}\n".format(parameter, value)
+            new.write(line)

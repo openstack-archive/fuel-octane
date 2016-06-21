@@ -75,6 +75,11 @@ class KeystoneArchivator(PostgresArchivator):
 
     def restore(self):
         keystone.unset_default_domain_id(magic_consts.KEYSTONE_CONF)
+        keystone.add_admin_token_auth(magic_consts.KEYSTONE_PASTE, [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+            "pipeline:api_v3",
+        ])
         super(KeystoneArchivator, self).restore()
 
 
