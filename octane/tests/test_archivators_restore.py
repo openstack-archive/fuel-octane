@@ -529,7 +529,7 @@ def test_release_restore(mocker, mock_open, content, existing_releases, calls):
     mock_open.assert_called_once_with(magic_consts.OPENSTACK_FIXTURES)
 
 
-def test_post_restore_puppet_apply_tasks(mocker):
+def test_post_restore_puppet_apply_tasks(mocker, mock_subprocess):
     context = backup_restore.NailgunCredentialsContext(
         user="admin", password="user_pswd")
     mock_set_astute_password = mocker.patch(
@@ -539,6 +539,7 @@ def test_post_restore_puppet_apply_tasks(mocker):
     archivator = puppet.PuppetApplyTasks(None, context)
     archivator.restore()
 
+    mock_subprocess.assert_called_once_with(["systemctl", "stop", "ostf"])
     assert mock_apply.called
     mock_set_astute_password.assert_called_once_with(context)
 
