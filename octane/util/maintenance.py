@@ -44,7 +44,7 @@ def disable_apis(env):
             with ssh.update_file(sftp, f) as (old, new):
                 contents = old.read()
                 if not mode_tcp_re.search(contents):
-                    raise ssh.DontUpdateException
+                    raise subprocess.DontUpdateException
                 new.write(contents)
                 if not contents.endswith('\n'):
                     new.write('\n')

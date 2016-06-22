@@ -12,21 +12,20 @@
 
 import os.path
 
-PACKAGES = ["postgresql.x86_64", "pssh", "patch", "python-pip"]
 PATCHES = []
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
 
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
-NAILGUN_ARCHIVATOR_PATCHES = [
-    (
-        "nailgun",
-        os.path.join(PUPPET_DIR, "nailgun/manifests/"),
-        os.path.join(CWD, "patches/timeout.patch")
-    ),
-]
+NAILGUN_ARCHIVATOR_PATCHES = (
+    PUPPET_DIR,
+    os.path.join(CWD, "patches/timeout.patch"),
+)
 BOOTSTRAP_INITRAMFS = "/var/www/nailgun/bootstrap/initramfs.img"
+
+PUPPET_TASKS_DIR = os.path.join(PUPPET_DIR, 'fuel/examples')
+PUPPET_APPLY_TASKS_SCRIPT = os.path.join(PUPPET_TASKS_DIR, 'deploy.sh')
 
 SSH_KEYS = ['/root/.ssh/id_rsa', '/root/.ssh/bootstrap.rsa']
 OS_SERVICES = ["nova", "keystone", "heat", "neutron", "cinder", "glance"]
@@ -48,20 +47,33 @@ NAILGUN_URL = "http://127.0.0.1:8000"
 KEYSTONE_API_URL = "http://127.0.0.1:5000/v2.0"
 KEYSTONE_TENANT_NAME = "admin"
 
-SYNC_CONTAINERS = []
+OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
 
-RUNNING_REQUIRED_CONTAINERS = [
-    "postgres",
-    "rabbitmq",
-    "keystone",
-    "rsync",
-    "astute",
-    "rsyslog",
-    "nailgun",
-    "ostf",
-    "nginx",
-    "cobbler",
-    "mcollective",
+OSD_REPOS_UPDATE = [
+    # ("path", "content")
+    (
+        "/etc/apt/sources.list.d/mos.list",
+        "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 "
+        "mos8.0 main restricted"
+    ),
+    (
+        "/etc/apt/sources.list.d/mos-updates.list",
+        'deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted',
+    ),
+]
+COBBLER_DROP_VERSION = "7.0"
+
+MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
+RELEASE_STATUS_ENABLED = "available"
+RELEASE_STATUS_MANAGED = "manageonly"
+
+UPGRADE_NODE_PATCHES = [
+    os.path.join(CWD, "patches/puppet/fix_mysql.patch")
 ]
 
-OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
+BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
+# NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
+CONFIGDRIVE_PART_SIZE = 10
+
+KEYSTONE_CONF = "/etc/keystone/keystone.conf"
+KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"

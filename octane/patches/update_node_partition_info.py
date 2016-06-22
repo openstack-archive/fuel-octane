@@ -24,7 +24,11 @@ if not nv:
 
 volumes = nv.volumes
 
-os_vg = next(disk for disk in volumes if 'id' in disk and disk['id'] == 'os')
+try:
+    os_vg = next(
+        disk for disk in volumes if 'id' in disk and disk['id'] == 'os')
+except StopIteration:
+    sys.exit(0)
 volumes = [disk for disk in volumes if 'id' not in disk or disk['id'] != 'os']
 
 for disk in volumes:

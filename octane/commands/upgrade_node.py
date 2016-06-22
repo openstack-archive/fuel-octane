@@ -14,27 +14,33 @@ import logging
 import os.path
 
 from cliff import command as cmd
-from distutils import version
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 from octane.handlers import upgrade as upgrade_handlers
-from octane.helpers import disk
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
+from octane.util import helpers
+from octane.util import patch
 
 LOG = logging.getLogger(__name__)
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
-    # From check_deployment_status
-    env = environment_obj.Environment(env_id)
-    nodes = [node_obj.Node(node_id) for node_id in node_ids]
+def load_network_template(network_template):
+    try:
+        data = helpers.load_yaml(network_template)
+    except Exception:
+        LOG.exception("Cannot open network template from %s",
+                      network_template)
+        raise
+    return data
 
-    # Sanity check
+
+def check_sanity(env_id, nodes):
     one_orig_id = None
     for node in nodes:
+        node_id = node.data['id']
         orig_id = node.data['cluster']
         if orig_id == env_id:
             raise Exception(
@@ -48,29 +54,43 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None):
                     orig_id, one_orig_id,
                 )
             one_orig_id = orig_id
-    patch_partition_generator(one_orig_id)
-    call_handlers = upgrade_handlers.get_nodes_handlers(nodes, env, isolated)
-    call_handlers('preupgrade')
-    call_handlers('prepare')
-    env_util.move_nodes(env, nodes)
-    call_handlers('predeploy')
-    if network_template:
-        env_util.set_network_template(env, network_template)
-    if isolated or len(nodes) == 1:
-        env_util.deploy_nodes(env, nodes)
-    else:
-        env_util.deploy_changes(env, nodes)
-    call_handlers('postdeploy')
 
 
-def patch_partition_generator(env_id):
-    """Update partitions generator for releases earlier than 6.0"""
-
+def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
+                 provision=True, roles=None, live_migration=True):
+    # From check_deployment_status
     env = environment_obj.Environment(env_id)
-    env_version = version.StrictVersion(env.data["fuel_version"])
-    if env_version < version.StrictVersion("6.0"):
-        copy_patches_folder_to_nailgun()
-        disk.update_partition_generator()
+    nodes = [node_obj.Node(node_id) for node_id in node_ids]
+
+    if network_template:
+        network_template_data = load_network_template(network_template)
+    check_sanity(env_id, nodes)
+
+    # NOTE(ogelbukh): patches and scripts copied to nailgun container
+    # for later use
+    copy_patches_folder_to_nailgun()
+
+    call_handlers = upgrade_handlers.get_nodes_handlers(
+        nodes, env, isolated, live_migration)
+    with patch.applied_patch(
+            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES):
+        call_handlers('preupgrade')
+        call_handlers('prepare')
+        env_util.move_nodes(env, nodes, provision, roles)
+
+        # NOTE(aroma): copying of VIPs must be done after node reassignment
+        # as according to [1] otherwise the operation will not take any effect
+        # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
+        env_util.copy_vips(env)
+
+        if network_template:
+            env.set_network_template_data(network_template_data)
+        call_handlers('predeploy')
+        if isolated or len(nodes) == 1:
+            env_util.deploy_nodes(env, nodes)
+        else:
+            env_util.deploy_changes(env, nodes)
+        call_handlers('postdeploy')
 
 
 def copy_patches_folder_to_nailgun():
@@ -79,11 +99,24 @@ def copy_patches_folder_to_nailgun():
     docker.put_files_to_docker('nailgun', dest_folder, folder)
 
 
+def list_roles(s):
+    return s.split(',')
+
+
 class UpgradeNodeCommand(cmd.Command):
     """Move nodes to environment and upgrade the node"""
 
     def get_parser(self, prog_name):
         parser = super(UpgradeNodeCommand, self).get_parser(prog_name)
+        parser.add_argument(
+            '--no-provision', dest='provision', action='store_false',
+            default=True,
+            help="Perform reprovisioning of nodes during the upgrade. "
+                 "(default: True).")
+        parser.add_argument(
+            '--roles', type=list_roles, nargs='?',
+            help="Assign given roles to the specified nodes or do not specify "
+                 "them at all to preserve the current roles.")
         parser.add_argument(
             '--isolated', action='store_true',
             help="Isolate node's network from original cluster")
@@ -96,9 +129,20 @@ class UpgradeNodeCommand(cmd.Command):
         parser.add_argument(
             'node_ids', type=int, metavar='NODE_ID', nargs='+',
             help="IDs of nodes to be moved")
+        parser.add_argument(
+            '--no-live-migration',
+            action='store_false',
+            dest="live_migration",
+            default=True,
+            help="Run migration on ceph-osd or compute nodes in one command. "
+                 "It can prevent to cluster downtime on deploy period. "
+                 "(default: True).")
         return parser
 
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template)
+                     network_template=parsed_args.template,
+                     provision=parsed_args.provision,
+                     roles=parsed_args.roles,
+                     live_migration=parsed_args.live_migration)

@@ -11,8 +11,16 @@
 # under the License.
 import os.path
 
+from octane import magic_consts
 from octane.util import docker
 from octane.util import ssh
+
+
+class NoDisksInfoError(Exception):
+    message = "No disks info was found for node {0}"
+
+    def __init__(self, node_id):
+        super(NoDisksInfoError, self).__init__(self.message.format(node_id))
 
 
 def get_node_disks(node):
@@ -29,9 +37,8 @@ def parse_last_partition_end(out):
 
 # size in MB
 def create_partition(disk_name, size, node):
-    out, _ = ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'print'],
-                      stdout=ssh.PIPE,
-                      node=node)
+    out = ssh.call_output(
+        ['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'print'], node=node)
     start = parse_last_partition_end(out) + 1
     end = start + size
     ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart',
@@ -39,13 +46,16 @@ def create_partition(disk_name, size, node):
              node=node)
 
 
-def update_partition_generator():
-    fname = 'update_release_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname)]
-    docker.run_in_container('nailgun', command)
-
-
 def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
     command = ['python', os.path.join('/tmp', fname), str(node_id)]
     docker.run_in_container('nailgun', command)
+
+
+def create_configdrive_partition(node):
+    disks = get_node_disks(node)
+    if not disks:
+        raise NoDisksInfoError(node.data['id'])
+    create_partition(disks[0]['name'],
+                     magic_consts.CONFIGDRIVE_PART_SIZE,
+                     node)
