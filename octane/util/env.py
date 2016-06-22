@@ -16,6 +16,7 @@ import collections
 import json
 import logging
 import os.path
+import pipes
 import time
 import uuid
 import yaml
@@ -152,7 +153,7 @@ def get_keystone_tenants(env, node):
         [
             'sh', '-c',
             '. /root/openrc; keystone --os-password={0} tenant-list'
-            .format(password),
+            .format(pipes.quote(password)),
         ],
         node=node,
     )
@@ -169,7 +170,7 @@ def get_openstack_projects(env, node):
         [
             'sh', '-c',
             '. /root/openrc; openstack --os-password {0} project list -f json'
-            .format(password),
+            .format(pipes.quote(password)),
         ],
         node=node,
     )
