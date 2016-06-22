@@ -16,7 +16,6 @@ import stat
 import subprocess
 
 from octane.handlers import upgrade
-from octane.helpers import disk
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
@@ -28,11 +27,10 @@ LOG = logging.getLogger(__name__)
 
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
-        env = self.node.env
-        if env_util.get_env_provision_method(env) != 'image':
-            self.create_configdrive_partition()
-            disk.update_node_partition_info(self.node.id)
-        if node_util.is_live_migration_supported(self.node):
+        if not self.live_migration:
+            self.preserve_partition()
+            self.shutoff_vms()
+        elif node_util.is_live_migration_supported(self.node):
             self.evacuate_host()
         else:
             self.backup_iscsi_initiator_info()
@@ -90,23 +88,15 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def shutoff_vms(self):
         password = env_util.get_admin_password(self.env)
+        controller = env_util.get_one_controller(self.env)
         cmd = ['. /root/openrc;',
-               'nova list --os-password {0} --host {1}'
+               'nova --os-password {0} list --host {1}'
                .format(password, self.node.data['hostname']),
                '|',
-               'awk -F\| \'$4~/ACTIVE/{print($2)}',
+               "awk -F\| '$4~/ACTIVE/{print($2)}'",
                '|',
                'xargs -I% nova stop %']
-        out, err = ssh.call(cmd, stdout=ssh.PIPE, node=self.node)
-
-    def create_configdrive_partition(self):
-        disks = disk.get_node_disks(self.node)
-        if not disks:
-            raise Exception("No disks info was found "
-                            "for node {0}".format(self.node["id"]))
-        # it was agreed that 10MB is enough for config drive partition
-        size = 10
-        disk.create_partition(disks[0]['name'], size, self.node)
+        ssh.call(["sh", "-c", ' '.join(cmd)], stdout=ssh.PIPE, node=controller)
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):

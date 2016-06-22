@@ -10,18 +10,27 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
 
-def test_parser(mocker, octane_app):
-    networks = [{'key': 'value'}]
+import contextlib
+import os
+import shutil
+import tempfile
 
-    env_cls = mocker.patch('fuelclient.objects.Environment')
 
-    m1 = mocker.patch('octane.util.env.get_env_networks')
-    m1.return_value = networks
+def get_tempname(dir=None, prefix=None):
+    kwargs = {}
+    if prefix is not None:
+        kwargs["prefix"] = prefix
+    fd, tmp_file_name = tempfile.mkstemp(dir=dir, **kwargs)
+    os.close(fd)
+    return tmp_file_name
 
-    m2 = mocker.patch('octane.commands.sync_networks.update_env_networks')
-    octane_app.run(["sync-networks", "1", "2"])
-    assert not octane_app.stdout.getvalue()
-    assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with(env_cls.return_value)
-    m2.assert_called_once_with(2, networks)
+
+@contextlib.contextmanager
+def temp_dir():
+    temp_dir = tempfile.mkdtemp()
+    try:
+        yield temp_dir
+    finally:
+        shutil.rmtree(temp_dir)

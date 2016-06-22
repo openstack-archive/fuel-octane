@@ -13,11 +13,11 @@
 import logging
 
 from octane.handlers.upgrade import controller as controller_upgrade
-from octane.helpers import network
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import network
 from octane.util import node as node_util
 
 from cliff import command as cmd

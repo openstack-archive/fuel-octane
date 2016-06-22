@@ -50,9 +50,11 @@ class ContainerArchivator(Base):
     backup_directory = None
     allowed_files = None
     container = None
+    backup_name = None
 
     def backup(self):
         assert self.container
+        assert self.backup_name
         assert self.backup_directory
         stdout, _ = docker.run_in_container(
             self.container,
@@ -71,13 +73,15 @@ class ContainerArchivator(Base):
                 self.archive,
                 self.container,
                 ["cat", path],
-                "{0}/{1}".format(self.container, filename)
+                "{0}/{1}".format(self.backup_name, filename)
             )
 
     def restore(self):
         assert self.container
+        assert self.backup_name
         assert self.backup_directory
-        for member in archivate.filter_members(self.archive, self.container):
+        for member in archivate.filter_members(
+                self.archive, self.backup_name):
             dump = self.archive.extractfile(member.name).read()
             name = member.name.split("/", 1)[-1]
             docker.write_data_in_docker_file(
@@ -87,19 +91,46 @@ class ContainerArchivator(Base):
             )
 
 
-class CmdArchivator(Base):
+class PathFilterArchivator(Base):
 
-    container = None
+    backup_directory = None
+    backup_name = None
+    allowed_files = None
+    banned_files = []
+
+    def backup(self):
+        assert self.backup_name
+        assert self.backup_directory
+        for root, _, filenames in os.walk(self.backup_directory):
+            directory = root[len(self.backup_directory):].lstrip(os.path.sep)
+            for filename in filenames:
+                relative_path = os.path.join(directory, filename)
+                if relative_path in self.banned_files:
+                    continue
+                if self.allowed_files is not None \
+                        and relative_path not in self.allowed_files:
+                    continue
+                path = os.path.join(root, filename)
+                path_in_archive = os.path.join(self.backup_name, relative_path)
+                self.archive.add(path, path_in_archive)
+
+    def restore(self):
+        assert self.backup_name
+        assert self.backup_directory
+        for member in archivate.filter_members(self.archive, self.backup_name):
+            member.name = member.name.partition(os.path.sep)[-1]
+            self.archive.extract(member, self.backup_directory)
+
+
+class CmdArchivator(Base):
     cmd = None
     filename = None
 
     def backup(self):
         assert self.cmd
-        assert self.container
         assert self.filename
 
-        archivate.archivate_container_cmd_output(
-            self.archive, self.container, self.cmd, self.filename)
+        archivate.archivate_cmd_output(self.archive, self.cmd, self.filename)
 
 
 class DirsArchivator(Base):
@@ -142,3 +173,25 @@ class PathArchivator(Base):
                 member.name = member.name.split("/", 1)[-1]
                 path = self.path
             self.archive.extract(member, path)
+
+
+class CollectionArchivator(Base):
+
+    archivators_classes = []
+
+    def __init__(self, *args, **kwargs):
+        super(CollectionArchivator, self).__init__(*args, **kwargs)
+        self.archivators = [c(*args, **kwargs)
+                            for c in self.archivators_classes]
+
+    def backup(self):
+        for archvator in self.archivators:
+            archvator.backup()
+
+    def restore(self):
+        for archvator in self.archivators:
+            archvator.restore()
+
+    def pre_restore_check(self):
+        for archvator in self.archivators:
+            archvator.pre_restore_check()

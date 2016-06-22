@@ -43,13 +43,6 @@ def find_deployable_release(operating_system):
                         operating_system)
 
 
-def set_cobbler_provision(env_id):
-    env = environment_obj.Environment(env_id)
-    settings = env.get_settings_data()
-    settings["editable"]["provision"]["method"]["value"] = "cobbler"
-    env.set_settings_data(settings)
-
-
 def upgrade_env(env_id):
     env = environment_obj.Environment(env_id)
     target_release = find_deployable_release("Ubuntu")

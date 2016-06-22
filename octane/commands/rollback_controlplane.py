@@ -12,9 +12,9 @@
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
-from octane.helpers import network
 from octane.util import env as env_util
 from octane.util import maintenance
+from octane.util import network
 
 
 def rollback_control_plane(seed_id, orig_id):

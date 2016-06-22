@@ -25,7 +25,6 @@ from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
-from octane.util import subprocess
 
 
 @pytest.mark.parametrize("cls,path,name", [
@@ -45,54 +44,61 @@ def test_path_backup(mocker, cls, path, name):
 
 
 @pytest.mark.parametrize(
-    "cls,banned_files,backup_directory,allowed_files, container", [
+    "cls,banned_files,backup_directory,allowed_files,backup_name", [
         (
-            cobbler.CobblerArchivator,
+            cobbler.CobblerSystemArchivator,
             ["default.json"],
             "/var/lib/cobbler/config/systems.d/",
             None,
-            "cobbler"
+            "cobbler",
+        ),
+        (
+            cobbler.CobblerProfileArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/profiles.d/",
+            None,
+            "cobbler_profiles",
+        ),
+        (
+            cobbler.CobblerDistroArchivator,
+            ["bootstrap.json", "ubuntu_bootstrap.json"],
+            "/var/lib/cobbler/config/distros.d/",
+            None,
+            "cobbler_distros",
         ),
     ])
-def test_container_backup(
-        mocker, cls, banned_files, backup_directory, allowed_files, container):
-    test_archive = mocker.Mock()
-    data_lst = (banned_files or []) + (allowed_files or []) + ["tmp1", "tmp2"]
-    stdout_data_lst = [os.path.join(backup_directory, f) for f in data_lst]
-    data = " ".join(stdout_data_lst)
-    docker_mock = mocker.patch(
-        "octane.util.docker.run_in_container",
-        return_value=(data, None))
+def test_path_filter_backup(mocker, cls, banned_files, backup_directory,
+                            allowed_files, backup_name):
+    def foo(path, path_in_archive):
+        assert path.startswith(backup_directory)
+        assert path_in_archive.startswith(backup_name)
+        filename = path[len(backup_directory):].lstrip(os.path.sep)
+        filename_in_archive = \
+            path_in_archive[len(backup_name):].lstrip(os.path.sep)
+        assert filename == filename_in_archive
+        backuped_files.add(filename)
 
-    def foo(archive, container_name, cmd, backup_dir):
-        assert archive is test_archive
-        assert container == container_name
-        _, path = cmd
-        assert _ == "cat"
-        assert path[:len(backup_directory)] == backup_directory
-        assert backup_dir[:len(container)] == container
-        filename = path[len(backup_directory):].strip("\/")
-        backuped_files.add(path[len(backup_directory):])
-        assert filename == backup_dir[len(container):].strip("\/")
-
-    mocker.patch("octane.util.archivate.archivate_container_cmd_output",
-                 side_effect=foo)
-
-    files_to_archive = data_lst
-
-    files_to_archive = [d for d in files_to_archive
-                        if d in (allowed_files or [])]
-    files_to_archive = [d for d in files_to_archive
-                        if d not in (banned_files or [])]
+    filenames = banned_files + (allowed_files or []) + ["tmp1", "tmp2"]
+    files_to_archive = filenames
+    if allowed_files:
+        files_to_archive = [d for d in files_to_archive if d in allowed_files]
+    files_to_archive = [d for d in files_to_archive if d not in banned_files]
     backuped_files = set()
+
+    test_archive = mocker.Mock()
+    test_archive.add.side_effect = foo
+
+    mock_os_walk = mocker.patch("os.walk")
+    mock_os_walk.return_value = [(backup_directory, (), filenames)]
+
     cls(test_archive).backup()
-    docker_mock.assert_called_once_with(
-        container,
-        ["find", backup_directory, "-type", "f"],
-        stdout=subprocess.PIPE
-    )
+
+    mock_os_walk.assert_called_once_with(backup_directory)
+
     for filename in files_to_archive:
         assert filename in backuped_files
+    for filename in set(filenames) - set(files_to_archive):
+        assert filename not in backuped_files
 
 
 @pytest.mark.parametrize("cls,db", [
@@ -102,11 +108,10 @@ def test_container_backup(
 def test_posgres_archivator(mocker, cls, db):
     test_archive = mocker.Mock()
     archive_mock = mocker.patch(
-        "octane.util.archivate.archivate_container_cmd_output")
+        "octane.util.archivate.archivate_cmd_output")
     cls(test_archive).backup()
     archive_mock.assert_called_once_with(
         test_archive,
-        "postgres",
         ["sudo", "-u", "postgres", "pg_dump", "-C", db],
         "postgres/{0}.sql".format(db))
 
@@ -144,11 +149,13 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "mirrors",
             "select editable from attributes;",
             "127.0.0.1",
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}',
+            [
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}'
+            ],
             ["test_fest", "test_fest_2"]
         ),
         (
@@ -156,16 +163,18 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "mirrors",
             "select editable from attributes;",
             "127.0.0.1",
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}\n'
-            '{"repo_setup": {"repos": {"value": ['
-            '{"uri": "http://127.0.0.1:8080/test_fest"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-            ']}}}',
+            [
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}',
+                '{"repo_setup": {"repos": {"value": ['
+                '{"uri": "http://127.0.0.1:8080/test_fest"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
+                ']}}}',
+            ],
             ["test_fest", "test_fest_2", "test_fest_3"]
         ),
         (
@@ -181,12 +190,14 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "repos",
             "select generated from attributes;",
             "127.0.0.1",
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-            '}}}',
+            [
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+                '}}}'
+            ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
@@ -194,18 +205,20 @@ def test_nailgun_plugins_backup(mocker, path_exists):
             "repos",
             "select generated from attributes;",
             "127.0.0.1",
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
-            '}}}\n'
-            '{"provision": {"image_data": {'
-            '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-            '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-            '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-            '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-            '}}}',
+            [
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
+                '}}}',
+                '{"provision": {"image_data": {'
+                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
+                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
+                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
+                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
+                '}}}',
+            ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
@@ -224,25 +237,14 @@ def test_repos_backup(
     yaml_mocker = mocker.patch(
         "yaml.load",
         return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
-    docker_mock = mocker.patch("octane.util.docker.run_in_container")
+    sql_mock = mocker.patch("octane.util.sql.run_psql")
     test_archive = mocker.Mock()
     path = "/var/www/nailgun/"
-    docker_mock.return_value = sql_output, None
+    sql_mock.return_value = sql_output
     cls(test_archive).backup()
     yaml_mocker.assert_called_once_with(mock_open.return_value)
-    docker_mock.assert_called_once_with(
-        "postgres", [
-            "sudo",
-            "-u",
-            "postgres",
-            "psql",
-            "nailgun",
-            "--tuples-only",
-            "-c",
-            sql
-        ],
-        stdout=subprocess.PIPE
-    )
+
+    sql_mock.assert_called_once_with(sql, "nailgun")
     test_archive.add.assert_has_calls(
         [
             mock.call(os.path.join(path, i), os.path.join(name, i))
