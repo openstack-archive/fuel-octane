@@ -16,14 +16,20 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
+from octane.handlers.backup_restore import logs
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
+from octane.handlers.backup_restore import release
 from octane.handlers.backup_restore import ssh
 from octane.handlers.backup_restore import version
 
 
+# NOTE(akscram): Unsupported archivators are disabled and will be
+# re-wrote one-by-one. Docker containers were removed in 9.0 and all
+# services are run now in OS on the host. This major change requires to
+# modify current archivators that use containers.
 ARCHIVATORS = [
     astute.AstuteArchivator,
     # SSH restore must go before Cobbler restore so it updates
@@ -33,17 +39,23 @@ ARCHIVATORS = [
     fuel_keys.FuelKeysArchivator,
     fuel_uuid.FuelUUIDArchivator,
     puppet.PuppetArchivator,
-    postgres.KeystoneArchivator,
-    # Nailgun restore should be after puppet restore
-    postgres.NailgunArchivator,
+    # Restore of Nailgun DB should go after restore of Puppet modules.
+    postgres.DatabasesArchivator,
+    release.ReleaseArchivator,
+    logs.LogsArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
-    puppet.PuppetApplyHost,
+    puppet.PuppetApplyTasks,
 ]
 
 REPO_ARCHIVATORS = [
     mirrors.MirrorsBackup,
     mirrors.RepoBackup,
+]
+
+FULL_REPO_ARCHIVATORS = [
+    mirrors.FullMirrorsBackup,
+    mirrors.FullRepoBackup,
 ]
 
 
@@ -55,6 +67,6 @@ class NailgunCredentialsContext(object):
 
     def get_credentials_env(self):
         env = os.environ.copy()
-        env["KEYSTONE_USER"] = self.user
-        env["KEYSTONE_PASS"] = self.password
+        env["OS_USERNAME"] = self.user
+        env["OS_PASSWORD"] = self.password
         return env

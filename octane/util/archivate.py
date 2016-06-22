@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
+
 import contextlib
 import io
 import itertools
@@ -59,6 +61,15 @@ def archivate_container_cmd_output(archive, container, cmd, filename):
     dump.write(data)
     dump.seek(0)
     archive.addfile(info, dump)
+
+
+def archivate_cmd_output(archive, cmd, filename):
+    suffix = ".{0}".format(os.path.basename(filename))
+    with tempfile.NamedTemporaryFile(suffix=suffix) as f:
+        with subprocess.popen(cmd, stdout=subprocess.PIPE) as process:
+            shutil.copyfileobj(process.stdout, f)
+        f.flush()
+        archive.add(f.name, filename)
 
 
 def filter_members(archive, dir_name):

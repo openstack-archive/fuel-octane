@@ -10,6 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
+import yaml
+
 
 def merge_dicts(base_dict, update_dict):
     result = base_dict.copy()
@@ -19,3 +23,30 @@ def merge_dicts(base_dict, update_dict):
         else:
             result[key] = merge_dicts(result[key], val)
     return result
+
+
+def get_astute_dict():
+    with open("/etc/fuel/astute.yaml", "r") as current:
+        return yaml.load(current)
+
+
+def load_yaml(filename):
+    with open(filename, "r") as f:
+        return yaml.load(f)
+
+
+def iterate_parameters(fp):
+    section = None
+    for line in fp:
+        match = re.match(r'^\s*\[(?P<section>[^\]]+)', line)
+        if match:
+            section = match.group('section')
+            yield line, section, None, None
+            continue
+        match = re.match(r'^\s*(?P<parameter>[^=\s]+)\s*='
+                         '\s*(?P<value>[^\s.+](?:\s*[^\s.+])*)\s*$', line)
+        if match:
+            parameter, value = match.group("parameter", "value")
+            yield line, section, parameter, value
+            continue
+        yield line, section, None, None

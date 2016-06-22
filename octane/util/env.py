@@ -11,12 +11,17 @@
 # under the License.
 
 import fuelclient
+
+import collections
 import json
 import logging
 import os.path
+import pipes
 import time
 import uuid
 import yaml
+
+from distutils import version
 
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
@@ -25,6 +30,8 @@ from fuelclient.objects import task as task_obj
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import disk
+from octane.util import sql
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -77,8 +84,31 @@ def change_env_settings(env_id, master_ip=''):
     attrs['editable']['public_ssl']['services']['value'] = False
     attrs['editable']['external_ntp']['ntp_list']['value'] = master_ip
     attrs['editable']['external_dns']['dns_list']['value'] = master_ip
-
+    if get_env_provision_method(env) != 'image':
+        attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
+    generated_data = sql.run_psql_in_container(
+        "select generated from attributes where cluster_id={0}".format(env_id),
+        "nailgun"
+    )[0]
+    generated_json = json.loads(generated_data)
+    release_data = sql.run_psql_in_container(
+        "select attributes_metadata from  releases where id={0}".format(
+            env.data['release_id']),
+        "nailgun"
+    )[0]
+    release_json = json.loads(release_data)
+    release_image_dict = release_json['generated']['provision']['image_data']
+    settings_cls = collections.namedtuple("settings", ["MASTER_IP", "id"])
+    settings = settings_cls(master_ip, env_id)
+    for key, value in generated_json['provision']['image_data'].iteritems():
+        value['uri'] = release_image_dict[key]['uri'].format(settings=settings,
+                                                             cluster=settings)
+    sql.run_psql_in_container(
+        "update attributes set generated='{0}' where cluster_id={1}".format(
+            json.dumps(generated_json), env_id),
+        "nailgun"
+    )
 
 
 def clone_env(env_id, release):
@@ -117,30 +147,61 @@ def delete_fuel_resources(env):
     )
 
 
-def parse_tenant_get(output, field):
-    for line in output.splitlines()[3:-1]:
-        parts = line.split()
-        if parts[1] == field:
-            return parts[3]
-    raise Exception(
-        "Field {0} not found in output:\n{1}".format(field, output))
-
-
-def get_service_tenant_id(env, node=None):
-    if node is None:
-        node = get_one_controller(env)
-
+def get_keystone_tenants(env, node):
     password = get_admin_password(env, node)
     tenant_out = ssh.call_output(
         [
             'sh', '-c',
-            '. /root/openrc; keystone --os-password={0} tenant-get services'
-            .format(password),
+            '. /root/openrc; keystone --os-password={0} tenant-list'
+            .format(pipes.quote(password)),
         ],
         node=node,
     )
-    tenant_id = parse_tenant_get(tenant_out, 'id')
-    return tenant_id
+    tenants = {}
+    for line in tenant_out.splitlines()[3:-1]:
+        parts = line.split()
+        tenants[parts[3]] = parts[1]
+    return tenants
+
+
+def get_openstack_projects(env, node):
+    password = get_admin_password(env, node)
+    out = ssh.call_output(
+        [
+            'sh', '-c',
+            '. /root/openrc; openstack --os-password {0} project list -f json'
+            .format(pipes.quote(password)),
+        ],
+        node=node,
+    )
+    data = [{k.lower(): v for k, v in d.items()}
+            for d in json.loads(out)]
+    return {i["name"]: i["id"] for i in data}
+
+
+def get_openstack_project_dict(env, node=None):
+    if node is None:
+        node = get_one_controller(env)
+
+    node_env_version = str(node.env.data.get('fuel_version'))
+    if node_env_version < version.StrictVersion("7.0"):
+        mapping = get_keystone_tenants(env, node)
+    else:
+        mapping = get_openstack_projects(env, node)
+    return mapping
+
+
+def get_openstack_project_value(env, node, key):
+    data = get_openstack_project_dict(env, node)
+    try:
+        return data[key.lower()]
+    except KeyError:
+        raise Exception(
+            "Field {0} not found in openstack project list".format(key))
+
+
+def get_service_tenant_id(env, node):
+    return get_openstack_project_value(env, node, "services")
 
 
 def cache_service_tenant_id(env, node=None):
@@ -225,14 +286,29 @@ def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
         wait_for_node(node, status, timeout, check_freq)
 
 
-def move_nodes(env, nodes):
+def move_nodes(env, nodes, provision=True, roles=None):
     env_id = env.data['id']
+    cmd = ["fuel2", "env", "move", "node"]
+    if not provision:
+        cmd += ['--no-provision']
+    if roles:
+        cmd += ['--roles', ','.join(roles)]
     for node in nodes:
         node_id = node.data['id']
-        subprocess.call(
-            ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
-    LOG.info("Nodes provision started. Please wait...")
-    wait_for_nodes(nodes, "provisioned")
+        cmd_move_node = cmd + [str(node_id), str(env_id)]
+        if provision and incompatible_provision_method(env):
+            disk.create_configdrive_partition(node)
+            disk.update_node_partition_info(node.data["id"])
+        subprocess.call(cmd_move_node)
+    if provision:
+        LOG.info("Nodes provision started. Please wait...")
+        wait_for_nodes(nodes, "provisioned")
+
+
+def copy_vips(env):
+    subprocess.call(
+        ["fuel2", "env", "copy", "vips", str(env.data['id'])]
+    )
 
 
 def provision_nodes(env, nodes):
@@ -252,6 +328,21 @@ def deploy_changes(env, nodes):
     env.deploy_changes()
     LOG.info("Nodes deploy started. Please wait...")
     wait_for_env(env, "operational", timeout=180 * 60)
+
+
+def prepare_net_info(info):
+    quantum_settings = info["quantum_settings"]
+    pred_nets = quantum_settings["predefined_networks"]
+    phys_nets = quantum_settings["L2"]["phys_nets"]
+    if 'net04' in pred_nets and \
+            pred_nets['net04']['L2']['network_type'] == "vlan":
+        physnet = pred_nets["net04"]["L2"]["physnet"]
+        segment_id = phys_nets[physnet]["vlan_range"].split(":")[1]
+        pred_nets['net04']["L2"]["segment_id"] = segment_id
+
+    if 'net04_ext' in pred_nets:
+        pred_nets["net04_ext"]["L2"]["physnet"] = ""
+        pred_nets["net04_ext"]["L2"]["network_type"] = "local"
 
 
 def get_deployment_info(env):
@@ -276,12 +367,6 @@ def get_astute_yaml(env, node=None):
 
 def get_admin_password(env, node=None):
     return get_astute_yaml(env, node)['access']['password']
-
-
-def set_network_template(env, filename):
-    with open(filename, 'r') as f:
-        data = f.read()
-        env.set_network_template_data(yaml.load(data))
 
 
 def update_deployment_info(env, isolated):
@@ -312,7 +397,7 @@ def update_deployment_info(env, isolated):
             transformations.reset_gw_admin(info, gw_admin)
         # From run_ping_checker
         info['run_ping_checker'] = False
-        transformations.remove_predefined_nets(info)
+        prepare_net_info(info)
         deployment_info.append(info)
     env.upload_facts('deployment', deployment_info)
 
@@ -368,3 +453,18 @@ def iter_deployment_info(env, roles):
     for node in controllers:
         info = find_node_deployment_info(node, roles, full_info)
         yield (node, info)
+
+
+def incompatible_provision_method(env):
+    if env.data.get("fuel_version"):
+        env_version = version.StrictVersion(env.data["fuel_version"])
+    else:
+        error_message = ("Cannot find version of environment {0}:"
+                         " attribute 'fuel_version' missing or has"
+                         " incorrect value".format(env.data["id"]))
+        raise Exception(error_message)
+    provision_method = get_env_provision_method(env)
+    if env_version < version.StrictVersion(magic_consts.COBBLER_DROP_VERSION) \
+            and provision_method != 'image':
+        return True
+    return False

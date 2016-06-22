@@ -10,12 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import shutil
-import tempfile
-import yaml
-
 from octane.handlers.backup_restore import base
+from octane.util import auth
 from octane.util import puppet
+from octane.util import subprocess
 
 
 class PuppetArchivator(base.DirsArchivator):
@@ -23,22 +21,15 @@ class PuppetArchivator(base.DirsArchivator):
     tag = "puppet"
 
 
-class PuppetApplyHost(base.Base):
+class PuppetApplyTasks(base.Base):
+    services = [
+        "ostf",
+    ]
 
     def backup(self):
         pass
 
     def restore(self):
-        _, tmp_file_name = tempfile.mkstemp(
-            dir="/etc/fuel",
-            prefix=".astute.yaml.octane")
-        shutil.copy("/etc/fuel/astute.yaml", tmp_file_name)
-        try:
-            with open("/etc/fuel/astute.yaml") as current:
-                data = yaml.load(current)
-            data["FUEL_ACCESS"]["password"] = self.context.password
-            with open("/etc/fuel/astute.yaml", "w") as current:
-                yaml.safe_dump(data, current, default_flow_style=False)
-            puppet.apply_host()
-        finally:
-            shutil.move(tmp_file_name, "/etc/fuel/astute.yaml")
+        subprocess.call(["systemctl", "stop"] + self.services)
+        with auth.set_astute_password(self.context):
+            puppet.apply_all_tasks()

@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
+
 import contextlib
 import io
 import logging
@@ -210,6 +212,16 @@ def _container_action(container, action):
 
 def stop_container(container):
     _container_action(container, "stop")
+    container_id = subprocess.call_output([
+        'docker',
+        'ps',
+        '--filter',
+        'name={0}'.format(container),
+        '--format',
+        '{{.ID}}'
+    ]).strip()
+    if container_id:
+        subprocess.call(["docker", "stop", container_id])
 
 
 def start_container(container):

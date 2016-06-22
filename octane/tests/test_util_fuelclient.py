@@ -10,40 +10,68 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from fuelclient import client
-from fuelclient import fuelclient_settings
+import mock
+import pytest
 
 from octane.util import fuel_client
 
 
-def test_simple_overwrite(mocker):
+def mock_fuelclient_80(mocker, user, password):
+    client = mocker.patch("fuelclient.client.APIClient",
+                          new_callable=mock.Mock)
+    client.mock_add_spec(
+        ["user", "password", "_session", "_keystone_client"],
+        spec_set=True,
+    )
+    client.user = user
+    client.password = password
+    return client, None
 
-    class TestContext(object):
 
-        user = "test user"
-        password = "test password"
+def mock_fuelclient_90(mocker, user, password):
+    config = {
+        'OS_USERNAME': user,
+        'OS_PASSWORD': password,
+    }
+    get_settings = mocker.patch("fuelclient.fuelclient_settings.get_settings")
+    get_settings.return_value.configure_mock(config=config, **config)
+    get_settings.return_value.mock_add_spec(
+        ["config", "OS_USERNAME", "OS_PASSWORD"],
+        spec_set=True,
+    )
+    client = mocker.patch("fuelclient.client.APIClient",
+                          new_callable=mock.Mock)
+    client.mock_add_spec(["_session", "_keystone_client"], spec_set=True)
+    return client, config
 
-    conf = fuelclient_settings.get_settings()
 
-    client_val = "Not empty val"
+# NOTE(akscram): It's not possible to use fixtures in parametrized tests
+# as parameters and I use them as common functions. For more information
+# take a look on this: https://github.com/pytest-dev/pytest/issues/349
+@pytest.mark.parametrize(("auth_context", "fuelclient_fixture", "legacy"), [
+    (fuel_client.set_auth_context_80, mock_fuelclient_80, True),
+    (fuel_client.set_auth_context_90, mock_fuelclient_90, False),
+])
+def test_simple_overwrite(mocker, auth_context, fuelclient_fixture, legacy):
+    def assert_client_state(user, password):
+        if legacy:
+            assert mock_client.user == user
+            assert mock_client.password == password
+        else:
+            assert mock_config['OS_USERNAME'] == user
+            assert mock_config['OS_PASSWORD'] == password
 
-    assert conf.KEYSTONE_USER == client.APIClient.user
-    assert conf.KEYSTONE_PASS == client.APIClient.password
-    assert client.APIClient._session is None
-    assert client.APIClient._keystone_client is None
+        assert mock_client._session is None
+        assert mock_client._keystone_client is None
 
-    client.APIClient._session = client.APIClient._keystone_client = client_val
+    mock_client, mock_config = fuelclient_fixture(mocker, "userA", "passwordA")
+    context = mock.Mock(user="userB", password="passwordB",
+                        spec=["user", "password"])
 
-    with fuel_client.set_auth_context(TestContext()):
-        assert TestContext.user == client.APIClient.user
-        assert TestContext.password == client.APIClient.password
-        assert client.APIClient._session is None
-        assert client.APIClient._keystone_client is None
+    with auth_context(context):
+        assert_client_state(context.user, context.password)
 
-        client.APIClient._session = client_val
-        client.APIClient._keystone_client = client_val
+        mock_client._session = mock.Mock()
+        mock_client._keystone_client = mock.Mock()
 
-    assert conf.KEYSTONE_USER == client.APIClient.user
-    assert conf.KEYSTONE_PASS == client.APIClient.password
-    assert client.APIClient._session is None
-    assert client.APIClient._keystone_client is None
+    assert_client_state("userA", "passwordA")

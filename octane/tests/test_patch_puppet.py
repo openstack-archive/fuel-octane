@@ -12,8 +12,8 @@
 import mock
 import pytest
 
-from octane.commands import prepare
 from octane import magic_consts
+from octane.util import puppet
 from octane.util import subprocess
 
 
@@ -36,9 +36,9 @@ class MockFile(mock.MagicMock):
 
     def assert_calls(self):
         kwargs = {'stdin': self, 'cwd': magic_consts.PUPPET_DIR}
-        args = [((["patch", "-R", "-p3"], ), kwargs), ]
+        args = [((["patch", "-R", "-p1"], ), kwargs), ]
         if not self.revert:
-            args.append(((["patch", "-N", "-p3"], ), kwargs))
+            args.append(((["patch", "-N", "-p1"], ), kwargs))
         assert args == self.call_args
 
 
@@ -83,7 +83,7 @@ def test_simple_patch(mocker,
     mock_is_dir = mocker.patch("os.path.isdir", side_effect=is_dir_list)
     mock_open.return_value.__enter__.side_effect = patch_files
     mock_subprocess.side_effect = _read_in_subprocess
-    prepare.patch_puppet(revert)
+    puppet.patch_modules(revert)
     path_arg = '/'.join([magic_consts.CWD, "patches", "puppet"])
     mock_list_dir.assert_called_once_with(path_arg)
     path_args = [mock.call('/'.join([path_arg, i])) for i in os_dirs]
