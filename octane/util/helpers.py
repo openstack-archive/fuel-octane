@@ -26,3 +26,8 @@ def merge_dicts(base_dict, update_dict):
 def get_astute_dict():
     with open("/etc/fuel/astute.yaml", "r") as current:
         return yaml.load(current)
+
+
+def load_yaml(filename):
+    with open(filename, "r") as f:
+        return yaml.load(f)
