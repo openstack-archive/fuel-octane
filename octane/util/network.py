@@ -11,6 +11,7 @@
 # under the License.
 
 import logging
+import os
 import re
 import subprocess
 
@@ -317,6 +318,28 @@ create_port_providers = {
 }
 
 
+def save_port_lnx(node, bridge, port):
+    ifaces_path = '/etc/network/interfaces.d'
+    bridge_file = os.path.join(ifaces_path, 'ifcfg-{0}'.format(bridge))
+    sftp = ssh.sftp(node)
+    with ssh.update_file(sftp, bridge_file) as (old, new):
+        found_bridge_port_line = False
+        for line in old:
+            if line.startswith('bridge_ports'):
+                found_bridge_port_line = True
+                if port['name'] not in line:
+                    option, _, ports = line.rstrip().partition(' ')
+                    line = "{0} {1} {2}\n".format(option, port['name'], ports)
+            new.write(line)
+        if not found_bridge_port_line:
+            new.write('bridge_ports {0}\n'.format(port['name']))
+
+
+save_port_providers = {
+    'lnx': save_port_lnx,
+}
+
+
 def create_patch_ports(node, host_config):
     for bridge in magic_consts.BRIDGES:
         port, provider = ts.get_patch_port_action(host_config, bridge)
@@ -324,6 +347,9 @@ def create_patch_ports(node, host_config):
         cmds = create_port_cmd(bridge, port)
         for cmd in cmds:
             ssh.call(cmd, node=node)
+        save_port_func = save_port_providers.get(provider)
+        if save_port_func:
+            save_port_func(node, bridge, port)
 
 
 def flush_arp(node):
