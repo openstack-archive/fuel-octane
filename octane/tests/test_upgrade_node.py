@@ -10,10 +10,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pytest
 
-def test_parser(mocker, octane_app):
+
+@pytest.mark.parametrize('live_migration', [True, False])
+def test_parser(mocker, octane_app, live_migration):
     m = mocker.patch('octane.commands.upgrade_node.upgrade_node')
-    octane_app.run(["upgrade-node", "--isolated", "1", "2", "3"])
+    cmd = ["upgrade-node", "--isolated", "1", "2", "3"]
+    if not live_migration:
+        cmd = cmd + ["--no-live-migration"]
+    octane_app.run(cmd)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m.assert_called_once_with(1, [2, 3], isolated=True, network_template=None)
+    m.assert_called_once_with(
+        1, [2, 3],
+        isolated=True, network_template=None, live_migration=live_migration)
