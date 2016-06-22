@@ -164,7 +164,7 @@ def test_path_restore(mocker, cls, path, members):
         subprocess_mock.assert_called_once_with(
             ["fuel-bootstrap", "build", "--activate"],
             env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'user'})
-        get_images.assert_called_once()
+        get_images.assert_called_once_with()
         delete_image.assert_called_once_with(fake_uuids[0])
     else:
         assert not subprocess_mock.called

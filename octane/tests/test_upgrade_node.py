@@ -54,10 +54,13 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         node.data['id'] = node_id
         node.data['cluster'] = None
         node.data['roles'] = 'controller'
+        mock_nodes_list.append(node)
         return node
 
+    mock_nodes_list = []
     test_env_id = 'test-env'
-    mock_env = mocker.patch("fuelclient.objects.environment.Environment")
+    mock_env_class = mocker.patch("fuelclient.objects.environment.Environment")
+    mock_env = mock_env_class.return_value
     mock_env.id = test_env_id
     mock_env.data = {}
     mock_env.data['id'] = mock_env.id
@@ -77,18 +80,19 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     upgrade_node.upgrade_node(test_env_id, node_ids)
 
-    mock_copy_patches.assert_called_once()
-    mock_copy_vips.assert_called_once_with(mock_env.return_value)
-    mock_move_nodes.assert_called_once()
+    mock_copy_patches.assert_called_once_with()
+    mock_copy_vips.assert_called_once_with(mock_env)
+    mock_move_nodes.assert_called_once_with(mock_env, mock_nodes_list,
+                                            True, None)
     assert mock_handlers.call_args_list == [
         mock.call('preupgrade'), mock.call('prepare'),
         mock.call('predeploy'), mock.call('postdeploy')]
     if network_template:
         mock_load_network_template.assert_called_once_with(network_template)
     if isolated:
-        mock_deploy_nodes.assert_called_once()
+        mock_deploy_nodes.assert_called_once_with(mock_env, mock_nodes_list)
     else:
-        mock_deploy_changes.assert_called_once()
+        mock_deploy_changes.assert_called_once_with(mock_env, mock_nodes_list)
 
 
 @pytest.mark.parametrize('node_data,expected_error', [
