@@ -75,7 +75,7 @@ class NailgunArchivator(PostgresArchivator):
     select_admin_net_query = ("SELECT id FROM network_groups "
                               "WHERE name = 'fuelweb_admin'")
     set_admin_gateway_query = ("UPDATE network_groups SET gateway = '{0}' "
-                               "WHERE id = '{1}' AND gateway = ''")
+                               "WHERE id = '{1}' AND gateway is NULL")
     set_admin_viptype_query = ("UPDATE ip_addrs SET vip_type = NULL "
                                "WHERE ip_addr = '{0}' "
                                "AND vip_type = 'harpoxy' "
