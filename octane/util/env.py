@@ -17,6 +17,7 @@ import json
 import logging
 import os.path
 import time
+import urllib2
 import uuid
 import yaml
 
@@ -145,6 +146,20 @@ def delete_fuel_resources(env):
     )
 
 
+def get_tenant_from_db(env):
+    controller = get_one_controller(env)
+    tenant_id = ssh.call_output(
+        [
+            'sh', '-c',
+            "mysql -u root -N -s -e "
+            "\"select id from project where name ='services';\" "
+            "-D keystone"
+        ],
+        node=controller,
+    )
+    return tenant_id
+
+
 def get_keystone_tenants(env, node):
     password = get_admin_password(env, node)
     tenant_out = ssh.call_output(
@@ -212,7 +227,11 @@ def cache_service_tenant_id(env, node=None):
         with open(fname) as f:
             return f.readline()
 
-    tenant_id = get_service_tenant_id(env, node)
+    try:
+        tenant_id = get_service_tenant_id(env, node)
+    except urllib2.HTTPError:
+        tenant_id = get_tenant_from_db(env)
+
     dname = os.path.dirname(fname)
     if not os.path.exists(dname):
         os.makedirs(dname)
