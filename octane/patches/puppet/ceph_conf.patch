@@ -1,0 +1,11 @@
+--- a/modules/ceph/manifests/conf.pp     2016-06-23 15:48:06.124011920 +0000
++++ b/modules/ceph/manifests/conf.pp  2016-06-23 15:47:55.268988995 +0000
+@@ -7,7 +7,7 @@
+   if $node_hostname == $::ceph::primary_mon {
+
+     exec {'ceph-deploy new':
+-      command   => "ceph-deploy new ${node_hostname}:${mon_addr}",
++      command   => "ceph-deploy --overwrite-conf new ${node_hostname}:${mon_addr}",
+       cwd       => '/etc/ceph',
+       logoutput => true,
+       creates   => '/etc/ceph/ceph.conf',
