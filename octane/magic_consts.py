@@ -68,7 +68,8 @@ RELEASE_STATUS_ENABLED = "available"
 RELEASE_STATUS_MANAGED = "manageonly"
 
 UPGRADE_NODE_PATCHES = [
-    os.path.join(CWD, "patches/puppet/fix_mysql.patch")
+    os.path.join(CWD, "patches/puppet/fix_mysql.patch"),
+    os.path.join(CWD, "patches/puppet/ceph_conf.patch"),
 ]
 
 BOOTSTRAP_UNSUPPORTED_IMAGES = ["centos"]
