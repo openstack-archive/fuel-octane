@@ -15,24 +15,12 @@ from fuelclient.objects import environment as environment_obj
 from octane.helpers import network
 from octane.util import env as env_util
 from octane.util import maintenance
-from octane.util import ssh
-
-
-def update_neutron_config(orig_env, seed_env):
-    controllers = list(env_util.get_controllers(seed_env))
-    tenant_id = env_util.cache_service_tenant_id(orig_env)
-
-    sed_script = 's/^(nova_admin_tenant_id )=.*/\\1 = %s/' % (tenant_id,)
-    for node in controllers:
-        ssh.call(['sed', '-re', sed_script, '-i', '/etc/neutron/neutron.conf'],
-                 node=node)
 
 
 def upgrade_control_plane(orig_id, seed_id):
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
     controllers = list(env_util.get_controllers(seed_env))
-    update_neutron_config(orig_env, seed_env)
     # enable all services on seed env
     if len(controllers) > 1:
         maintenance.stop_cluster(seed_env)
