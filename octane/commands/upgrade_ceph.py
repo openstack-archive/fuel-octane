@@ -11,9 +11,11 @@
 # under the License.
 
 import contextlib
+import io
 import itertools
 import os
 import re
+import shutil
 import subprocess
 import tarfile
 
@@ -92,6 +94,19 @@ def add_rgw_frontends(conf):
     return conf
 
 
+def change_fsid(conf_file_path, node, fsid):
+    sftp = ssh.sftp(node)
+    node_conf = io.StringIO()
+    with sftp.open(conf_file_path, 'r') as f:
+        for line in f:
+            if line.startswith("fsid"):
+                line = u"fsid = {0}\n".format(fsid)
+            node_conf.write(line)
+    node_conf.seek(0)
+    with sftp.open(conf_file_path, 'w') as f:
+        shutil.copyfileobj(node_conf, f)
+
+
 def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
     nodes = list(env_util.get_controllers(seed_env))
     hostnames = map(short_hostname, node_util.get_hostnames(nodes))
@@ -99,8 +114,6 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
 
     with contextlib.closing(tarfile.open(filename)) as f:
         conf = f.extractfile(conf_filename).read()
-        conf = replace_addresses(conf, hostnames, mgmt_ips)
-        conf = add_rgw_frontends(conf)
 
     fsid = get_fsid(conf)
     monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
@@ -109,7 +122,6 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
 
     for node, node_hostname in itertools.izip(nodes, hostnames):
         node_db_path = "/var/lib/ceph/mon/ceph-{0}".format(node_hostname)
-        node_conf = replace_host(conf, node_hostname)
         try:
             ssh.call(['stop', 'ceph-mon', "id={0}".format(node_hostname)],
                      node=node)
@@ -117,9 +129,11 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
             pass
         ssh.call(['rm', '-rf', node_db_path], node=node)
         node_util.untar_files(filename, node)
+
+        change_fsid(conf_filename, node, fsid)
+
         sftp = ssh.sftp(node)
-        with sftp.open(conf_filename, 'w') as f:
-            f.write(node_conf)
+
         ssh.call(['mv', db_path, node_db_path], node=node)
 
         sysvinit = os.path.join(node_db_path, 'sysvinit')
