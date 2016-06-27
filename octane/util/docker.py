@@ -232,3 +232,12 @@ def _wait_for_puppet_in_container(container, attempts, delay):
         raise Exception("Timeout waiting for container %s to complete "
                         "puppet agent run after %d seconds" %
                         (container, attempts * delay))
+
+
+@contextlib.contextmanager
+def applied_patches(container, prefix, *patches):
+    apply_patches(container, prefix, *patches)
+    try:
+        yield
+    finally:
+        apply_patches(container, prefix, *patches, revert=True)
