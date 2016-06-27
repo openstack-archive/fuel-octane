@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import io
+import logging
 import mock
 import os
 import pytest
@@ -163,7 +164,8 @@ def test_path_restore(mocker, cls, path, members):
     if cls is ssh.SshArchivator:
         subprocess_mock.assert_called_once_with(
             ["fuel-bootstrap", "build", "--activate"],
-            env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'user'})
+            env={'OS_PASSWORD': 'password', 'OS_USERNAME': 'user'},
+            stderr_log_level=logging.INFO)
         get_images.assert_called_once_with()
         delete_image.assert_called_once_with(fake_uuids[0])
     else:

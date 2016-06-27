@@ -127,9 +127,12 @@ class SSHPopen(subprocess.BasePopen):
             self._pipe_stdout = None
             self.stdout = stdout
         stderr = ChannelStderrFile(self._channel, 'rb')
+
+        stderr_level = self.popen_kwargs.pop('stderr_log_level', logging.ERROR)
+
         if 'stderr' not in self.popen_kwargs:
             self._pipe_stderr = _LogPipe(
-                logging.ERROR, stderr,
+                stderr_level, stderr,
                 parse_levels=popen_kwargs.get('parse_levels', False),
             )
             self._pipe_stderr.start(self.name + " stderr")
