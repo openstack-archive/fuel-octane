@@ -147,3 +147,26 @@ def test_apply_patches(mocker, container, prefix, patches, revert, files):
             container, [os.path.join(prefix, f) for f in files], temp_dir)
         patch_mock.assert_called_once_with(temp_dir, patches, bool(revert))
         put_files_mock.assert_called_once_with(container, "/", temp_dir)
+
+
+@pytest.mark.parametrize("container", ["container_name"])
+@pytest.mark.parametrize("prefix", ["prefix_name"])
+@pytest.mark.parametrize("patches", [["patch_1"], ["patch_1", "patch_2"]])
+@pytest.mark.parametrize("error", [True, False])
+def test_applied_patches(mocker, container, prefix, patches, error):
+
+    class TestException(Exception):
+        pass
+
+    apply_patches = mocker.patch("octane.util.docker.apply_patches")
+    if error:
+        with pytest.raises(TestException):
+            with docker.applied_patches(container, prefix, *patches):
+                raise TestException()
+    else:
+        with docker.applied_patches(container, prefix, *patches):
+            pass
+    assert [
+        mock.call(container, prefix, *patches),
+        mock.call(container, prefix, *patches, revert=True)
+    ] == apply_patches.call_args_list
