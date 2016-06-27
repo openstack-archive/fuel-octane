@@ -78,3 +78,4 @@ CONFIGDRIVE_PART_SIZE = 10
 KEYSTONE_CONF = "/etc/keystone/keystone.conf"
 KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"
 ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
