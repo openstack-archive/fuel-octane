@@ -128,7 +128,9 @@ class LocalPopen(BasePopen):
         else:
             pipe_stdout = None
         if 'stderr' not in self.popen_kwargs:
-            pipe_stderr = _LogPipe(logging.ERROR)
+            stderr_level = self.popen_kwargs.pop(
+                'stderr_log_level', logging.ERROR)
+            pipe_stderr = _LogPipe(stderr_level)
             self.popen_kwargs['stderr'] = pipe_stderr.write_fd
         else:
             pipe_stderr = None
