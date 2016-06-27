@@ -11,6 +11,7 @@
 # under the License.
 
 import mock
+import os
 import pytest
 
 from octane.util import docker
@@ -117,3 +118,32 @@ def test_docker_stop(
             ["docker", "stop", container_id.strip()])
     else:
         assert not mock_subprocess.called
+
+
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("prefix", ["prefix"])
+@pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
+@pytest.mark.parametrize("revert", [None, True, False])
+@pytest.mark.parametrize("files", [[], ["file_1"], ["file_1", "file_2"]])
+def test_apply_patches(mocker, container, prefix, patches, revert, files):
+    kwargs = {}
+    if revert is not None:
+        kwargs['revert'] = revert
+
+    mock_get_filenames = mocker.patch(
+        "octane.util.patch.get_filenames_from_patches", return_value=files)
+    mock_tempdir = mocker.patch("octane.util.tempfile.temp_dir")
+    get_files_mock = mocker.patch("octane.util.docker.get_files_from_docker")
+    put_files_mock = mocker.patch("octane.util.docker.put_files_to_docker")
+    patch_mock = mocker.patch("octane.util.patch.patch_apply")
+
+    docker.apply_patches(container, prefix, *patches, **kwargs)
+
+    mock_get_filenames.assert_called_once_with(prefix, *patches)
+    if files:
+        mock_tempdir.assert_called_once_with(prefix='octane_docker_patches.')
+        temp_dir = mock_tempdir.return_value.__enter__.return_value
+        get_files_mock.assert_called_once_with(
+            container, [os.path.join(prefix, f) for f in files], temp_dir)
+        patch_mock.assert_called_once_with(temp_dir, patches, bool(revert))
+        put_files_mock.assert_called_once_with(container, "/", temp_dir)
