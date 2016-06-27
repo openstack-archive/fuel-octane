@@ -137,16 +137,13 @@ def apply_patches(container, prefix, *patches, **kwargs):
     revert = kwargs.pop('revert', False)
     # TODO: review all logic here to apply all preprocessing steps to patches
     # beforehand
+    files = [os.path.join(prefix, f)
+             for f in patch.get_filenames_from_patches(prefix, *patches)]
+    if not files:
+        LOG.warn("Nothing to patch!")
+        return
     tempdir = tempfile.mkdtemp(prefix='octane_docker_patches.')
     try:
-        files = []
-        for patch in patches:
-            for fname in get_files_from_patch(patch):
-                if fname.startswith(prefix):
-                    files.append(fname[len(prefix) + 1:])
-                else:
-                    files.append(fname)
-        files = [os.path.join(prefix, f) for f in files]
         get_files_from_docker(container, files, tempdir)
         prefix = os.path.dirname(files[0])  # FIXME: WTF?!
         direction = "-R" if revert else "-N"
