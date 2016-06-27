@@ -34,20 +34,26 @@ def test_get_tempname(mocker, dir, prefix):
 
 
 @pytest.mark.parametrize("is_exception", [True, False])
-def test_temp_dir(mocker, is_exception):
+@pytest.mark.parametrize("prefix", [None, "prefix"])
+def test_temp_dir(mocker, is_exception, prefix):
 
     class TestException(Exception):
         pass
+
+    kwargs = {}
+
+    if prefix is not None:
+        kwargs['prefix'] = prefix
 
     temp_dir_name = mock.Mock()
     mkdtemp_mock = mocker.patch("tempfile.mkdtemp", return_value=temp_dir_name)
     rm_tree_mock = mocker.patch("shutil.rmtree")
     if is_exception:
         with pytest.raises(TestException):
-            with tempfile.temp_dir():
+            with tempfile.temp_dir(**kwargs):
                 raise TestException
     else:
-        with tempfile.temp_dir():
+        with tempfile.temp_dir(**kwargs):
             pass
-    mkdtemp_mock.assert_called_once_with()
+    mkdtemp_mock.assert_called_once_with(**kwargs)
     rm_tree_mock.assert_called_once_with(temp_dir_name)
