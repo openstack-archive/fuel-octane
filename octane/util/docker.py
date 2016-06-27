@@ -16,7 +16,6 @@ import contextlib
 import io
 import logging
 import os.path
-import shutil
 import tarfile
 import tempfile
 import time
@@ -128,8 +127,7 @@ def apply_patches(container, prefix, *patches, **kwargs):
     if not files:
         LOG.warn("Nothing to patch!")
         return
-    tempdir = tempfile.mkdtemp(prefix='octane_docker_patches.')
-    try:
+    with tempfile.temp_dir(prefix='octane_docker_patches.') as tempdir:
         get_files_from_docker(container, files, tempdir)
         prefix = os.path.dirname(files[0])  # FIXME: WTF?!
         direction = "-R" if revert else "-N"
@@ -152,8 +150,6 @@ def apply_patches(container, prefix, *patches, **kwargs):
                                         '\n')
                         proc.stdin.write(line)
         put_files_to_docker(container, "/", tempdir)
-    finally:
-        shutil.rmtree(tempdir)
 
 
 def get_docker_container_names(**filtering):
