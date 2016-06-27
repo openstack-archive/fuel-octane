@@ -85,3 +85,5 @@ NOVA_PATCHES = [
 ]
 
 SFTP_SERVER_BIN = '/usr/lib/sftp-server'
+
+FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"

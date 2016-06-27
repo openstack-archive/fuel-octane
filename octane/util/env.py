@@ -16,6 +16,7 @@ import collections
 import json
 import logging
 import os.path
+import shutil
 import time
 import uuid
 import yaml
@@ -392,3 +393,15 @@ def incompatible_provision_method(env):
             and provision_method != 'image':
         return True
     return False
+
+
+def copy_fuel_keys(source_env_id, seed_env_id):
+    source_env_keys_path = os.path.join(
+        magic_consts.FUEL_KEYS_BASE_PATH,
+        str(source_env_id)
+    )
+    seed_env_keys_path = os.path.join(
+        magic_consts.FUEL_KEYS_BASE_PATH,
+        str(seed_env_id)
+    )
+    shutil.copytree(source_env_keys_path, seed_env_keys_path)
