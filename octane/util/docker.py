@@ -21,6 +21,7 @@ import tarfile
 import tempfile
 import time
 
+from octane.util import patch
 from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
@@ -116,22 +117,6 @@ def get_files_from_docker(container, files, destination_dir):
             tar.extractall(destination_dir)
 
 
-def get_files_from_patch(patch):
-    """Get all files touched by a patch"""
-    result = []
-    with open(patch) as p:
-        for line in p:
-            if line.startswith('+++'):
-                fname = line[4:].strip()
-                if fname.startswith('b/'):
-                    fname = fname[2:]
-                tab_pos = fname.find('\t')
-                if tab_pos > 0:
-                    fname = fname[:tab_pos]
-                result.append(fname)
-    return result
-
-
 def apply_patches(container, prefix, *patches, **kwargs):
     """Apply set of patches to a container's filesystem"""
     revert = kwargs.pop('revert', False)
@@ -140,8 +125,8 @@ def apply_patches(container, prefix, *patches, **kwargs):
     tempdir = tempfile.mkdtemp(prefix='octane_docker_patches.')
     try:
         files = []
-        for patch in patches:
-            for fname in get_files_from_patch(patch):
+        for patch_file in patches:
+            for fname in patch.get_files_from_patch(patch):
                 if fname.startswith(prefix):
                     files.append(fname[len(prefix) + 1:])
                 else:
@@ -154,8 +139,8 @@ def apply_patches(container, prefix, *patches, **kwargs):
                 ["patch", direction, "-p0", "-d", tempdir + "/" + prefix],
                 stdin=subprocess.PIPE,
                 ) as proc:
-            for patch in patches:
-                with open(patch) as p:
+            for patch_file in patches:
+                with open(patch_file) as p:
                     for line in p:
                         if line.startswith('+++'):  # FIXME: PLEASE!
                             try:
