@@ -16,7 +16,6 @@ import collections
 import json
 import logging
 import os.path
-import pipes
 import time
 import uuid
 import yaml
@@ -145,82 +144,6 @@ def delete_fuel_resources(env):
         ["sh", "-c", ". /root/openrc; python /tmp/delete_fuel_resources.py"],
         node=node,
     )
-
-
-def get_keystone_tenants(env, node):
-    password = get_admin_password(env, node)
-    tenant_out = ssh.call_output(
-        [
-            'sh', '-c',
-            '. /root/openrc; keystone --os-password={0} tenant-list'
-            .format(pipes.quote(password)),
-        ],
-        node=node,
-    )
-    tenants = {}
-    for line in tenant_out.splitlines()[3:-1]:
-        parts = line.split()
-        tenants[parts[3]] = parts[1]
-    return tenants
-
-
-def get_openstack_projects(env, node):
-    password = get_admin_password(env, node)
-    out = ssh.call_output(
-        [
-            'sh', '-c',
-            '. /root/openrc; openstack --os-password {0} project list -f json'
-            .format(pipes.quote(password)),
-        ],
-        node=node,
-    )
-    data = [{k.lower(): v for k, v in d.items()}
-            for d in json.loads(out)]
-    return {i["name"]: i["id"] for i in data}
-
-
-def get_openstack_project_dict(env, node=None):
-    if node is None:
-        node = get_one_controller(env)
-
-    node_env_version = str(node.env.data.get('fuel_version'))
-    if node_env_version < version.StrictVersion("7.0"):
-        mapping = get_keystone_tenants(env, node)
-    else:
-        mapping = get_openstack_projects(env, node)
-    return mapping
-
-
-def get_openstack_project_value(env, node, key):
-    data = get_openstack_project_dict(env, node)
-    try:
-        return data[key.lower()]
-    except KeyError:
-        raise Exception(
-            "Field {0} not found in openstack project list".format(key))
-
-
-def get_service_tenant_id(env, node):
-    return get_openstack_project_value(env, node, "services")
-
-
-def cache_service_tenant_id(env, node=None):
-    env_id = env.data['id']
-    fname = os.path.join(
-        magic_consts.FUEL_CACHE,
-        "env-{0}-service-tenant-id".format(env_id),
-    )
-    if os.path.exists(fname):
-        with open(fname) as f:
-            return f.readline()
-
-    tenant_id = get_service_tenant_id(env, node)
-    dname = os.path.dirname(fname)
-    if not os.path.exists(dname):
-        os.makedirs(dname)
-    with open(fname, 'w') as f:
-        f.write(tenant_id)
-    return tenant_id
 
 
 def wait_for_env(cluster, status, timeout=60 * 60, check_freq=60):
