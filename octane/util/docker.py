@@ -129,26 +129,7 @@ def apply_patches(container, prefix, *patches, **kwargs):
         return
     with tempfile.temp_dir(prefix='octane_docker_patches.') as tempdir:
         get_files_from_docker(container, files, tempdir)
-        prefix = os.path.dirname(files[0])  # FIXME: WTF?!
-        direction = "-R" if revert else "-N"
-        with subprocess.popen(
-                ["patch", direction, "-p0", "-d", tempdir + "/" + prefix],
-                stdin=subprocess.PIPE,
-                ) as proc:
-            for patch_file in patches:
-                with open(patch_file) as p:
-                    for line in p:
-                        if line.startswith('+++'):  # FIXME: PLEASE!
-                            try:
-                                slash_pos = line.rindex('/', 4)
-                                space_pos = line.index(' ', slash_pos)
-                            except ValueError:
-                                pass
-                            else:
-                                line = ('+++ ' +
-                                        line[slash_pos + 1:space_pos] +
-                                        '\n')
-                        proc.stdin.write(line)
+        patch.patch_apply(tempdir, patches, revert)
         put_files_to_docker(container, "/", tempdir)
 
 
