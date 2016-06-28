@@ -21,20 +21,9 @@ from octane.handlers import upgrade as upgrade_handlers
 from octane import magic_consts
 from octane.util import docker
 from octane.util import env as env_util
-from octane.util import helpers
 from octane.util import patch
 
 LOG = logging.getLogger(__name__)
-
-
-def load_network_template(network_template):
-    try:
-        data = helpers.load_yaml(network_template)
-    except Exception:
-        LOG.exception("Cannot open network template from %s",
-                      network_template)
-        raise
-    return data
 
 
 def check_sanity(env_id, nodes):
@@ -56,14 +45,12 @@ def check_sanity(env_id, nodes):
             one_orig_id = orig_id
 
 
-def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
-                 provision=True, roles=None, live_migration=True):
+def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
+                 live_migration=True):
     # From check_deployment_status
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
-    if network_template:
-        network_template_data = load_network_template(network_template)
     check_sanity(env_id, nodes)
 
     # NOTE(ogelbukh): patches and scripts copied to nailgun container
@@ -83,8 +70,6 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
         # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
         env_util.copy_vips(env)
 
-        if network_template:
-            env.set_network_template_data(network_template_data)
         call_handlers('predeploy')
         if isolated or len(nodes) == 1:
             env_util.deploy_nodes(env, nodes)
@@ -121,9 +106,6 @@ class UpgradeNodeCommand(cmd.Command):
             '--isolated', action='store_true',
             help="Isolate node's network from original cluster")
         parser.add_argument(
-            '--template', type=str, metavar='TEMPLATE_FILE',
-            help="Use network template from file")
-        parser.add_argument(
             'env_id', type=int, metavar='ENV_ID',
             help="ID of target environment")
         parser.add_argument(
@@ -142,7 +124,6 @@ class UpgradeNodeCommand(cmd.Command):
     def take_action(self, parsed_args):
         upgrade_node(parsed_args.env_id, parsed_args.node_ids,
                      isolated=parsed_args.isolated,
-                     network_template=parsed_args.template,
                      provision=parsed_args.provision,
                      roles=parsed_args.roles,
                      live_migration=parsed_args.live_migration)
