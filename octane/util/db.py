@@ -10,11 +10,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import shutil
 
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
+
+
+LOG = logging.getLogger(__name__)
 
 
 def get_databases(env):
@@ -75,3 +79,14 @@ def db_sync(env):
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
               'upgrade', 'head'], node=node, parse_levels='^(?P<level>[A-Z]+)')
     ssh.call(['cinder-manage', 'db', 'sync'], node=node, parse_levels=True)
+
+
+def get_dbs_for_dump(env):
+    expected_dbs = set(magic_consts.OS_SERVICES)
+    existing_dbs = set(get_databases(env))
+    dbs = existing_dbs & expected_dbs
+    if len(dbs) < len(magic_consts.OS_SERVICES):
+        LOG.info('Skipping nonexistent tables: %s',
+                 ', '.join(expected_dbs - existing_dbs))
+    LOG.info('Will dump tables: %s', ', '.join(dbs))
+    return dbs

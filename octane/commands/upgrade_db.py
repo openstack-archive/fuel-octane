@@ -32,18 +32,11 @@ def upgrade_db(orig_id, seed_id, db_role_name):
     env_util.delete_fuel_resources(seed_env)
     # Wait for Neutron to reconfigure networks
     time.sleep(7)  # FIXME: Use more deterministic way
+
+    dbs = db.get_dbs_for_dump(orig_id)
     maintenance.disable_apis(orig_env)
     maintenance.stop_corosync_services(seed_env)
     maintenance.stop_upstart_services(seed_env)
-
-    expected_dbs = set(magic_consts.OS_SERVICES)
-    existing_dbs = set(db.get_databases(orig_env))
-    dbs = existing_dbs & expected_dbs
-    if len(dbs) < len(magic_consts.OS_SERVICES):
-        LOG.info('Skipping nonexistent tables: %s',
-                 ', '.join(expected_dbs - existing_dbs))
-    LOG.info('Will dump tables: %s', ', '.join(dbs))
-
     fname = os.path.join(magic_consts.FUEL_CACHE, 'dbs.original.sql.gz')
     db.mysqldump_from_env(orig_env, db_role_name, dbs, fname)
 
