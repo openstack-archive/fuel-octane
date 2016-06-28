@@ -20,7 +20,7 @@ from octane.util import ssh
 def get_databases(env):
     node = env_util.get_one_controller(env)
     with ssh.popen(
-            ['mysql', '--batch', '--skip-column-names'],
+            ['mysql', '--batch', '--skip-column-names', '--host', 'localhost'],
             stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
         proc.stdin.write('SHOW DATABASES')
         out = proc.communicate()[0]
@@ -33,6 +33,7 @@ def mysqldump_from_env(env, dbs, fname):
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
         'mysqldump --add-drop-database --lock-all-tables '
+        '--host localhost '
         '--databases {0}'.format(' '.join(dbs)) +
         ' | gzip',
     ]
