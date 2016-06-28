@@ -29,6 +29,7 @@ from fuelclient.objects import task as task_obj
 from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
+from octane.util import disk
 from octane.util import sql
 from octane.util import ssh
 from octane.util import subprocess
@@ -284,6 +285,9 @@ def move_nodes(env, nodes):
     env_id = env.data['id']
     for node in nodes:
         node_id = node.data['id']
+        if incompatible_provision_method(env):
+            disk.create_configdrive_partition(node)
+            disk.update_node_partition_info(node_id)
         subprocess.call(
             ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
     LOG.info("Nodes provision started. Please wait...")
