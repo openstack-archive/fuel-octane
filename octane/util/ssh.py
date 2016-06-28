@@ -15,6 +15,7 @@ import io
 import logging
 import pipes
 import random
+import shutil
 import threading
 
 import paramiko
@@ -229,3 +230,24 @@ def tempdir(node):
         yield dirname
     finally:
         call(['rm', '-rf', dirname], node=node)
+
+
+@contextlib.contextmanager
+def applied_patches(cwd, node, *patches):
+    patched_files = []
+    try:
+        for path in patches:
+            with open(path, "rb") as patch:
+                with popen(
+                        ["patch", "-N", "-p1", "-d", cwd],
+                        node=node, stdin=PIPE) as proc:
+                    shutil.copyfileobj(patch, proc.stdin)
+            patched_files.append(path)
+        yield
+    finally:
+        for path in patched_files:
+            with open(path, "rb") as patch:
+                with popen(
+                        ["patch", "-R", "-p1", "-d", cwd],
+                        node=node, stdin=PIPE) as proc:
+                    shutil.copyfileobj(patch, proc.stdin)
