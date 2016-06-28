@@ -130,6 +130,16 @@ ENV_SETTINGS = {
 }
 
 
+def test_copy_vips(mock_subprocess):
+    env_id = -1
+    env = mock.Mock(data={'id': env_id})
+    env_util.copy_vips(env)
+
+    mock_subprocess.assert_called_once_with(
+        ['fuel2', 'env', 'copy', 'vips', str(env_id)]
+    )
+
+
 @pytest.mark.parametrize("env_id,master_ip", [(1, '10.0.0.1')])
 @pytest.mark.parametrize("format_tuples", [
     [
