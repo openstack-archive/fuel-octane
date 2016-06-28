@@ -12,6 +12,7 @@
 
 import mock
 import pytest
+import yaml
 
 from octane.commands import upgrade_node
 
@@ -60,8 +61,8 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         "octane.handlers.upgrade.get_nodes_handlers")
     mock_handlers = mock_get_handlers.return_value
     mock_move_nodes = mocker.patch("octane.util.env.move_nodes")
-    mock_set_network_template = mocker.patch(
-        "octane.util.env.set_network_template")
+    mock_load_network_template = mocker.patch(
+        "octane.commands.upgrade_node.load_network_template")
     mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     upgrade_node.upgrade_node(test_env_id, node_ids)
@@ -72,8 +73,7 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         mock.call('preupgrade'), mock.call('prepare'),
         mock.call('predeploy'), mock.call('postdeploy')]
     if network_template:
-        mock_set_network_template.assert_called_once_with(
-            mock_env.return_value, network_template)
+        mock_load_network_template.assert_called_once_with(network_template)
     if isolated:
         mock_deploy_nodes.assert_called_once()
     else:
@@ -114,3 +114,17 @@ def test_check_sanity(mocker, node, node_data, expected_error):
                 in exc_info.value.args[0]
     else:
         assert upgrade_node.check_sanity(test_env_id, mock_nodes) is None
+
+
+@pytest.mark.parametrize("return_value", [{'test': 'test'}, ])
+@pytest.mark.parametrize("side_effect",
+                         [None, yaml.parser.ParserError, IOError])
+def test_load_network_template(mocker, return_value, side_effect):
+    mocker.patch("octane.util.helpers.load_yaml",
+                 return_value=return_value,
+                 side_effect=side_effect)
+    if side_effect:
+        with pytest.raises(side_effect):
+            upgrade_node.load_network_template("testfile")
+    else:
+        assert return_value == upgrade_node.load_network_template("testfile")
