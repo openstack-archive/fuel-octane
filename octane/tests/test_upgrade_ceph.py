@@ -78,3 +78,85 @@ CEPH_CONF_RGWFRONT = CEPH_CONF_KEYRING + \
 ])
 def test_add_rgw_frontends(mocker, conf, expected_res):
     assert expected_res == upgrade_ceph.add_rgw_frontends(conf)
+
+
+@pytest.mark.parametrize("fsid", ["fsid_value"])
+@pytest.mark.parametrize("conf_file", ["/conf/file/path"])
+@pytest.mark.parametrize("edit_conf,expected_conf", [(
+    [
+        "[global]\n",
+        "fsid = 2f496dc5-f9df-4c03-9dd6-f7dd5997bd4b\n",
+        "mon_initial_members = node-1 node-3 node-2\n",
+        "mon_host = 10.21.7.3 10.21.7.5 10.21.7.4\n",
+        "auth_cluster_required = cephx\n",
+        "auth_service_required = cephx\n",
+        "auth_client_required = cephx\n",
+        "filestore_xattr_use_omap = true\n",
+        "log_to_syslog_level = info\n",
+        "log_to_syslog = True\n",
+        "osd_pool_default_size = 2\n",
+        "osd_pool_default_min_size = 1\n",
+        "log_file = /var/log/ceph/radosgw.log\n",
+        "osd_pool_default_pg_num = 128\n",
+        "public_network = 10.21.7.0/24\n",
+        "log_to_syslog_facility = LOG_LOCAL0\n",
+        "osd_journal_size = 2048\n",
+        "auth_supported = cephx\n",
+        "osd_pool_default_pgp_num = 128\n",
+        "osd_mkfs_type = xfs\n",
+        "cluster_network = 10.21.9.0/24\n",
+        "osd_recovery_max_active = 1\n",
+        "osd_max_backfills = 1\n",
+        "\n",
+        "\n",
+        "[client]\n",
+        "rbd cache writethrough until flush = True\n",
+        "rbd cache = True\n",
+        "rbd_cache_writethrough_until_flush = True\n",
+        "rbd_cache = True",
+    ],
+    [
+
+        "[global]\n",
+        "fsid = {fsid_value}\n",
+        "mon_initial_members = node-1 node-3 node-2\n",
+        "mon_host = 10.21.7.3 10.21.7.5 10.21.7.4\n",
+        "auth_cluster_required = cephx\n",
+        "auth_service_required = cephx\n",
+        "auth_client_required = cephx\n",
+        "filestore_xattr_use_omap = true\n",
+        "log_to_syslog_level = info\n",
+        "log_to_syslog = True\n",
+        "osd_pool_default_size = 2\n",
+        "osd_pool_default_min_size = 1\n",
+        "log_file = /var/log/ceph/radosgw.log\n",
+        "osd_pool_default_pg_num = 128\n",
+        "public_network = 10.21.7.0/24\n",
+        "log_to_syslog_facility = LOG_LOCAL0\n",
+        "osd_journal_size = 2048\n",
+        "auth_supported = cephx\n",
+        "osd_pool_default_pgp_num = 128\n",
+        "osd_mkfs_type = xfs\n",
+        "cluster_network = 10.21.9.0/24\n",
+        "osd_recovery_max_active = 1\n",
+        "osd_max_backfills = 1\n",
+        "\n",
+        "\n",
+        "[client]\n",
+        "rbd cache writethrough until flush = True\n",
+        "rbd cache = True\n",
+        "rbd_cache_writethrough_until_flush = True\n",
+        "rbd_cache = True",
+    ]
+)])
+def test_change_fsid(mocker, node, fsid, edit_conf, expected_conf, conf_file):
+    sftp_mock = mocker.patch("octane.util.ssh.sftp")
+    new_mock = mock.Mock()
+    update_file_mock = mocker.patch("octane.util.ssh.update_file")
+    update_file_mock.return_value.__enter__.return_value = (
+        edit_conf, new_mock)
+    upgrade_ceph.change_fsid(conf_file, node, fsid)
+    write_calls = [mock.call(l.format(fsid_value=fsid)) for l in expected_conf]
+    assert write_calls == new_mock.write.call_args_list
+    sftp_mock.assert_called_once_with(node)
+    update_file_mock.assert_called_once_with(sftp_mock.return_value, conf_file)
