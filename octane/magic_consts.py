@@ -89,3 +89,12 @@ UPGRADE_NODE_PATCHES = [
 
 # NOTE(ogelbukh): it was agreed that 10MB is enough for config drive partition
 CONFIGDRIVE_PART_SIZE = 10
+
+KEYSTONE_CONF = "/etc/keystone/keystone.conf"
+KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+
+NOVA_PATCH_PREFIX_DIR = '/usr/lib/python2.7/dist-packages/'
+NOVA_PATCHES = [
+    os.path.join(CWD, "patches/nova.patch"),
+]
