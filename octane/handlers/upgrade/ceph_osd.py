@@ -25,12 +25,6 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
     env_with_set_noout = set()
     patched_nodes = set()
 
-    def preupgrade(self):
-        try:
-            ceph.check_cluster(self.node)
-        except subprocess.CalledProcessError as exc:
-            LOG.warning("Ceph cluster health is not OK, ignoring: %s", exc)
-
     def prepare(self):
         self.preserve_partition()
         # patch only on first prepare run
