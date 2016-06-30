@@ -16,7 +16,6 @@ from octane.handlers import upgrade
 from octane.util import ceph
 from octane.util import node as node_util
 from octane.util import puppet
-from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
 
@@ -24,12 +23,6 @@ LOG = logging.getLogger(__name__)
 class CephOsdUpgrade(upgrade.UpgradeHandler):
     env_with_set_noout = set()
     patched_nodes = set()
-
-    def preupgrade(self):
-        try:
-            ceph.check_cluster(self.node)
-        except subprocess.CalledProcessError as exc:
-            LOG.warning("Ceph cluster health is not OK, ignoring: %s", exc)
 
     def prepare(self):
         self.preserve_partition()

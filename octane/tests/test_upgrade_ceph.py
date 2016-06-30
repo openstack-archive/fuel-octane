@@ -54,8 +54,6 @@ def test_patch_and_revert_only_once(mocker, env_node_ids):
         node.data = {"id": node_id}
         handlers.append(ceph_osd.CephOsdUpgrade(node, env, False, False))
     for handler in handlers:
-        handler.preupgrade()
-    for handler in handlers:
         handler.prepare()
     for handler in handlers:
         handler.postdeploy()
