@@ -239,7 +239,7 @@ def applied_patches(container, prefix, *patches):
     try:
         yield
     finally:
-        apply_patches(container, prefix, *patches, revert=True)
+        apply_patches(container, prefix, *patches[::-1], revert=True)
 
 
 @contextlib.contextmanager

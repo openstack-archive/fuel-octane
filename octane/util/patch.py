@@ -36,7 +36,7 @@ def applied_patch(cwd, *patches):
     try:
         yield
     finally:
-        patch_apply(cwd, patches, revert=True)
+        patch_apply(cwd, patches[::-1], revert=True)
 
 
 def get_filenames_from_single_patch(patch):

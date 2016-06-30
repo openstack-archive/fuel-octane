@@ -42,7 +42,11 @@ def test_applied_patches(mocker, node, mock_open,
     error_idx = error_idx or len(patches) + 1
     mock_shutil_side_effect = []
 
+    revert_patches = []
+
     for idx, path in enumerate(patches):
+        if idx < error_idx:
+            revert_patches.append(path)
         if idx <= error_idx:
             mock_open_calls.append(mock.call(path, "rb"))
             mock_patch_calls.append(mock.call(
@@ -57,17 +61,17 @@ def test_applied_patches(mocker, node, mock_open,
         else:
             mock_shutil_side_effect.append(None)
 
-    for idx, path in enumerate(patches):
-        if idx < error_idx:
-            mock_shutil_side_effect.append(None)
-            mock_patch_calls.append(mock.call(
-                ["patch", "-R", "-p1", "-d", cwd], node=node, stdin=ssh.PIPE
-            ))
-            mock_open_calls.append(mock.call(path, "rb"))
-            mock_shutil_calls.append(mock.call(
-                mock_open.return_value,
-                mock_popen.return_value.__enter__.return_value.stdin
-            ))
+    revert_patches.reverse()
+    for path in revert_patches:
+        mock_shutil_side_effect.append(None)
+        mock_patch_calls.append(mock.call(
+            ["patch", "-R", "-p1", "-d", cwd], node=node, stdin=ssh.PIPE
+        ))
+        mock_open_calls.append(mock.call(path, "rb"))
+        mock_shutil_calls.append(mock.call(
+            mock_open.return_value,
+            mock_popen.return_value.__enter__.return_value.stdin
+        ))
 
     mock_shutil = mocker.patch(
         "shutil.copyfileobj", side_effect=mock_shutil_side_effect)

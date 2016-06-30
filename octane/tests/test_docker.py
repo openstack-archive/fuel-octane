@@ -168,7 +168,7 @@ def test_applied_patches(mocker, container, prefix, patches, error):
             pass
     assert [
         mock.call(container, prefix, *patches),
-        mock.call(container, prefix, *patches, revert=True)
+        mock.call(container, prefix, *patches[::-1], revert=True)
     ] == apply_patches.call_args_list
 
 

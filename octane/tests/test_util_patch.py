@@ -36,7 +36,7 @@ def test_applied_context_manager(mocker, patches, cwd, is_exception):
             pass
     assert [
         mock.call(cwd, patches),
-        mock.call(cwd, patches, revert=True)
+        mock.call(cwd, patches[::-1], revert=True)
     ] == patch_mock.call_args_list
 
 

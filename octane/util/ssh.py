@@ -245,6 +245,7 @@ def applied_patches(cwd, node, *patches):
             patched_files.append(path)
         yield
     finally:
+        patched_files.reverse()
         for path in patched_files:
             with open(path, "rb") as patch:
                 with popen(
