@@ -9,10 +9,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+import pytest
 import subprocess
 
 from mock import call
 from mock import Mock
+from octane.tests import util as test_util
 from octane.util import network
 
 
@@ -310,3 +313,27 @@ DEPLOYMENT_INFO_7_0 = {
         }]
     }
 }
+
+
+IFACE_BASE = b"auto br-ex\niface br-ex inet static\n"
+IFACE_ADDR = b"address 10.109.1.4/24\ngateway 10.109.1.1\n"
+IFACE_SINGLEPORT = IFACE_BASE + b"bridge_ports eth0\n"
+IFACE_DEFAULT = IFACE_SINGLEPORT + IFACE_ADDR
+IFACE_TESTPORT = b"bridge_ports test-iface\n"
+IFACE_MULTIPORT = IFACE_BASE + IFACE_TESTPORT
+IFACE_MULTIPORT_EXPECTED = IFACE_BASE + b"bridge_ports eth0 test-iface\n"
+
+
+@pytest.mark.parametrize("content,expected_content", [
+    (IFACE_BASE, IFACE_SINGLEPORT),
+    (IFACE_DEFAULT, IFACE_DEFAULT),
+    (IFACE_MULTIPORT, IFACE_MULTIPORT_EXPECTED),
+])
+@pytest.mark.parametrize("bridge,port", [
+    ('br-ex', {'name': 'eth0'}),
+])
+def test_save_port_lnx(mocker, node, content, expected_content, bridge, port):
+    filename = '/etc/network/interfaces.d/ifcfg-{0}'.format(bridge)
+    with test_util.mock_update_file(mocker, node, content, expected_content,
+                                    filename):
+        network.save_port_lnx(node, bridge, port)
