@@ -1,0 +1,8 @@
+Code-Review+2: Ilya Kharin <akscram@gmail.com>
+Workflow+1: Ilya Kharin <akscram@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 01 Jul 2016 09:26:02 +0000
+Reviewed-on: https://review.openstack.org/335851
+Project: openstack/fuel-octane
+Branch: refs/heads/stable/8.0
