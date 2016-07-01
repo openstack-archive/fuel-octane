@@ -34,10 +34,10 @@ installations to version 9.0.
 %setup -cq -n %{name}-%{version}
 
 %build
-cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} %{__python2} setup.py egg_info && cp octane.egg-info/PKG-INFO . && %{__python2} setup.py build
+ip a ; traceroute 172.18.184.28 ; cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} %{__python2} setup.py egg_info && cp octane.egg-info/PKG-INFO . && %{__python2} setup.py build
 
 %install
-cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
+ip a ; traceroute 172.18.184.28 ; cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
 cp -vr %{_builddir}/%{name}-%{version}/octane/patches ${RPM_BUILD_ROOT}/%{python2_sitelib}/octane/
 
 %files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
