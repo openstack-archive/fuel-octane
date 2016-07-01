@@ -18,6 +18,7 @@ from octane import magic_consts
 from octane.util import ssh
 
 from octane.helpers import transformations as ts
+from six.moves import xrange
 
 LOG = logging.getLogger(__name__)
 

@@ -3,6 +3,7 @@ import time
 
 import neutronclient.neutron.client
 import keystoneclient.v2_0.client as ksclient
+from six.moves import xrange
 from novaclient import client as nova
 
 

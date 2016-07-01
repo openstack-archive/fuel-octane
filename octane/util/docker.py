@@ -22,6 +22,7 @@ import time
 from octane.util import patch
 from octane.util import subprocess
 from octane.util import tempfile
+from six.moves import xrange
 
 LOG = logging.getLogger(__name__)
 
