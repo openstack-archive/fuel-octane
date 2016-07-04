@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os.path
+import subprocess
 
 from octane import magic_consts
 from octane.util import ssh
@@ -48,8 +49,8 @@ def create_partition(disk_name, size, node):
 
 def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
-    command = ['python',
-               os.path.join(magic_consts.PATCHES_DIR, fname), str(node_id)]
+    command = ['python', os.path.join(magic_consts.CWD,
+                                      'patches/{0}'.format(fname)), str(node_id)]
     subprocess.call(command)
 
 

@@ -18,10 +18,7 @@ from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 
 from octane.handlers import upgrade as upgrade_handlers
-from octane import magic_consts
-from octane.util import docker
 from octane.util import env as env_util
-from octane.util import patch
 
 LOG = logging.getLogger(__name__)
 
@@ -55,29 +52,42 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
 
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
-    with patch.applied_patch(
-            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES):
-        call_handlers('preupgrade')
-        call_handlers('prepare')
-        env_util.move_nodes(env, nodes, provision, roles)
+    #with contextlib.nested(
+    #        docker.patch_container_service(
+    #            *magic_consts.NAILGUN_SERVICE_PATCHES),
+    #        patch.applied_patch(
+    #            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES)):
+    call_handlers('preupgrade')
+    call_handlers('prepare')
+    env_util.move_nodes(env, nodes, provision, roles)
 
-        # NOTE(aroma): copying of VIPs must be done after node reassignment
-        # as according to [1] otherwise the operation will not take any effect
-        # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
-        env_util.copy_vips(env)
+    # NOTE(aroma): copying of VIPs must be done after node reassignment
+    # as according to [1] otherwise the operation will not take any effect
+    # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
+    env_util.copy_vips(env)
 
-        call_handlers('predeploy')
-        if isolated or len(nodes) == 1:
+    if network_template:
+        env.set_network_template_data(network_template_data)
+    predeploy_meta = call_handlers('predeploy')
+    tasks_to_skip = predeploy_meta.get('skip_tasks', [])
+    if isolated or len(nodes) == 1:
+        if tasks_to_skip:
+            env_util.deploy_nodes_with_tasks(env, nodes)
+        else:
             env_util.deploy_nodes(env, nodes)
+    else:
+        if tasks_to_skip:
+            env_util.provision_nodes(env, nodes)
+            env_util.deploy_nodes_with_tasks(env, nodes, tasks_to_skip)
         else:
             env_util.deploy_changes(env, nodes)
-        call_handlers('postdeploy')
+    call_handlers('postdeploy')
 
 
-def copy_patches_folder_to_nailgun():
-    dest_folder = '/tmp'
-    folder = os.path.join(magic_consts.CWD, 'patches')
-    docker.put_files_to_docker('nailgun', dest_folder, folder)
+# def copy_patches_folder_to_nailgun():
+#     dest_folder = '/tmp'
+#     folder = os.path.join(magic_consts.CWD, 'patches')
+#     docker.put_files_to_docker('nailgun', dest_folder, folder)
 
 
 def list_roles(s):
