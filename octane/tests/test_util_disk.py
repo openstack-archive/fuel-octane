@@ -42,7 +42,7 @@ def test_update_partition_info(mocker, node):
         "octane.util.docker.run_in_container")
     expected_command = [
         'python',
-        os.path.join('/tmp', 'update_node_partition_info.py'),
+        os.path.join(magic_consts.CWD, 'patches/update_node_partition_info.py'),
         str(test_node_id),
     ]
     disk_util.update_node_partition_info(test_node_id)
