@@ -15,7 +15,6 @@ import pytest
 import yaml
 
 from octane.commands import upgrade_node
-from octane import magic_consts
 
 
 @pytest.mark.parametrize('live_migration', [True, False])
@@ -39,8 +38,6 @@ def test_parser(mocker, octane_app, live_migration):
 def test_upgrade_node(mocker, node_ids, isolated, network_template,
                       provision, roles):
 
-    mock_nodes_list = []
-
     def _create_node(node_id):
         node = mock.Mock('node', spec_set=['data', 'id'])
         node.id = node_id
@@ -48,14 +45,13 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         node.data['id'] = node_id
         node.data['cluster'] = None
         node.data['roles'] = 'controller'
-        mock_nodes_list.append(node)
         return node
 
     test_env_id = 'test-env'
     mock_env = mocker.patch("fuelclient.objects.environment.Environment")
-    mock_env.return_value.id = test_env_id
-    mock_env.return_value.data = {}
-    mock_env.return_value.data['id'] = mock_env.id
+    mock_env.id = test_env_id
+    mock_env.data = {}
+    mock_env.data['id'] = mock_env.id
     mocker.patch("octane.util.patch.applied_patch")
     mock_node = mocker.patch("fuelclient.objects.node.Node")
     mock_node.side_effect = _create_node
@@ -69,15 +65,10 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
         "octane.commands.upgrade_node.load_network_template")
     mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
-    mock_docker_patch = mocker.patch(
-        "octane.util.docker.patch_container_service")
     upgrade_node.upgrade_node(test_env_id, node_ids)
 
-    mock_copy_patches.assert_called_once_with()
-    mock_move_nodes.assert_called_once_with(
-        mock_env.return_value, mock_nodes_list)
-    mock_docker_patch.assert_called_once_with(
-        *magic_consts.NAILGUN_SERVICE_PATCHES)
+    mock_copy_patches.assert_called_once()
+    mock_move_nodes.assert_called_once()
     assert mock_handlers.call_args_list == [
         mock.call('preupgrade'), mock.call('prepare'),
         mock.call('predeploy'), mock.call('postdeploy')]
