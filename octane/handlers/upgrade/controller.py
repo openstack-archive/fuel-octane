@@ -59,7 +59,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
         for info in default_info:
-            if not (info['role'] == 'primary-controller' or
+            if not ('primary-controller' in info['roles'] or
                     info['uid'] == str(self.node.id)):
                 continue
             if self.isolated:
@@ -73,10 +73,13 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             env_util.prepare_net_info(info)
             deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
+        meta = dict()
+        meta['skip_tasks'] = ["upload_cirros", "ceph_ready_check", "configure_default_route"]
+        return meta
 
-        tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
-        self.env.update_deployment_tasks(tasks)
+        #tasks = self.env.get_deployment_tasks()
+        #tasks_helpers.skip_tasks(tasks)
+        #self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]
