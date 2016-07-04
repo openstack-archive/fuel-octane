@@ -1,0 +1,18 @@
+- id: add_compute_upgrade_levels
+  type: puppet
+  version: 2.1.0
+  role: primary-controller
+  parameters:
+    puppet_manifest: add_compute_upgrade_levels.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 3600
+  condition:
+    yaql_exp: $ORIG.cluster.version = '6.1' and $.cluster.version >= 8
+- id: restart_neutron
+  type: shell
+  role: primary-controller
+  version: 2.1.0
+  parameters:
+    cmd: service neutron-server restart
+  condition:
+    yaql_exp: $.cluster.version < 8

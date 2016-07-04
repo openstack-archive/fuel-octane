@@ -1,0 +1,15 @@
+- id: delete_fuel_resources
+  type: puppet
+  parameters:
+    puppet_manifest: delete_fuel_resources
+- id: disable_apis
+  type:  puppet
+  parameters:
+    puppet_manifest: disable_apis.pp
+- id: disable_corosync_services
+  node_id: old_controllers
+- id: db_backup
+  type: puppet
+  node_id:
+- id: db_restore
+- id: db_sync
