@@ -259,16 +259,18 @@ def test_postgres_restore(mocker, cls, db, sync_db_cmd, mocked_action_names):
     run_in_container = mocker.patch(
         "octane.util.docker.run_in_container",
         side_effect=foo("run_in_container"))
-    mocker.patch("octane.util.docker.stop_container",
-                 side_effect=foo("stop_container"))
+    mocker.patch("octane.util.docker.destroy_container",
+                 side_effect=foo("destroy_container"))
     mocker.patch("octane.util.docker.start_container",
                  side_effect=foo("start_container"))
     mocker.patch("octane.util.docker.wait_for_container",
                  side_effect=foo("wait_for_container"))
+    mocker.patch("octane.util.docker.check_container",
+                 side_effect=foo("check_container"))
     cls(archive).restore()
     member.assert_extract()
-    args = ["call", "stop_container", "run_in_container", "in_container",
-            "start_container", "wait_for_container", "call"]
+    args = ["call", "destroy_container", "run_in_container", "in_container",
+            "start_container", "wait_for_container", "call", "check_container"]
     assert args == actions
     if cls is postgres.NailgunArchivator:
         assert [

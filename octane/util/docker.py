@@ -183,16 +183,16 @@ def stop_container(container):
         subprocess.call(["docker", "stop", container_id])
 
 
-def start_container(container):
-    _container_action(container, "start")
-
-
 def destroy_container(container):
     _container_action(container, "destroy")
 
 
 def check_container(container):
     _container_action(container, "check")
+
+
+def start_container(container):
+    _container_action(container, "start")
 
 
 def wait_for_container(container, attempts=120, delay=5):
