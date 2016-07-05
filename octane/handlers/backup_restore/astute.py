@@ -17,6 +17,7 @@ import yaml
 from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import docker
+from octane.util import subprocess
 
 
 LOG = logging.getLogger(__name__)
@@ -117,16 +118,6 @@ class AstuteArchivator(base.PathArchivator):
 
     def _post_restore_action(self):
         # restart all running containers
-        for name in magic_consts.RUNNING_REQUIRED_CONTAINERS:
-            docker.stop_container(name)
-            # FIXME: when astute container restart corrent this may be removed
-            if "astute" == name:
-                try:
-                    docker.start_container(name)
-                except Exception:
-                    LOG.warn(
-                        "Failed to start astute container for the first time")
-                    docker.stop_container(name)
-                else:
-                    continue
-            docker.start_container(name)
+        subprocess.call(["dockerctl", "destroy", "all"])
+        subprocess.call(["dockerctl", "start", "all"])
+        subprocess.call(["dockerctl", "check"])
