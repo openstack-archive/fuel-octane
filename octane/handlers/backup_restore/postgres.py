@@ -54,7 +54,7 @@ class PostgresArchivator(base.CmdArchivator):
         subprocess.call([
             "systemctl", "stop", "docker-{0}.service".format(self.db)
         ])
-        docker.stop_container(self.db)
+        docker.destroy_container(self.db)
         docker.run_in_container(
             "postgres",
             ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
@@ -68,6 +68,7 @@ class PostgresArchivator(base.CmdArchivator):
         subprocess.call([
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
+        docker.check_container(self.db)
 
 
 class NailgunArchivator(PostgresArchivator):

@@ -183,6 +183,14 @@ def stop_container(container):
         subprocess.call(["docker", "stop", container_id])
 
 
+def destroy_container(container):
+    _container_action(container, "destroy")
+
+
+def check_container(container):
+    _container_action(container, "check")
+
+
 def start_container(container):
     _container_action(container, "start")
 
