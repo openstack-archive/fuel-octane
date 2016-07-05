@@ -165,7 +165,10 @@ def get_docker_container_name(container, **extra_filtering):
 
 
 def _container_action(container, action):
-    name = get_docker_container_name(container)
+    if container != "all":
+        name = get_docker_container_name(container)
+    else:
+        name = "all"
     subprocess.call(["dockerctl", action, name])
 
 
@@ -185,6 +188,14 @@ def stop_container(container):
 
 def start_container(container):
     _container_action(container, "start")
+
+
+def destroy_container(container):
+    _container_action(container, "destroy")
+
+
+def check_container(container):
+    _container_action(container, "check")
 
 
 def wait_for_container(container, attempts=120, delay=5):
