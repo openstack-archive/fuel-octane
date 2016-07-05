@@ -187,6 +187,23 @@ def start_container(container):
     _container_action(container, "start")
 
 
+def destroy_container(container):
+    _container_action(container, "destroy")
+
+
+def check_container(container):
+    _container_action(container, "check")
+
+
+@contextlib.contextmanager
+def destroied_container(container):
+    name = get_docker_container_name(container)
+    subprocess.call(["dockerctl", "destroy", name])
+    yield
+    subprocess.call(["dockerctl", "start", name])
+    subprocess.call(["dockerctl", "check", name])
+
+
 def wait_for_container(container, attempts=120, delay=5):
     assert delay > 0
     _wait_for_start_container(container, attempts, delay)
