@@ -472,21 +472,16 @@ def test_astute_restore(mocker, mock_open, keys_in_dump_file, restored):
 
 
 def test_post_restore_action_astute(mocker):
-
-    stopped = []
-    mocker.patch(
-        "octane.util.docker.get_docker_container_names",
-        return_value=["container_1", "container_2"]
-    )
-    start = mocker.patch("octane.util.docker.start_container",
-                         side_effect=stopped.remove)
-    stop = mocker.patch("octane.util.docker.stop_container",
-                        side_effect=stopped.append)
+    destroy_container_mock = mocker.patch(
+        "octane.util.docker.destroy_container")
+    start_container_mock = mocker.patch("octane.util.docker.start_container")
+    check_container_mock = mocker.patch("octane.util.docker.check_container")
 
     astute.AstuteArchivator(None)._post_restore_action()
-    assert start.called
-    assert stop.called
-    assert not stopped
+
+    destroy_container_mock.assert_called_once_with("all")
+    start_container_mock.assert_called_once_with("all")
+    check_container_mock.assert_called_once_with("all")
 
 
 @pytest.mark.parametrize("dump, calls, data_for_update", [
