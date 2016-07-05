@@ -187,6 +187,14 @@ def start_container(container):
     _container_action(container, "start")
 
 
+def destroy_container(container):
+    _container_action(container, "destroy")
+
+
+def check_container(container):
+    _container_action(container, "check")
+
+
 def wait_for_container(container, attempts=120, delay=5):
     assert delay > 0
     _wait_for_start_container(container, attempts, delay)
