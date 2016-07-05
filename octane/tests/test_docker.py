@@ -201,3 +201,32 @@ def test_patch_container_service(
         mock.call(container, ["service", service, "restart"])
     ] == docker_run_mock.call_args_list
     patch_mock.assert_called_once_with(container, prefix, *patches)
+
+
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("container_name", ["container_name"])
+@pytest.mark.parametrize("is_exception", [True, False])
+def test_destroied_container(mocker, container, container_name, is_exception):
+    subprocess_call_mock = mocker.patch("octane.util.subprocess.call")
+    get_name_mock = mocker.patch(
+        "octane.util.docker.get_docker_container_name",
+        return_value=container_name)
+
+    class TestException(Exception):
+        pass
+
+    if is_exception:
+        with pytest.raises(TestException):
+            with docker.destroied_container(container):
+                raise TestException
+    else:
+        with docker.destroied_container(container):
+            pass
+
+    assert [
+        mock.call(["dockerctl", "destroy", container_name]),
+        mock.call(["dockerctl", "start", container]),
+        mock.call(["dockerctl", "check", container]),
+    ] == subprocess_call_mock.call_args_list
+
+    get_name_mock.assert_called_once_with(container)
