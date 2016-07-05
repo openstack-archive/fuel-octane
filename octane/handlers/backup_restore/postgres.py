@@ -54,17 +54,15 @@ class PostgresArchivator(base.CmdArchivator):
         subprocess.call([
             "systemctl", "stop", "docker-{0}.service".format(self.db)
         ])
-        docker.stop_container(self.db)
-        docker.run_in_container(
-            "postgres",
-            ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
-        )
-        with docker.in_container("postgres",
-                                 ["sudo", "-u", "postgres", "psql"],
-                                 stdin=subprocess.PIPE) as process:
-            shutil.copyfileobj(dump, process.stdin)
-        docker.start_container(self.db)
-        docker.wait_for_container(self.db)
+        with docker.destroyed_container(self.db):
+            docker.run_in_container(
+                "postgres",
+                ["sudo", "-u", "postgres", "dropdb", "--if-exists", self.db],
+            )
+            with docker.in_container("postgres",
+                                     ["sudo", "-u", "postgres", "psql"],
+                                     stdin=subprocess.PIPE) as process:
+                shutil.copyfileobj(dump, process.stdin)
         subprocess.call([
             "systemctl", "start", "docker-{0}.service".format(self.db)
         ])
