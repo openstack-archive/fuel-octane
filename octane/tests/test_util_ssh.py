@@ -12,8 +12,10 @@
 
 
 import mock
+import paramiko
 import pytest
 
+from octane import magic_consts
 from octane.util import ssh
 
 
@@ -87,3 +89,56 @@ def test_applied_patches(mocker, node, mock_open,
     assert mock_open_calls == mock_open.call_args_list
     assert mock_patch_calls == mock_popen.call_args_list
     assert mock_shutil_calls == mock_shutil.call_args_list
+
+
+creds = {'name': {'value': 'a'}, 'password': {'value': 'b'}}
+
+
+@pytest.mark.parametrize(
+    "editable,generated,result", [
+        ({}, {}, None),
+        ({}, creds, {'user': 'a', 'password': 'b'}),
+        (creds, creds, {'user': 'a', 'password': 'b'}),
+        ({'name': {'value': 'b'}}, creds, {'user': 'b', 'password': 'b'}),
+    ]
+)
+def test_ssh_credentials(mocker, editable, generated, result):
+    env = mocker.Mock()
+    env.get_attributes.return_value = {
+        'editable': {'service_user': editable},
+        'generated': {'service_user': generated},
+    }
+
+    assert ssh.get_env_credentials(env) == result
+
+
+def test_ssh_credentials_fallback(mocker):
+    env = mocker.Mock()
+    env.get_attributes.return_value = {'editable': {}, 'generated': {}}
+    assert ssh.get_env_credentials(env) is None
+
+
+@pytest.mark.parametrize(
+    "editable,with_generated,result", [
+        ({'service_user': creds}, 1, {'username': 'a', 'password': 'b'}),
+        ({}, 0, {'username': 'root', 'key_filename': magic_consts.SSH_KEYS}),
+    ]
+)
+def test_get_client_credentials(mocker, editable, with_generated, result):
+    node = mocker.Mock()
+
+    attrs = {
+        'editable': editable,
+        'generated': {},
+    }
+
+    if with_generated:
+        attrs['generated'] = editable
+
+    ip = '8.8.8.8'
+
+    node.data = {'ip': ip, 'id': 1}
+    node.env.get_attributes.return_value = attrs
+    mocker.patch.object(paramiko.SSHClient, 'connect', autospec=True)
+    client = ssh.get_client(node)
+    client.connect.assert_called_with(client, ip, **result)
