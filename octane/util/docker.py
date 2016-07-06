@@ -128,7 +128,7 @@ def apply_patches(container, prefix, *patches, **kwargs):
         return
     with tempfile.temp_dir(prefix='octane_docker_patches.') as tempdir:
         get_files_from_docker(container, files, tempdir)
-        patch.patch_apply(tempdir, patches, revert)
+        patch.patch_apply(os.path.join(tempdir, prefix), patches, revert)
         put_files_to_docker(container, "/", tempdir)
 
 
