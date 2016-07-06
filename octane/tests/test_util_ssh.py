@@ -87,3 +87,32 @@ def test_applied_patches(mocker, node, mock_open,
     assert mock_open_calls == mock_open.call_args_list
     assert mock_patch_calls == mock_popen.call_args_list
     assert mock_shutil_calls == mock_shutil.call_args_list
+
+
+@pytest.mark.parametrize(
+    "editable,generated,result", [
+        ({}, {}, KeyError),
+        ({}, {'name': 'a', 'password': 'b'}, {'name': 'a', 'password': 'b'}),
+        ({'name': 'a', 'password': 'b'}, {}, {'name': 'a', 'password': 'b'}),
+        ({'name': 'b'}, {'name': 'a', 'password': 'b'},
+         {'name': 'b', 'password': 'b'}),
+    ]
+)
+def test_ssh_credentials(mocker, editable, generated, result):
+    env = mocker.Mock()
+    env.get_attributes.return_value = {
+        'editable': {'service_user': editable},
+        'generated': {'service_user': generated},
+    }
+
+    if isinstance(result, dict)
+        assert ssh.get_env_credentials(env) == result
+    else:
+        with pytest.raises(result):
+            ssh.get_env_credentials(env)
+
+
+def test_ssh_credentials_fallback(mocker):
+    env = mocker.Mock()
+    env.get_attributes.return_value = {'editable': {}, 'generated': {}}
+    assert ssh.get_env_credentials(env) is None

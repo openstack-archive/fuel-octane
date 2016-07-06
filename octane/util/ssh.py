@@ -72,9 +72,19 @@ class _cache(object):
 @_cache
 def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
+    creds = get_env_credentials(node.env)
+
+    params = {}
+    if creds is None:
+        params['user'] = 'root'
+        params['key_filename'] = magic_consts.SSH_KEYS
+    else:
+        params['user'] = creds['user']
+        params['password'] = creds['password']
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(node.data['ip'], key_filename=magic_consts.SSH_KEYS)
+    client.connect(node.data['ip'], **params)
     return client
 
 
@@ -113,7 +123,14 @@ class SSHPopen(subprocess.BasePopen):
         for key in ['stdin', 'stdout', 'stderr']:
             assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
-        self._channel = get_client(self.node).get_transport().open_session()
+        transport = get_client(self.node).get_transport()
+        username = transport.auth_handler.username
+        if username != 'root':
+            # FIXME for now just add sudo for every command if it's non root
+            if cmd[0] != 'sudo':
+                cmd = ['sudo'] + cmd
+
+        self._channel = transport.open_session()
         self._channel.exec_command(" ".join(map(pipes.quote, cmd)))
         self.name = "%s[at node-%d]" % (self.name, self.node.data['id'])
         if 'stdin' not in self.popen_kwargs:
@@ -252,3 +269,31 @@ def applied_patches(cwd, node, *patches):
                         ["patch", "-R", "-p1", "-d", cwd],
                         node=node, stdin=PIPE) as proc:
                     shutil.copyfileobj(patch, proc.stdin)
+
+
+def get_env_credentials(env):
+    attrs = env.get_attributes()
+    editable = attrs['editable']
+    generated = attrs['generated']
+
+    if (
+            'service_user' not in editable and
+            'service_user' not in generated
+    ):
+        return None
+
+    editable = attrs.get('service_user', {})
+    generated = attrs.get('service_user', {})
+
+    def get(key):
+        if key in editable:
+            return editable[key]
+        if key in generated:
+            return generated[key]
+
+        raise KeyError(key)
+
+    return {
+        'user': get('name')['value'],
+        'password': get('password')['value']
+    }
