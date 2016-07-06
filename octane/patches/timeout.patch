@@ -1,8 +1,8 @@
-diff --git a/deployment/puppet/nailgun/manifests/venv.pp b/deployment/puppet/nailgun/manifests/venv.pp
+diff --git a/fuel/manifests/nailgun/server.pp b/fuel/manifests/nailgun/server.pp
 index 3313333..c383160 100644
---- venv.pp
-+++ venv.pp
-@@ -96,6 +96,7 @@ class nailgun::venv(
+--- a/venv.pp
++++ b/venv.pp
+@@ -96,6 +96,7 @@
                      ],
          tries     => 50,
          try_sleep => 5,

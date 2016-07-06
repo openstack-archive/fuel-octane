@@ -99,15 +99,10 @@ class NailgunArchivator(PostgresArchivator):
         return resp
 
     def restore(self):
-        for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-            docker.apply_patches(*args)
-        try:
+        with docker.applied_patches(*magic_consts.NAILGUN_ARCHIVATOR_PATCHES):
             super(NailgunArchivator, self).restore()
             self._post_restore_action()
             self._fix_admin_network()
-        finally:
-            for args in magic_consts.NAILGUN_ARCHIVATOR_PATCHES:
-                docker.apply_patches(*args, revert=True)
 
     def _create_links_on_remote_logs(self):
         domain = helpers.get_astute_dict()["DNS_DOMAIN"]
