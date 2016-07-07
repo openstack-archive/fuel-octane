@@ -145,7 +145,8 @@ def test_apply_patches(mocker, container, prefix, patches, revert, files):
         temp_dir = mock_tempdir.return_value.__enter__.return_value
         get_files_mock.assert_called_once_with(
             container, [os.path.join(prefix, f) for f in files], temp_dir)
-        patch_mock.assert_called_once_with(temp_dir, patches, bool(revert))
+        patch_mock.assert_called_once_with(
+            os.path.join(temp_dir, prefix), patches, bool(revert))
         put_files_mock.assert_called_once_with(container, "/", temp_dir)
 
 
