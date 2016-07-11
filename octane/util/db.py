@@ -71,6 +71,8 @@ def db_sync(env):
         ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
         ssh.call(['nova-manage', 'db', 'migrate'],
                  node=node, parse_levels=True)
+        ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
+                 node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
