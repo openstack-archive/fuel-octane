@@ -58,6 +58,7 @@ def db_sync(env):
     # (this migration check flavor instances consistency)
     # than migrate flavor (transform them to normal state)
     # after that sync nova to the end
+
     with ssh.applied_patches(magic_consts.NOVA_PATCH_PREFIX_DIR,
                              node,
                              *magic_consts.NOVA_PATCHES):
@@ -69,6 +70,8 @@ def db_sync(env):
             node=node, parse_levels=True)
         ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
         ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
+        ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
+                 node=node, parse_levels=True)
         ssh.call(['nova-manage', 'db', 'migrate'],
                  node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
