@@ -100,7 +100,6 @@ DEPLOYMENT_INFO = [{
     }],
 }]
 
-
 ENV_SETTINGS = {
     'editable': {
         'public_ssl': {
@@ -136,7 +135,7 @@ def test_copy_vips(mock_subprocess):
     env_util.copy_vips(env)
 
     mock_subprocess.assert_called_once_with(
-        ['fuel2', 'env', 'copy', 'vips', str(env_id)]
+        ['fuel2', '--debug', 'env', 'copy', 'vips', str(env_id)]
     )
 
 
