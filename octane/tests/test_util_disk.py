@@ -37,16 +37,15 @@ def test_create_partition(mocker, mock_ssh_call, mock_ssh_call_output, node,
 
 def test_update_partition_info(mocker, node):
     test_node_id = 1
-    container = 'nailgun'
-    mock_run_in_container = mocker.patch(
-        "octane.util.docker.run_in_container")
+    fname = 'update_node_partition_info.py'
+    mock_call = mocker.patch("octane.util.subprocess.call")
     expected_command = [
         'python',
-        os.path.join('/tmp', 'update_node_partition_info.py'),
+        os.path.join(magic_consts.PATCHES_DIR, fname),
         str(test_node_id),
     ]
     disk_util.update_node_partition_info(test_node_id)
-    mock_run_in_container.assert_called_once_with(container, expected_command)
+    mock_call.assert_called_once_with(expected_command)
 
 
 NODE_DISKS_ATTRIBUTE = [
