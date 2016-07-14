@@ -14,7 +14,30 @@
 import mock
 import pytest
 
+from octane import magic_consts
 from octane.util import ssh
+
+
+@pytest.mark.parametrize('username', ['root', 'test'])
+def test_get_sftp(mocker, username):
+    mclient = mocker.patch('octane.util.ssh.get_client')
+    msftp_client = mocker.patch('paramiko.SFTPClient')
+    mtransport = mocker.Mock()
+    mchannel = mocker.Mock()
+    mclient.return_value.get_transport.return_value = mtransport
+    mtransport.open_channel.return_value = mchannel
+
+    mtransport.get_username.return_value = username
+
+    # call not cached version
+    ssh._get_sftp.new(mocker.Mock(data={'id': 1, 'hostname': 'test'}))
+
+    if username == 'root':
+        msftp_client.from_transport.assert_called_once_with(mtransport)
+    else:
+        mchannel.exec_command.assert_called_once_with(
+            'sudo ' + magic_consts.SFTP_SERVER_BIN)
+        msftp_client.assert_called_once_with(mchannel)
 
 
 @pytest.mark.parametrize("prefix", ["prefix_name"])

@@ -182,6 +182,14 @@ def call_output(cmd, **kwargs):
 @_cache
 def _get_sftp(node):
     transport = get_client(node).get_transport()
+    username = transport.get_username()
+
+    if username != 'root':
+        LOG.info('Run sftp server as root on node %s', node.data['hostname'])
+        channel = transport.open_channel('session')
+        channel.exec_command('sudo ' + magic_consts.SFTP_SERVER_BIN)
+        return paramiko.SFTPClient(channel)
+
     return paramiko.SFTPClient.from_transport(transport)
 
 get_client.invalidate.append(_get_sftp)
