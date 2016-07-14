@@ -12,7 +12,8 @@
 import os.path
 
 from octane import magic_consts
-from octane.util import docker
+from octane.magic_consts import PATCHES_DIR
+from octane.util import subprocess
 from octane.util import ssh
 
 
@@ -48,8 +49,8 @@ def create_partition(disk_name, size, node):
 
 def update_node_partition_info(node_id):
     fname = 'update_node_partition_info.py'
-    command = ['python', os.path.join('/tmp', fname), str(node_id)]
-    docker.run_in_container('nailgun', command)
+    command = ['python', os.path.join(PATCHES_DIR, fname), str(node_id)]
+    subprocess.call(command)
 
 
 def create_configdrive_partition(node):
