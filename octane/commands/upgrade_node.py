@@ -68,7 +68,6 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
 
     # NOTE(ogelbukh): patches and scripts copied to nailgun container
     # for later use
-    copy_patches_folder_to_nailgun()
 
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
