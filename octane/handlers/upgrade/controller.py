@@ -49,15 +49,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             if not os.path.exists(backup_path):
                 os.makedirs(backup_path)
             # Roughly taken from Environment.write_facts_to_dir
-            for info in default_info:
-                if not info['uid'] == str(self.node.id):
-                    continue
-                fname = os.path.join(
-                    backup_path,
-                    "{0}_{1}.yaml".format(info['role'], info['uid']),
-                )
-                with open(fname, 'w') as f:
-                    yaml.safe_dump(info, f, default_flow_style=False)
+            self.env.write_facts_to_dir(None, default_info, directory=backup_path)
         for info in default_info:
             if not ('primary-controller' in info['roles'] or
                     info['uid'] == str(self.node.id)):
@@ -74,7 +66,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
         meta = dict()
-        meta['skip_tasks'] = ["upload_cirros", "ceph_ready_check", "configure_default_route"]
+        meta['skip_tasks'] = ["upload_cirros", "ceph_ready_check", "configure_default_route", "enable_rados"]
         return meta
 
         #tasks = self.env.get_deployment_tasks()

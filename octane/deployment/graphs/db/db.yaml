@@ -1,0 +1,40 @@
+# set global options to include admin level
+- id: cluster-haproxy
+  type: puppet
+  version: 2.1.0
+  groups: [/^(primary-)?controller$/]
+  required_for: [deploy_end]
+  requires: [deploy_start]
+  #condition:
+    #yaql_exp: *cluster_haproxy
+  #cross-depends:
+  #  - name: primary-cluster-haproxy
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/cluster-haproxy/cluster-haproxy.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 120
+    strategy:
+      type: parallel
+      #amount:
+        #yaql_exp: *haproxy_strategy
+
+- id: delete_fuel_resources
+  type: puppet
+  parameters:
+    puppet_manifest: delete_fuel_resources
+- id: disable_apis
+  type:  puppet
+  parameters:
+    puppet_manifest: disable_apis.pp
+- id: corosync_services_stop
+  node_id: old_controllers
+- id: db_backup
+  type: puppet
+  role: master
+  parameters:
+    puppet_manifest: db_backup.pp
+#- id: generate_db_check_params
+#  type: puppet
+#  parameters:
+- id: db_restore
+- id: db_sync

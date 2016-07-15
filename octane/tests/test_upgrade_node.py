@@ -46,12 +46,15 @@ def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
 def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
 
     def _create_node(node_id):
-        node = mock.Mock('node', spec_set=['data', 'id'])
+        node = mock.Mock('node', spec_set=['data', 'id', 'env'])
+        node.env = '1'
+        node.env = mock.Mock('env', spec_set=['data'])
+        node.env.data = {'fuel_version': '9.0'}
         node.id = node_id
         node.data = {}
         node.data['id'] = node_id
         node.data['cluster'] = None
-        node.data['roles'] = 'controller'
+        node.data['roles'] = ['controller']
         mock_nodes_list.append(node)
         return node
 
@@ -65,11 +68,15 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
     mocker.patch("octane.util.patch.applied_patch")
     mock_node = mocker.patch("fuelclient.objects.node.Node")
     mock_node.side_effect = _create_node
-    mock_get_handlers = mocker.patch(
-        "octane.handlers.upgrade.get_nodes_handlers")
-    mock_handlers = mock_get_handlers.return_value
+    #mock_get_handlers = mocker.patch(
+    #    "octane.handlers.upgrade.get_nodes_handlers")
+    #mock_handlers = mock_get_handlers.return_value
     mock_move_nodes = mocker.patch("octane.util.env.move_nodes")
     mock_copy_vips = mocker.patch("octane.util.env.copy_vips")
+    mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
+    mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
+    upgrade_node.upgrade_node(test_env_id, node_ids)
+
     mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     upgrade_node.upgrade_node(test_env_id, node_ids)

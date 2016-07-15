@@ -13,6 +13,7 @@
 import logging
 import os.path
 
+
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
@@ -48,7 +49,7 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     env = environment_obj.Environment(env_id)
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
-    check_sanity(env_id, nodes)
+    #check_sanity(env_id, nodes)
 
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
@@ -57,22 +58,24 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     #            *magic_consts.NAILGUN_SERVICE_PATCHES),
     #        patch.applied_patch(
     #            magic_consts.PUPPET_DIR, *magic_consts.UPGRADE_NODE_PATCHES)):
-    call_handlers('preupgrade')
-    call_handlers('prepare')
-    env_util.move_nodes(env, nodes, provision, roles)
+    #call_handlers('preupgrade')
+    #call_handlers('prepare')
+    #env_util.move_nodes(env, nodes, provision, roles)
 
     # NOTE(aroma): copying of VIPs must be done after node reassignment
     # as according to [1] otherwise the operation will not take any effect
     # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
-    env_util.copy_vips(env)
+    #env_util.copy_vips(env)
 
     if network_template:
         env.set_network_template_data(network_template_data)
-    predeploy_meta = call_handlers('predeploy')
+    predeploy_meta = dict()
+    for meta in call_handlers('predeploy'):
+        predeploy_meta.update(meta)
     tasks_to_skip = predeploy_meta.get('skip_tasks', [])
     if isolated or len(nodes) == 1:
         if tasks_to_skip:
-            env_util.deploy_nodes_with_tasks(env, nodes)
+            env_util.deploy_nodes_with_tasks(env, nodes, tasks_to_skip)
         else:
             env_util.deploy_nodes(env, nodes)
     else:

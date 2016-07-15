@@ -52,9 +52,12 @@ class _GetNodesHandlersFactory(object):
 
     @staticmethod
     def call_method_on_all(handlers, method):
+        result = dict()
         for handler in handlers:
             try:
-                getattr(handler, method)()
+                result = list()
+                result.append(getattr(handler, method)())
             except NotImplementedError:
                 LOG.info("Method '%s' not implemented in handler %s",
                          method, type(handler).__name__)
+        return result
