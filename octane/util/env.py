@@ -247,10 +247,6 @@ def prepare_net_info(info):
         segment_id = phys_nets[physnet]["vlan_range"].split(":")[1]
         pred_nets['net04']["L2"]["segment_id"] = segment_id
 
-    if 'net04_ext' in pred_nets:
-        pred_nets["net04_ext"]["L2"]["physnet"] = ""
-        pred_nets["net04_ext"]["L2"]["network_type"] = "local"
-
 
 def get_deployment_info(env):
     deployment_info = []
