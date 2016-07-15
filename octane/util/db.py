@@ -50,6 +50,21 @@ def mysqldump_restore_to_env(env, fname):
             shutil.copyfileobj(local_file, proc.stdin)
 
 
+def fix_neutron_migrations(node):
+    add_networksecuritybindings_sql = \
+        "INSERT INTO networksecuritybindings " \
+        "SELECT id, 1 " \
+        "FROM networks " \
+        "WHERE id NOT IN (SELECT network_id FROM networksecuritybindings);"
+    update_network_segments_sql = \
+        "UPDATE ml2_network_segments " \
+        "SET network_type='flat',physical_network='physnet1' " \
+        "WHERE network_id IN (SELECT network_id FROM externalnetworks);"
+    with ssh.popen(["mysql", "neutron"], node=node, stdin=ssh.PIPE) as proc:
+        proc.stdin.write(add_networksecuritybindings_sql)
+        proc.stdin.write(update_network_segments_sql)
+
+
 def db_sync(env):
     node = env_util.get_one_controller(env)
     ssh.call(['keystone-manage', 'db_sync'], node=node, parse_levels=True)
@@ -75,4 +90,5 @@ def db_sync(env):
     ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
               'upgrade', 'head'], node=node, parse_levels='^(?P<level>[A-Z]+)')
+    fix_neutron_migrations(node)
     ssh.call(['cinder-manage', 'db', 'sync'], node=node, parse_levels=True)
