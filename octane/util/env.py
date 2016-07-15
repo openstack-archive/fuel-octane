@@ -215,8 +215,9 @@ def provision_nodes(env, nodes):
     LOG.info("Nodes provision started. Please wait...")
     wait_for_nodes(nodes, "provisioned", timeout=180 * 60)
 
-def deploy_nodes_with_tasks(env, nodes, tasks):
-    env.execute_tasks(nodes, tasks)
+def deploy_nodes_with_tasks(env, nodes, tasks_to_skip):
+    tasks_to_execute = env.get_tasks(skip=tasks_to_skip)
+    env.execute_tasks(nodes, tasks_to_execute, False)
     LOG.info("Nodes deploy started. Please wait...")
     wait_for_nodes_tasks(env, nodes)
 
@@ -261,7 +262,7 @@ def get_deployment_info(env):
         LOG.warn('Deployment info is unchanged for env: %s',
                  env.id)
     deployment_info = [x for x in deployment_info
-                       if x['role'] != 'primary-controller']
+                       if 'primary-controller' not in x['roles']]
     return deployment_info
 
 

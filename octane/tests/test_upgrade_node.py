@@ -48,12 +48,15 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
                       provision, roles):
 
     def _create_node(node_id):
-        node = mock.Mock('node', spec_set=['data', 'id'])
+        node = mock.Mock('node', spec_set=['data', 'id', 'env'])
+        node.env = '1'
+        node.env = mock.Mock('env', spec_set=['data'])
+        node.env.data = {'fuel_version': '9.0'}
         node.id = node_id
         node.data = {}
         node.data['id'] = node_id
         node.data['cluster'] = None
-        node.data['roles'] = 'controller'
+        node.data['roles'] = ['controller']
         mock_nodes_list.append(node)
         return node
 
@@ -67,11 +70,11 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
     mocker.patch("octane.util.patch.applied_patch")
     mock_node = mocker.patch("fuelclient.objects.node.Node")
     mock_node.side_effect = _create_node
-    mock_copy_patches = mocker.patch(
-        "octane.commands.upgrade_node.copy_patches_folder_to_nailgun")
-    mock_get_handlers = mocker.patch(
-        "octane.handlers.upgrade.get_nodes_handlers")
-    mock_handlers = mock_get_handlers.return_value
+#    mock_copy_patches = mocker.patch(
+#        "octane.commands.upgrade_node.copy_patches_folder_to_nailgun")
+    #mock_get_handlers = mocker.patch(
+    #    "octane.handlers.upgrade.get_nodes_handlers")
+    #mock_handlers = mock_get_handlers.return_value
     mock_move_nodes = mocker.patch("octane.util.env.move_nodes")
     mock_copy_vips = mocker.patch("octane.util.env.copy_vips")
     mock_load_network_template = mocker.patch(
@@ -80,7 +83,7 @@ def test_upgrade_node(mocker, node_ids, isolated, network_template,
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     upgrade_node.upgrade_node(test_env_id, node_ids)
 
-    mock_copy_patches.assert_called_once_with()
+    #mock_copy_patches.assert_called_once_with()
     mock_copy_vips.assert_called_once_with(mock_env)
     mock_move_nodes.assert_called_once_with(mock_env, mock_nodes_list,
                                             True, None)
