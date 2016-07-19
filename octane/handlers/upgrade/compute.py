@@ -103,15 +103,15 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def shutoff_vms(self):
         password = env_util.get_admin_password(self.env)
-        controller = env_util.get_one_controller(self.env)
-        cmd = ['. /root/openrc;',
-               'nova --os-password {0} list --host {1}'
-               .format(password, self.node.data['hostname']),
-               '|',
-               "awk -F\| '$4~/ACTIVE/{print($2)}'",
-               '|',
-               'xargs -I% nova stop %']
-        ssh.call(["sh", "-c", ' '.join(cmd)], stdout=ssh.PIPE, node=controller)
+        runner = nova.NovaRunner(self.env)
+        node_fqdn = node_util.get_nova_node_handle(self.node)
+        instances_str = runner.call_output([
+            "nova", "--os-password", password, "list", "--host", node_fqdn,
+            "|", "awk -F\| '$4~/ACTIVE/{print($2)}'"])
+        instances = instances_str.strip().splitlines()
+        for instance in instances:
+            instance = instance.strip()
+            runner.call(["nova", "stop", instance])
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
