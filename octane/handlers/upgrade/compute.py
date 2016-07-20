@@ -12,13 +12,14 @@
 
 import logging
 import os.path
-import stat
 import subprocess
+import time
 
 from octane.handlers import upgrade
 from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import node as node_util
+from octane.util import nova
 from octane.util import plugin
 from octane.util import ssh
 
@@ -42,22 +43,18 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         # FIXME: Add more correct handling of case
         # when node may have not full name in services data
         try:
-            ssh.call(
-                ["sh", "-c", ". /root/openrc; "
-                 "nova service-enable {0} nova-compute".format(
-                     self.node.data['fqdn'])],
-                node=controller,
-            )
+            call_host = self.node.data['fqdn']
+            nova.run_nova_cmd(
+                ["nova", "service-enable", call_host, "nova-compute"],
+                controller, False)
         except subprocess.CalledProcessError as exc:
             LOG.warn("Cannot start service 'nova-compute' on {0} "
                      "by reason: {1}. Try again".format(
                          self.node.data['fqdn'], exc))
-            ssh.call(
-                ["sh", "-c", ". /root/openrc; "
-                 "nova service-enable {0} nova-compute".format(
-                     self.node.data['fqdn'].split('.', 1)[0])],
-                node=controller,
-            )
+            call_host = self.node.data['fqdn'].split('.', 1)[0]
+            nova.run_nova_cmd(
+                ["nova", "service-enable", call_host, "nova-compute"],
+                controller, False)
 
         orig_version = self.orig_env.data["fuel_version"]
         if orig_version == "6.1":
@@ -66,19 +63,58 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
             ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
+    @staticmethod
+    def _get_list_instances(controller):
+        compute_list_str = nova.run_nova_cmd([
+            "nova", "service-list",
+            "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
+            controller,
+            True)
+        enabled_compute = []
+        disabled_computes = set()
+        for line in compute_list_str.splitlines():
+            fqdn, status = line.split('|')
+            if status == "enabled":
+                enabled_compute.append(fqdn)
+            elif status == "disabled":
+                enabled_compute.add(fqdn)
+
+        return (enabled_compute, disabled_computes)
+
+    @staticmethod
+    def _waiting_for_migration_ends(controller, node_fqdn,
+                                    attempts=180, attempt_delay=10):
+        for _ in attempts:
+            LOG.info("Waiting until migration ends")
+
+            result = nova.run_nova_cmd(['nova', 'list',
+                                        '--host', node_fqdn,
+                                        '--status', 'MIGRATING',
+                                        '--limit', '1'], controller)
+            # nova list has no option to remove menu form so empty has 4 rows
+            if len(result.strip().splitlines()) != 4:
+                time.sleep(attempt_delay)
+
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
-        with ssh.tempdir(controller) as tempdir:
-            local_path = os.path.join(
-                magic_consts.CWD, 'bin', 'host_evacuation.sh')
-            remote_path = os.path.join(tempdir, 'host_evacuation.sh')
-            sftp = ssh.sftp(controller)
-            sftp.put(local_path, remote_path)
-            sftp.chmod(remote_path, stat.S_IRWXO)
-            ssh.call(
-                [remote_path, node_util.get_nova_node_handle(self.node)],
-                node=controller,
-            )
+
+        enabled_compute, disabled_computes = self._get_list_instances(
+            controller)
+
+        if len(enabled_compute) < 2:
+            raise Exception("You can't disable last enabled compute")
+
+        node_fqdn = node_util.get_nova_node_handle(self.node)
+
+        if node_fqdn in disabled_computes:
+            LOG.warn("Node {0} already disabled".format(node_fqdn))
+        else:
+            nova.run_nova_cmd(
+                ["nova", "service-disable", node_fqdn, "nova-compute"],
+                controller, False)
+        nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
+                          controller, False)
+        self._waiting_for_migration_ends(controller, node_fqdn)
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
