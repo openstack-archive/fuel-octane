@@ -110,3 +110,42 @@ def test_applied_patches(mocker, node, mock_open,
     assert mock_open_calls == mock_open.call_args_list
     assert mock_patch_calls == mock_popen.call_args_list
     assert mock_shutil_calls == mock_shutil.call_args_list
+
+
+@pytest.mark.parametrize(
+    "editable,result", [
+        ({}, None),
+        ({'name': {'value': 'a'}, 'password': {'value': 'b'}},
+         {'user': 'a', 'password': 'b'}),
+    ]
+)
+def test_ssh_credentials(mocker, editable, result):
+    env = mocker.Mock()
+    env.get_attributes.return_value = {
+        'editable': {'service_user': editable},
+    }
+
+    assert ssh.get_env_credentials(env) == result
+
+
+@pytest.mark.parametrize(
+    "editable,result", [
+        ({'name': {'value': 'a'}, 'password': {'value': 'b'}},
+         {'username': 'a', 'password': 'b'}),
+        ({}, {'username': 'root', 'key_filename': magic_consts.SSH_KEYS}),
+    ]
+)
+def test_get_client_credentials(mocker, editable, result):
+    node = mocker.Mock()
+
+    attrs = {
+        'editable': {'service_user': editable},
+    }
+
+    ip = '8.8.8.8'
+
+    node.data = {'ip': ip, 'id': 1}
+    node.env.get_attributes.return_value = attrs
+    mocker.patch('paramiko.SSHClient')
+    client = ssh.get_client.new(node)
+    client.connect.assert_called_with(ip, **result)
