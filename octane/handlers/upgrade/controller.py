@@ -94,7 +94,6 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             for nova_service in nova_services.split():
                 ssh.call(["service", nova_service, "restart"], node=self.node)
 
-        ssh.call(['restart', 'neutron-server'], node=self.node)
         if self.isolated and self.gateway:
             # From restore_default_gateway
             LOG.info("Deleting default route at node %s",
