@@ -12,8 +12,8 @@
 
 import logging
 import os.path
-import stat
 import subprocess
+import time
 
 from octane.handlers import upgrade
 from octane import magic_consts
@@ -68,17 +68,45 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
-        with ssh.tempdir(controller) as tempdir:
-            local_path = os.path.join(
-                magic_consts.CWD, 'bin', 'host_evacuation.sh')
-            remote_path = os.path.join(tempdir, 'host_evacuation.sh')
-            sftp = ssh.sftp(controller)
-            sftp.put(local_path, remote_path)
-            sftp.chmod(remote_path, stat.S_IRWXO)
-            ssh.call(
-                [remote_path, node_util.get_nova_node_handle(self.node)],
-                node=controller,
-            )
+        compute_list_str = ssh.call_output(
+            [
+                "sh",
+                "-c",
+                "nova service-list | awk '/nova-compute/ {print $6\"|\"$10}'",
+            ],
+            node=controller)
+        enabled_compute = []
+        disabled_computes = set()
+        for line in compute_list_str.splitlines():
+            fqdn, status = line.split('|')
+            if status == "enabled":
+                enabled_compute.append(fqdn)
+            elif status == "disabled":
+                enabled_compute.add(fqdn)
+
+        if len(enabled_compute) < 2:
+            raise Exception("You can't disable last enabled compute")
+
+        node_fqdn = node_util.get_nova_node_handle(self.node)
+
+        if node_fqdn in disabled_computes:
+            LOG.warn("Node {0} already disabled".format(node_fqdn))
+        else:
+            ssh.call(["nova", "service-disable", node_fqdn, "nova-compute"])
+        ssh.call(['nova', 'host-evacuate-live', node_fqdn])
+        while 1:
+            LOG.info("Waiting until migration ends")
+            result = ssh.call_output([
+                'sh',
+                '-c',
+                ' '.join([
+                    'nova', 'list', '--host', node_fqdn,
+                    '|', 'grep', '-c', 'MIGRATING'
+                ])],
+                node=controller)
+            if result.strip() == '0':
+                break
+            time.sleep(30)
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
