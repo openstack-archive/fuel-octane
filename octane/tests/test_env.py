@@ -168,7 +168,7 @@ def test_change_env_settings(mocker, env_id, master_ip, format_tuples):
         }
     }
     sql_call_mock = mocker.patch(
-        "octane.util.sql.run_psql_in_container",
+        "octane.util.sql.run_psql",
         side_effect=[
             [json.dumps(env_dict)], [json.dumps(release_dict)], 1
         ]
