@@ -16,6 +16,3 @@ from octane.handlers import upgrade
 class CinderUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         pass
-
-    def postdeploy(self):
-        pass
