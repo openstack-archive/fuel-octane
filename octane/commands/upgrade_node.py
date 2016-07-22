@@ -66,10 +66,6 @@ def upgrade_node(env_id, node_ids, isolated=False, network_template=None,
         network_template_data = load_network_template(network_template)
     check_sanity(env_id, nodes)
 
-    # NOTE(ogelbukh): patches and scripts copied to nailgun container
-    # for later use
-    copy_patches_folder_to_nailgun()
-
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
     with patch.applied_patch(
