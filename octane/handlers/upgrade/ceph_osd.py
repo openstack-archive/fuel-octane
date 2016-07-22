@@ -42,6 +42,7 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
             ceph.set_osd_noout(self.env)
 
     def postdeploy(self):
+        super(CephOsdUpgrade, self).postdeploy()
         # revert only on first postdeploy run
         if self.env.data['id'] in self.env_with_set_noout:
             ceph.unset_osd_noout(self.env)

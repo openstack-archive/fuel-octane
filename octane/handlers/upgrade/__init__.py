@@ -11,6 +11,7 @@
 # under the License.
 
 from octane import handlers
+from octane.util import nova
 
 
 class UpgradeHandler(object):
@@ -32,6 +33,18 @@ class UpgradeHandler(object):
         raise NotImplementedError('predeploy')
 
     def postdeploy(self):
-        raise NotImplementedError('postdeploy')
+        self.clear_nova_service_for_node()
+
+    def clear_nova_service_for_node(self):
+        runner = nova.NovaRunner(self.env)
+        runner.call([
+            "nova",
+            "service-list",
+            "|",
+            "awk",
+            "'$6==\"{}\" {{print $4}}'".format(self.node.data['hostname']),
+            "|", "xargs", "-I", "name", "nova", "service-delete", "name"
+        ])
+
 
 get_nodes_handlers = handlers._GetNodesHandlersFactory('upgrade')
