@@ -79,6 +79,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):
+        super(ControllerUpgrade, self).postdeploy()
         orig_version = self.orig_env.data["fuel_version"]
         if orig_version == "6.1":
             openstack_release = magic_consts.VERSIONS[orig_version]

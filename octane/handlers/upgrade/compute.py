@@ -38,6 +38,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             self.preserve_partition()
 
     def postdeploy(self):
+        super(ComputeUpgrade, self).postdeploy()
         self.restore_iscsi_initiator_info()
         runner = nova.NovaRunner(self.env)
         # FIXME: Add more correct handling of case

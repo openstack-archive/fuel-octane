@@ -32,6 +32,7 @@ def test_parser(mocker, octane_app):
     [(1, 1), (2, 2)]
     ])
 def test_patch_and_revert_only_once(mocker, env_node_ids):
+    nova_runner_cls = mocker.patch("octane.util.nova.NovaRunner")
     patch_mock = mocker.patch("octane.util.puppet.patch_modules")
     mocker.patch("octane.util.ceph.check_cluster")
     mocker.patch("octane.util.node.preserve_partition")
@@ -51,7 +52,7 @@ def test_patch_and_revert_only_once(mocker, env_node_ids):
             envs[env_id] = env
         node = mock.Mock()
         node.env = env
-        node.data = {"id": node_id}
+        node.data = {"id": node_id, "hostname": "{}{}".format(env_id, node_id)}
         handlers.append(ceph_osd.CephOsdUpgrade(node, env, False, False))
     for handler in handlers:
         handler.preupgrade()
@@ -63,6 +64,7 @@ def test_patch_and_revert_only_once(mocker, env_node_ids):
     env_calls = [mock.call(e) for e in envs.values()]
     assert env_calls == set_ceph_noout_mock.call_args_list
     assert env_calls == unset_ceph_noout_mock.call_args_list
+    assert len(env_node_ids) == nova_runner_cls.return_value.call.call_count
 
 
 CEPH_CONF_BASE = "key = value\n"
