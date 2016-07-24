@@ -11,7 +11,6 @@
 # under the License.
 
 import contextlib
-import itertools
 import os
 import re
 import subprocess
@@ -102,18 +101,14 @@ def change_fsid(conf_file_path, node, fsid):
 
 def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
     nodes = list(env_util.get_controllers(seed_env))
-    hostnames = map(short_hostname, node_util.get_hostnames(nodes))
-    mgmt_ips = map(remove_mask, node_util.get_ips('management', nodes))
 
     with contextlib.closing(tarfile.open(filename)) as f:
         conf = f.extractfile(conf_filename).read()
 
     fsid = get_fsid(conf)
-    monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
-    for node_hostname, node_ip in itertools.izip(hostnames, mgmt_ips):
-        monmaptool_cmd += ['--add', node_hostname, node_ip]
 
-    for node, node_hostname in itertools.izip(nodes, hostnames):
+    for node in nodes:
+        node_hostname = short_hostname(node.data['fqdn'])
         node_db_path = "/var/lib/ceph/mon/ceph-{0}".format(node_hostname)
         try:
             ssh.call(['stop', 'ceph-mon', "id={0}".format(node_hostname)],
@@ -139,13 +134,28 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
 
         with ssh.tempdir(node) as tempdir:
             monmap_filename = os.path.join(tempdir, 'monmap')
-            ssh.call(monmaptool_cmd + [monmap_filename], node=node)
-            ssh.call(['ceph-mon', '-i', node_hostname, '--inject-monmap',
-                      monmap_filename], node=node)
-
-    for node, node_hostname in itertools.izip(nodes, hostnames):
-        ssh.call(['start', 'ceph-mon', "id={0}".format(node_hostname)],
-                 node=node)
+            ssh.call(
+                [
+                    "ceph-mon",
+                    "-i", node_hostname,
+                    "--extract-monmap", monmap_filename
+                ],
+                node=node)
+            ssh.call(
+                [
+                    "monmaptool", "--fsid", fsid, "--clobber", monmap_filename,
+                ],
+                node=node)
+            ssh.call(
+                [
+                    'ceph-mon',
+                    '-i', node_hostname,
+                    '--inject-monmap', monmap_filename,
+                ],
+                node=node)
+        ssh.call(
+            ['start', 'ceph-mon', "id={0}".format(node_hostname)],
+            node=node)
     import_bootstrap_osd(nodes[0])
 
 
