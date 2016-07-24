@@ -53,6 +53,18 @@ def get_fsid(conf):
         return match.group(1)
 
 
+def get_initial_members(conf):
+    match = re.search(r'\nmon_initial_members\s+=\s+.+\n', conf)
+    if match is not None:
+        return match.group().strip().split(" ")
+
+
+def get_hosts(conf):
+    match = re.search(r'\nmon_host\s+=\s+.+\n', conf)
+    if match is not None:
+        return match.group().strip().split(" ")
+
+
 def replace_host(conf, hostname):
     conf = re.sub(r'\n(host\s+=\s+)[-.\w\s]*\n',
                   "\n\g<1>{0}\n".format(hostname),
@@ -102,18 +114,23 @@ def change_fsid(conf_file_path, node, fsid):
 
 def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
     nodes = list(env_util.get_controllers(seed_env))
-    hostnames = map(short_hostname, node_util.get_hostnames(nodes))
-    mgmt_ips = map(remove_mask, node_util.get_ips('management', nodes))
+    seed_hostnames = map(short_hostname, node_util.get_hostnames(nodes))
 
     with contextlib.closing(tarfile.open(filename)) as f:
         conf = f.extractfile(conf_filename).read()
 
     fsid = get_fsid(conf)
-    monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
-    for node_hostname, node_ip in itertools.izip(hostnames, mgmt_ips):
-        monmaptool_cmd += ['--add', node_hostname, node_ip]
+    ceph_hostnames = get_initial_members(conf)
+    ceph_ips = get_hosts(conf)
+    ceph_hostnames_dict = dict(zip([ceph_hostnames, ceph_ips]))
 
-    for node, node_hostname in itertools.izip(nodes, hostnames):
+    monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
+
+    for hostname in seed_hostnames:
+        node_ip = ceph_hostnames_dict[hostname]
+        monmaptool_cmd += ['--add', hostname, node_ip]
+
+    for node, node_hostname in itertools.izip(nodes, seed_hostnames):
         node_db_path = "/var/lib/ceph/mon/ceph-{0}".format(node_hostname)
         try:
             ssh.call(['stop', 'ceph-mon', "id={0}".format(node_hostname)],
@@ -143,7 +160,7 @@ def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
             ssh.call(['ceph-mon', '-i', node_hostname, '--inject-monmap',
                       monmap_filename], node=node)
 
-    for node, node_hostname in itertools.izip(nodes, hostnames):
+    for node, node_hostname in itertools.izip(nodes, seed_hostnames):
         ssh.call(['start', 'ceph-mon', "id={0}".format(node_hostname)],
                  node=node)
     import_bootstrap_osd(nodes[0])
