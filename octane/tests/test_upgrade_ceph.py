@@ -160,3 +160,25 @@ def test_change_fsid(mocker, node, fsid, edit_conf, expected_conf, conf_file):
     assert write_calls == new_mock.write.call_args_list
     sftp_mock.assert_called_once_with(node)
     update_file_mock.assert_called_once_with(sftp_mock.return_value, conf_file)
+
+
+@pytest.mark.parametrize("conf,expected", [
+    (
+        "\nmon_initial_members = node-1 node-2 node-3\n",
+        ["node-1", "node-2", "node-3"]
+    ),
+    ("Bla bla", None)
+])
+def test_get_initial_members(conf, expected):
+    assert expected == upgrade_ceph.get_initial_members(conf)
+
+
+@pytest.mark.parametrize("conf,expected", [
+    (
+        "\nmon_host = 10.21.7.3 10.21.7.4 10.21.7.5\n",
+        ["10.21.7.3", "10.21.7.4", "10.21.7.5"]
+    ),
+    ("Bla bla", None)
+])
+def test_get_hosts(conf, expected):
+    assert expected == upgrade_ceph.get_hosts(conf)
