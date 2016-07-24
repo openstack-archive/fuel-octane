@@ -11,11 +11,12 @@
 # under the License.
 
 import contextlib
-import itertools
 import os
 import re
 import subprocess
 import tarfile
+
+from distutils import version
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -100,50 +101,60 @@ def change_fsid(conf_file_path, node, fsid):
             new.write(line)
 
 
-def ceph_set_new_mons(seed_env, filename, conf_filename, db_path):
+def _activate_upstart_insed_sysvint(node, db_path, node_db_path):
+    sftp = ssh.sftp(node)
+
+    ssh.call(['mv', db_path, node_db_path], node=node)
+
+    sysvinit = os.path.join(node_db_path, 'sysvinit')
+    try:
+        sftp.remove(sysvinit)
+    except IOError:
+        pass
+    upstart = os.path.join(node_db_path, 'upstart')
+    sftp.open(upstart, 'w').close()
+
+
+def ceph_set_new_mons(orig_env, seed_env, filename, conf_filename, db_path):
     nodes = list(env_util.get_controllers(seed_env))
-    hostnames = map(short_hostname, node_util.get_hostnames(nodes))
-    mgmt_ips = map(remove_mask, node_util.get_ips('management', nodes))
 
     with contextlib.closing(tarfile.open(filename)) as f:
         conf = f.extractfile(conf_filename).read()
 
     fsid = get_fsid(conf)
-    monmaptool_cmd = ['monmaptool', '--fsid', fsid, '--clobber', '--create']
-    for node_hostname, node_ip in itertools.izip(hostnames, mgmt_ips):
-        monmaptool_cmd += ['--add', node_hostname, node_ip]
 
-    for node, node_hostname in itertools.izip(nodes, hostnames):
+    for node in nodes:
+        node_hostname = short_hostname(node.data['fqdn'])
         node_db_path = "/var/lib/ceph/mon/ceph-{0}".format(node_hostname)
         try:
             ssh.call(['stop', 'ceph-mon', "id={0}".format(node_hostname)],
                      node=node)
         except subprocess.CalledProcessError:
             pass
-        ssh.call(['rm', '-rf', node_db_path], node=node)
-        node_util.untar_files(filename, node)
-
-        change_fsid(conf_filename, node, fsid)
-
-        sftp = ssh.sftp(node)
-
-        ssh.call(['mv', db_path, node_db_path], node=node)
-
-        sysvinit = os.path.join(node_db_path, 'sysvinit')
-        try:
-            sftp.remove(sysvinit)
-        except IOError:
-            pass
-        upstart = os.path.join(node_db_path, 'upstart')
-        sftp.open(upstart, 'w').close()
-
         with ssh.tempdir(node) as tempdir:
+            # save current seed conf and monmap in tmp dir
             monmap_filename = os.path.join(tempdir, 'monmap')
-            ssh.call(monmaptool_cmd + [monmap_filename], node=node)
-            ssh.call(['ceph-mon', '-i', node_hostname, '--inject-monmap',
-                      monmap_filename], node=node)
+            ssh.call(["ceph-mon", "-i", node_hostname,
+                     "--extract-monmap", monmap_filename], node=node)
+            seed_conf_path = os.path.join(tempdir, "ceph.conf")
+            ssh.call(['cp', conf_filename, seed_conf_path], node=node)
 
-    for node, node_hostname in itertools.izip(nodes, hostnames):
+            ssh.call(['rm', '-rf', node_db_path], node=node)
+            node_util.untar_files(filename, node)
+
+            # return seed ceph confs
+            ssh.call(['cp', seed_conf_path, conf_filename], node=node)
+            # change fsid for orig fsid value
+            change_fsid(conf_filename, node, fsid)
+            # change fsid value in monmap
+            ssh.call(["monmaptool", "--fsid", fsid,
+                      "--clobber", monmap_filename], node=node)
+            if version.StrictVersion(orig_env.data["fuel_version"]) < \
+                    version.StrictVersion(magic_consts.CEPH_UPSTART_VERSION):
+                _activate_upstart_insed_sysvint(node, db_path, node_db_path)
+            # return old monmap value
+            ssh.call(['ceph-mon', '-i', node_hostname,
+                      '--inject-monmap', monmap_filename], node=node)
         ssh.call(['start', 'ceph-mon', "id={0}".format(node_hostname)],
                  node=node)
     import_bootstrap_osd(nodes[0])
@@ -167,7 +178,7 @@ def upgrade_ceph(orig_id, seed_id):
     tar_filename = os.path.join(magic_consts.FUEL_CACHE,
                                 "env-{0}-ceph.conf.tar.gz".format(orig_id))
     conf_filename, db_path = extract_mon_conf_files(orig_env, tar_filename)
-    ceph_set_new_mons(seed_env, tar_filename, conf_filename, db_path)
+    ceph_set_new_mons(orig_env, seed_env, tar_filename, conf_filename, db_path)
 
 
 class UpgradeCephCommand(cmd.Command):
