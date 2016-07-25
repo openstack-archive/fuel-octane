@@ -10,32 +10,32 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import os
 import urlparse
 
-from octane.handlers.backup_restore import base
+import fuelclient.objects as client_objects
 
+from octane.handlers.backup_restore import base
 from octane import magic_consts
 from octane.util import helpers
-from octane.util import sql
+from octane.util import env as env_util
 
 
 class NaigunWWWBackup(base.PathArchivator):
     path = "/var/www/nailgun/"
-    db = "nailgun"
     name = None
-    sql = None
 
     def _get_values_list(self, data):
         raise NotImplementedError
 
+    def _get_attributes(self):
+        raise NotImplementedError
+
     def _get_mirrors(self):
         ipaddr = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-        rows = sql.run_psql(self.sql, self.db)
+
         dirs_to_backup = set()
-        for line in rows:
-            data = json.loads(line)
+        for data in self._get_attributes():
             for value in self._get_values_list(data):
                 if ipaddr in value['uri']:
                     path = urlparse.urlsplit(value['uri']).path
@@ -50,36 +50,37 @@ class NaigunWWWBackup(base.PathArchivator):
 
 
 class MirrorsBackup(NaigunWWWBackup):
-
     name = "mirrors"
-    sql = "select editable from attributes;"
+
+    def _get_attributes(self):
+        for env in client_objects.Environment.get_all():
+            yield env.get_attributes()
 
     def _get_values_list(self, data):
         return data['repo_setup']['repos']['value']
 
 
 class RepoBackup(NaigunWWWBackup):
-
     name = "repos"
-    sql = "select generated from attributes;"
+
+    def _get_attributes(self):
+        for env in client_objects.Environment.get_all():
+            yield env_util.get_generated(env.id)
 
     def _get_values_list(self, data):
         return data['provision']['image_data'].values()
 
 
 class FullMirrorsBackup(NaigunWWWBackup):
-
     name = "mirrors"
-    sql = "select array_to_json(array_agg(distinct version)) from releases;"
 
     def _get_mirrors(self):
-        results = sql.run_psql(self.sql, self.db)
-        releases = []
+        releases = {r['version'] for r in client_objects.Release.get_all()}
+
         for dir_name in magic_consts.MIRRORS_EXTRA_DIRS:
             if os.path.exists(os.path.join(self.path, dir_name)):
-                releases.append(dir_name)
-        for line in results:
-            releases.extend(json.loads(line))
+                releases.add(dir_name)
+
         return releases
 
 
