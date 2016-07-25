@@ -142,45 +142,42 @@ def test_nailgun_plugins_backup(mocker, path_exists):
 
 
 @pytest.mark.parametrize(
-    "cls, name, sql, ipaddr, sql_output, archive_add_list",
+    "cls, name, ipaddr, sql_output, archive_add_list",
     [
         (
             mirrors.MirrorsBackup,
             "mirrors",
-            "select editable from attributes;",
             "127.0.0.1",
             [
-                '{"repo_setup": {"repos": {"value": ['
-                '{"uri": "http://127.0.0.1:8080/test_fest"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-                ']}}}'
+                {"repo_setup": {"repos": {"value": [
+                    {"uri": "http://127.0.0.1:8080/test_fest"},
+                    {"uri": "http://127.0.0.1:8080/test_fest"},
+                    {"uri": "http://127.0.0.1:8080/test_fest_2"}
+                ]}}}
             ],
             ["test_fest", "test_fest_2"]
         ),
         (
             mirrors.MirrorsBackup,
             "mirrors",
-            "select editable from attributes;",
             "127.0.0.1",
             [
-                '{"repo_setup": {"repos": {"value": ['
-                '{"uri": "http://127.0.0.1:8080/test_fest"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-                ']}}}',
-                '{"repo_setup": {"repos": {"value": ['
-                '{"uri": "http://127.0.0.1:8080/test_fest"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest_3"},'
-                '{"uri": "http://127.0.0.1:8080/test_fest_2"}'
-                ']}}}',
+                {"repo_setup": {"repos": {"value": [
+                    {"uri": "http://127.0.0.1:8080/test_fest"},
+                    {"uri": "http://127.0.0.1:8080/test_fest"},
+                    {"uri": "http://127.0.0.1:8080/test_fest_2"}
+                ]}}},
+                {"repo_setup": {"repos": {"value": [
+                    {"uri": "http://127.0.0.1:8080/test_fest"},
+                    {"uri": "http://127.0.0.1:8080/test_fest_3"},
+                    {"uri": "http://127.0.0.1:8080/test_fest_2"}
+                ]}}},
             ],
             ["test_fest", "test_fest_2", "test_fest_3"]
         ),
         (
             mirrors.MirrorsBackup,
             "mirrors",
-            "select editable from attributes;",
             "127.0.0.1",
             '',
             []
@@ -188,63 +185,60 @@ def test_nailgun_plugins_backup(mocker, path_exists):
         (
             mirrors.RepoBackup,
             "repos",
-            "select generated from attributes;",
             "127.0.0.1",
             [
-                '{"provision": {"image_data": {'
-                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-                '}}}'
+                {"provision": {"image_data": {
+                    "1": {"uri": "http://127.0.0.1:8080/test_fest"},
+                    "2": {"uri": "http://127.0.0.1:8080/test_fest_2"},
+                    "3": {"uri": "http://127.0.0.1:8080/test_fest_3"},
+                    "4": {"uri": "http://127.0.0.1:8080/test_fest_5"}
+                }}}
             ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
             mirrors.RepoBackup,
             "repos",
-            "select generated from attributes;",
             "127.0.0.1",
             [
-                '{"provision": {"image_data": {'
-                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-                '"4": {"uri": "http://127.0.0.1:8080/test_fest"}'
-                '}}}',
-                '{"provision": {"image_data": {'
-                '"1": {"uri": "http://127.0.0.1:8080/test_fest"},'
-                '"2": {"uri": "http://127.0.0.1:8080/test_fest_2"},'
-                '"3": {"uri": "http://127.0.0.1:8080/test_fest_3"},'
-                '"4": {"uri": "http://127.0.0.1:8080/test_fest_5"}'
-                '}}}',
+                {"provision": {"image_data": {
+                    "1": {"uri": "http://127.0.0.1:8080/test_fest"},
+                    "2": {"uri": "http://127.0.0.1:8080/test_fest_2"},
+                    "3": {"uri": "http://127.0.0.1:8080/test_fest_3"},
+                    "4": {"uri": "http://127.0.0.1:8080/test_fest"}
+                }}},
+                {"provision": {"image_data": {
+                    "1": {"uri": "http://127.0.0.1:8080/test_fest"},
+                    "2": {"uri": "http://127.0.0.1:8080/test_fest_2"},
+                    "3": {"uri": "http://127.0.0.1:8080/test_fest_3"},
+                    "4": {"uri": "http://127.0.0.1:8080/test_fest_5"}
+                }}},
             ],
             ['test_fest', 'test_fest_2', 'test_fest_3', "test_fest_5"]
         ),
         (
             mirrors.RepoBackup,
             "repos",
-            "select generated from attributes;",
             "127.0.0.1",
-            '',
+            [],
             []
         ),
     ]
 )
 def test_repos_backup(
-        mocker, mock_open, cls, name, sql, ipaddr,
+        mocker, mock_open, cls, name, ipaddr,
         sql_output, archive_add_list):
     yaml_mocker = mocker.patch(
         "yaml.load",
         return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
-    sql_mock = mocker.patch("octane.util.sql.run_psql")
+    mocker.patch.object(cls, '_get_attributes', return_value=sql_output)
+
     test_archive = mocker.Mock()
     path = "/var/www/nailgun/"
-    sql_mock.return_value = sql_output
+
     cls(test_archive).backup()
     yaml_mocker.assert_called_once_with(mock_open.return_value)
 
-    sql_mock.assert_called_once_with(sql, "nailgun")
     test_archive.add.assert_has_calls(
         [
             mock.call(os.path.join(path, i), os.path.join(name, i))
