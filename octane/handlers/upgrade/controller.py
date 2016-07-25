@@ -36,10 +36,11 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
-        deployment_info = env_util.get_deployment_info(self.env)
+        deployment_info = [] #env_util.get_deployment_info(self.env)
         network_data = self.env.get_network_data()
         gw_admin = transformations.get_network_gw(network_data,
                                                   "fuelweb_admin")
+
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -54,12 +55,13 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
                     continue
                 fname = os.path.join(
                     backup_path,
-                    "{0}_{1}.yaml".format(info['role'], info['uid']),
+                    "{0}.yaml".format(info['uid']),
                 )
                 with open(fname, 'w') as f:
                     yaml.safe_dump(info, f, default_flow_style=False)
+
         for info in default_info:
-            if not (info['role'] == 'primary-controller' or
+            if not ('primary-controller' in info['roles'] or
                     info['uid'] == str(self.node.id)):
                 continue
             if self.isolated:
@@ -74,9 +76,9 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
 
-        tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
-        self.env.update_deployment_tasks(tasks)
+#        tasks = self.env.get_deployment_tasks()
+#        tasks_helpers.skip_tasks(tasks)
+#        self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]

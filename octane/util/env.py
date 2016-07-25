@@ -79,10 +79,6 @@ def change_env_settings(env_id, master_ip=''):
     env = environment_obj.Environment(env_id)
 
     attrs = env.get_attributes()
-    attrs['editable']['public_ssl']['horizon']['value'] = False
-    attrs['editable']['public_ssl']['services']['value'] = False
-    attrs['editable']['external_ntp']['ntp_list']['value'] = master_ip
-    attrs['editable']['external_dns']['dns_list']['value'] = master_ip
     if get_env_provision_method(env) != 'image':
         attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
@@ -112,10 +108,15 @@ def change_env_settings(env_id, master_ip=''):
 
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
-    res = fuel2_env_call(["clone", "-f", "json", str(env_id),
+    json_res = fuel2_env_call(["clone", "-f", "json", str(env_id),
                          uuid.uuid4().hex, str(release.data['id'])],
                          output=True)
-    for kv in json.loads(res):
+
+    res = json.loads(json_res)
+    if isinstance(res, dict):
+        return res['id']
+
+    for kv in res:
         if kv['Field'] == 'id':
             seed_id = kv['Value']
             break
@@ -245,6 +246,18 @@ def provision_nodes(env, nodes):
     wait_for_nodes(nodes, "provisioned", timeout=180 * 60)
 
 
+def deploy_nodes_with_tasks(env, nodes, skipped_tasks):
+    tasks_to_execute = env.get_tasks(skip=skipped_tasks)
+    env.execute_tasks(nodes, tasks_to_execute, False)
+    LOG.info("Nodes deploy started. Please wait...")
+    wait_for_nodes_tasks(env, nodes)
+
+
+def wait_for_nodes_tasks(env, nodes):
+    wait_for_nodes(nodes, "ready", timeout=180 * 60)
+    wait_for_tasks(env, "running")
+
+
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
     LOG.info("Nodes deploy started. Please wait...")
@@ -267,10 +280,6 @@ def prepare_net_info(info):
         physnet = pred_nets["net04"]["L2"]["physnet"]
         segment_id = phys_nets[physnet]["vlan_range"].split(":")[1]
         pred_nets['net04']["L2"]["segment_id"] = segment_id
-
-    if 'net04_ext' in pred_nets:
-        pred_nets["net04_ext"]["L2"]["physnet"] = ""
-        pred_nets["net04_ext"]["L2"]["network_type"] = "local"
 
 
 def get_deployment_info(env):
