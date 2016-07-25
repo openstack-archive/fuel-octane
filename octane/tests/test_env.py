@@ -199,3 +199,13 @@ def test_move_nodes(mocker, mock_subprocess, provision, compat):
         assert mock_create_configdrive.call_args_list == []
         assert mock_update_node_partinfo.call_args_list == []
         assert mock_wait_for.call_args_list == []
+
+
+@pytest.mark.parametrize("env_id,expected_url", [
+    (42, 'clusters/42/generated'),
+])
+def test_get_generated(mocker, env_id, expected_url):
+    m = mocker.patch("fuelclient.objects.environment.Environment.connection")
+    res = env_util.get_generated(env_id)
+    assert res is m.get_request.return_value
+    assert m.mock_calls == [mock.call.get_request(expected_url)]
