@@ -371,3 +371,8 @@ def incompatible_provision_method(env):
             and provision_method != 'image':
         return True
     return False
+
+
+def get_generated(env_id):
+    return environment_obj.Environment.connection.get_request(
+        'clusters/{0}/generated'.format(env_id))
