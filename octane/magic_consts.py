@@ -90,3 +90,9 @@ NOVA_PATCHES = [
 SFTP_SERVER_BIN = '/usr/lib/sftp-server'
 
 FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
+
+KEYSTONE_PIPELINES = [
+    "pipeline:public_api",
+    "pipeline:admin_api",
+    "pipeline:api_v3",
+]
