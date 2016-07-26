@@ -33,3 +33,15 @@ def add_admin_token_auth(filename, pipelines):
                 value = " ".join(items)
                 line = "{0} = {1}\n".format(parameter, value)
             new.write(line)
+
+
+def remove_admin_token_auth(filename, pipelines):
+    with subprocess.update_file(filename) as (old, new):
+        for line, section, parameter, value in helpers.iterate_parameters(old):
+            if section in pipelines and parameter == "pipeline" and \
+                    "admin_token_auth" in value:
+                items = value.split()
+                items.remove("admin_token_auth")
+                value = " ".join(items)
+                line = "{0} = {1}\n".format(parameter, value)
+            new.write(line)

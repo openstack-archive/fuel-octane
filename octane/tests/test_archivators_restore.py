@@ -269,6 +269,8 @@ def test_postgres_restore(mocker, cls, db, services):
                  new=mock_keystone.unset)
     mocker.patch("octane.util.keystone.add_admin_token_auth",
                  new=mock_keystone.add)
+    mocker.patch("octane.util.keystone.remove_admin_token_auth",
+                 new=mock_keystone.remove)
 
     mock_subprocess = mock.MagicMock()
     mocker.patch("octane.util.subprocess.call", new=mock_subprocess.call)
@@ -284,7 +286,7 @@ def test_postgres_restore(mocker, cls, db, services):
     cls(archive, mock_context).restore()
     member.assert_extract()
 
-    assert mock_subprocess.mock_calls == [
+    expected_calls = [
         mock.call.call(["systemctl", "stop"] + services),
         mock.call.call(["sudo", "-u", "postgres", "dropdb", "--if-exists",
                         db]),
@@ -293,6 +295,11 @@ def test_postgres_restore(mocker, cls, db, services):
         mock.call.popen().__enter__(),
         mock.call.popen().__exit__(None, None, None),
     ]
+    if db == "keystone":
+        expected_calls += [
+            mock.call.call(["systemctl", "restart", "openstack-keystone"]),
+        ]
+    assert mock_subprocess.mock_calls == expected_calls
     mock_copyfileobj.assert_called_once_with(
         member,
         mock_subprocess.popen.return_value.__enter__.return_value.stdin,
@@ -309,13 +316,17 @@ def test_postgres_restore(mocker, cls, db, services):
         assert not mock_keystone.called
     else:
         assert not mock_patch.called
+        expected_pipelines = [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+            "pipeline:api_v3",
+        ]
         assert mock_keystone.mock_calls == [
             mock.call.unset("/etc/keystone/keystone.conf"),
-            mock.call.add("/etc/keystone/keystone-paste.ini", [
-                "pipeline:public_api",
-                "pipeline:admin_api",
-                "pipeline:api_v3",
-            ]),
+            mock.call.add("/etc/keystone/keystone-paste.ini",
+               expected_pipelines),
+            mock.call.remove("/etc/keystone/keystone-paste.ini",
+               expected_pipelines),
         ]
     mock_set_astute_password.assert_called_once_with(mock_context)
 

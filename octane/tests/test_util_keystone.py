@@ -88,3 +88,35 @@ def test_add_admin_token_auth(mocker, parameters, writes):
             "pipeline:admin_api",
         ])
     mock_update_file.assert_called_once_with("fakefilename")
+
+
+@pytest.mark.parametrize(("parameters", "writes"), [
+    ([
+        ("[pipeline:public_api]\n", "pipeline:public_api", None, None),
+        ("pipeline = request_id admin_token_auth token_auth public_service\n",
+         "pipeline:public_api", "pipeline",
+         "request_id admin_token_auth token_auth public_service"),
+        ("[pipeline:admin_api]\n", "pipeline:admin_api", None, None),
+        ("pipeline = request_id token_auth admin_service\n",
+         "pipeline:admin_api", "pipeline",
+         "request_id token_auth admin_service"),
+        ("[pipeline:api_v3]\n", "pipeline:api_v3", None, None),
+        ("pipeline = request_id admin_token_auth token_auth service_v3\n",
+         "pipeline:api_v3", "pipeline",
+         "request_id admin_token_auth token_auth service_v3"),
+    ], [
+        "[pipeline:public_api]\n",
+        "pipeline = request_id token_auth public_service\n",
+        "[pipeline:admin_api]\n",
+        "pipeline = request_id token_auth admin_service\n",
+        "[pipeline:api_v3]\n",
+        "pipeline = request_id admin_token_auth token_auth service_v3\n",
+    ])
+])
+def test_remove_admin_token_auth(mocker, parameters, writes):
+    with verify_update_file(mocker, parameters, writes) as mock_update_file:
+        keystone.remove_admin_token_auth("fakefilename", [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+        ])
+    mock_update_file.assert_called_once_with("fakefilename")
