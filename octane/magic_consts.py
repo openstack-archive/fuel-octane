@@ -15,6 +15,7 @@ import os.path
 PATCHES = []
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
+PATCHES_DIR = os.path.join(CWD, "patches")
 
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
