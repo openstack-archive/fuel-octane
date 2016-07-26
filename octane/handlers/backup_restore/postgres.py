@@ -72,15 +72,20 @@ class NailgunArchivator(PostgresArchivator):
 class KeystoneArchivator(PostgresArchivator):
     db = "keystone"
     services = ["openstack-keystone"]
+    pipelines = [
+        "pipeline:public_api",
+        "pipeline:admin_api",
+        "pipeline:api_v3",
+    ]
 
     def restore(self):
         keystone.unset_default_domain_id(magic_consts.KEYSTONE_CONF)
-        keystone.add_admin_token_auth(magic_consts.KEYSTONE_PASTE, [
-            "pipeline:public_api",
-            "pipeline:admin_api",
-            "pipeline:api_v3",
-        ])
+        keystone.add_admin_token_auth(magic_consts.KEYSTONE_PASTE,
+                                      self.pipelines)
         super(KeystoneArchivator, self).restore()
+        keystone.remove_admin_token_auth(magic_consts.KEYSTONE_PASTE,
+                                         self.pipelines)
+        subprocess.call(["systemctl", "restart"] + self.services)
 
 
 class DatabasesArchivator(base.CollectionArchivator):
