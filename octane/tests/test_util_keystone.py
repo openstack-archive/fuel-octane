@@ -11,6 +11,7 @@
 # under the License.
 
 import contextlib
+import copy
 
 import mock
 import pytest
@@ -58,6 +59,43 @@ def test_unset_default_domain_id(mocker, parameters, writes):
     mock_update_file.assert_called_once_with("fakefilename")
 
 
+def test_admin_token_auth(mocker):
+    mock_calls = mock.Mock()
+    mocker.patch("octane.util.keystone.add_admin_token_auth",
+                 new=mock_calls.add)
+    mocker.patch("octane.util.keystone.remove_admin_token_auth",
+                 new=mock_calls.remove)
+    with keystone.admin_token_auth("fakefilename", "fakepipelines"):
+        mock_calls.let()
+    expected_calls = [
+        mock.call.add("fakefilename", "fakepipelines"),
+        mock.call.let(),
+        mock.call.remove("fakefilename", "fakepipelines"),
+    ]
+    assert mock_calls.mock_calls == expected_calls
+
+
+@pytest.mark.parametrize(("items", "expected_items"), [
+    (
+        [
+            ["request_id", "token_auth"],
+            ["admin_token_auth", "token_auth"],
+        ],
+        [
+            ["request_id", "admin_token_auth", "token_auth"],
+            ["admin_token_auth", "token_auth"],
+        ],
+    ),
+])
+def test_add_admin_token_auth(mocker, items, expected_items):
+    items = copy.deepcopy(items)
+    mock_replace = mocker.patch("octane.util.keystone.replace_pipeline_items")
+    mock_replace.return_value.__enter__.return_value = items
+    keystone.add_admin_token_auth("fakefilename", "fakepipelines")
+    assert items == expected_items
+    mock_replace.assert_called_once_with("fakefilename", "fakepipelines")
+
+
 @pytest.mark.parametrize(("parameters", "writes"), [
     ([
         ("[pipeline:public_api]\n", "pipeline:public_api", None, None),
@@ -81,10 +119,96 @@ def test_unset_default_domain_id(mocker, parameters, writes):
         "pipeline = request_id token_auth service_v3\n",
     ])
 ])
-def test_add_admin_token_auth(mocker, parameters, writes):
+def test_add_admin_token_auth_functional(mocker, parameters, writes):
     with verify_update_file(mocker, parameters, writes) as mock_update_file:
         keystone.add_admin_token_auth("fakefilename", [
             "pipeline:public_api",
             "pipeline:admin_api",
         ])
+    mock_update_file.assert_called_once_with("fakefilename")
+
+
+@pytest.mark.parametrize(("items", "expected_items"), [
+    (
+        [
+            ["request_id", "token_auth"],
+            ["admin_token_auth", "token_auth"],
+        ],
+        [
+            ["request_id", "token_auth"],
+            ["token_auth"],
+        ],
+    ),
+])
+def test_remove_admin_token_auth(mocker, items, expected_items):
+    items = copy.deepcopy(items)
+    mock_replace = mocker.patch("octane.util.keystone.replace_pipeline_items")
+    mock_replace.return_value.__enter__.return_value = items
+    keystone.remove_admin_token_auth("fakefilename", "fakepipelines")
+    assert items == expected_items
+    mock_replace.assert_called_once_with("fakefilename", "fakepipelines")
+
+
+@pytest.mark.parametrize(("parameters", "writes"), [
+    ([
+        ("[pipeline:public_api]\n", "pipeline:public_api", None, None),
+        ("pipeline = request_id admin_token_auth token_auth public_service\n",
+         "pipeline:public_api", "pipeline",
+         "request_id admin_token_auth token_auth public_service"),
+        ("[pipeline:admin_api]\n", "pipeline:admin_api", None, None),
+        ("pipeline = request_id token_auth admin_service\n",
+         "pipeline:admin_api", "pipeline",
+         "request_id token_auth admin_service"),
+        ("[pipeline:api_v3]\n", "pipeline:api_v3", None, None),
+        ("pipeline = request_id admin_token_auth token_auth service_v3\n",
+         "pipeline:api_v3", "pipeline",
+         "request_id admin_token_auth token_auth service_v3"),
+    ], [
+        "[pipeline:public_api]\n",
+        "pipeline = request_id token_auth public_service\n",
+        "[pipeline:admin_api]\n",
+        "pipeline = request_id token_auth admin_service\n",
+        "[pipeline:api_v3]\n",
+        "pipeline = request_id admin_token_auth token_auth service_v3\n",
+    ])
+])
+def test_remove_admin_token_auth_functional(mocker, parameters, writes):
+    with verify_update_file(mocker, parameters, writes) as mock_update_file:
+        keystone.remove_admin_token_auth("fakefilename", [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+        ])
+    mock_update_file.assert_called_once_with("fakefilename")
+
+
+@pytest.mark.parametrize(("parameters", "writes"), [
+    ([
+        ("[pipeline:public_api]\n", "pipeline:public_api", None, None),
+        ("pipeline = token_auth public_service\n",
+         "pipeline:public_api", "pipeline", "token_auth public_service"),
+        ("[pipeline:admin_api]\n", "pipeline:admin_api", None, None),
+        ("pipeline = request_id token_auth admin_service\n",
+         "pipeline:admin_api", "pipeline",
+         "request_id token_auth admin_service"),
+        ("[pipeline:api_v3]\n", "pipeline:api_v3", None, None),
+        ("pipeline = token_auth service_v3\n",
+         "pipeline:api_v3", "pipeline", "token_auth service_v3"),
+    ], [
+        "[pipeline:public_api]\n",
+        "pipeline = token_auth public_service\n",
+        "[pipeline:admin_api]\n",
+        "pipeline = a token_auth admin_service c\n",
+        "[pipeline:api_v3]\n",
+        "pipeline = token_auth service_v3\n",
+    ])
+])
+def test_replace_pipelines_items(mocker, parameters, writes):
+    pipelines = ["pipeline:admin_api"]
+    with verify_update_file(mocker, parameters, writes) as mock_update_file:
+        with keystone.replace_pipeline_items("fakefilename", pipelines) as \
+                pipeline_items:
+            for items in pipeline_items:
+                items.insert(0, "a")
+                items.remove("request_id")
+                items.append("c")
     mock_update_file.assert_called_once_with("fakefilename")

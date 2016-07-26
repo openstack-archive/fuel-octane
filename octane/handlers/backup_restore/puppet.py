@@ -11,7 +11,9 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane import magic_consts
 from octane.util import auth
+from octane.util import keystone
 from octane.util import puppet
 from octane.util import subprocess
 
@@ -31,5 +33,8 @@ class PuppetApplyTasks(base.Base):
 
     def restore(self):
         subprocess.call(["systemctl", "stop"] + self.services)
-        with auth.set_astute_password(self.context):
+        with auth.set_astute_password(self.context), \
+                keystone.admin_token_auth(magic_consts.KEYSTONE_PASTE,
+                                          magic_consts.KEYSTONE_PIPELINES):
             puppet.apply_all_tasks()
+        subprocess.call(["systemctl", "restart", "openstack-keystone"])

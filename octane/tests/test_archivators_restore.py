@@ -267,11 +267,11 @@ def test_postgres_restore(mocker, cls, db, services):
     member = TestMember("postgres/{0}.sql".format(db), True, True)
     archive = TestArchive([member], cls)
 
-    mock_keystone = mock.Mock()
+    mock_keystone = mock.MagicMock()
     mocker.patch("octane.util.keystone.unset_default_domain_id",
                  new=mock_keystone.unset)
-    mocker.patch("octane.util.keystone.add_admin_token_auth",
-                 new=mock_keystone.add)
+    mocker.patch("octane.util.keystone.admin_token_auth",
+                 new=mock_keystone.admin_token)
 
     mock_subprocess = mock.MagicMock()
     mocker.patch("octane.util.subprocess.call", new=mock_subprocess.call)
@@ -287,7 +287,7 @@ def test_postgres_restore(mocker, cls, db, services):
     cls(archive, mock_context).restore()
     member.assert_extract()
 
-    assert mock_subprocess.mock_calls == [
+    expected_calls = [
         mock.call.call(["systemctl", "stop"] + services),
         mock.call.call(["sudo", "-u", "postgres", "dropdb", "--if-exists",
                         db]),
@@ -296,6 +296,7 @@ def test_postgres_restore(mocker, cls, db, services):
         mock.call.popen().__enter__(),
         mock.call.popen().__exit__(None, None, None),
     ]
+    assert mock_subprocess.mock_calls == expected_calls
     mock_copyfileobj.assert_called_once_with(
         member,
         mock_subprocess.popen.return_value.__enter__.return_value.stdin,
@@ -312,13 +313,17 @@ def test_postgres_restore(mocker, cls, db, services):
         assert not mock_keystone.called
     else:
         assert not mock_patch.called
+        expected_pipelines = [
+            "pipeline:public_api",
+            "pipeline:admin_api",
+            "pipeline:api_v3",
+        ]
         assert mock_keystone.mock_calls == [
             mock.call.unset("/etc/keystone/keystone.conf"),
-            mock.call.add("/etc/keystone/keystone-paste.ini", [
-                "pipeline:public_api",
-                "pipeline:admin_api",
-                "pipeline:api_v3",
-            ]),
+            mock.call.admin_token(
+                "/etc/keystone/keystone-paste.ini", expected_pipelines),
+            mock.call.admin_token().__enter__(),
+            mock.call.admin_token().__exit__(None, None, None),
         ]
     mock_set_astute_password.assert_called_once_with(mock_context)
 
@@ -561,13 +566,24 @@ def test_post_restore_puppet_apply_tasks(mocker, mock_subprocess):
     mock_set_astute_password = mocker.patch(
         "octane.util.auth.set_astute_password")
     mock_apply = mocker.patch("octane.util.puppet.apply_all_tasks")
+    mock_admin_token = mocker.patch("octane.util.keystone.admin_token_auth")
 
     archivator = puppet.PuppetApplyTasks(None, context)
     archivator.restore()
 
-    mock_subprocess.assert_called_once_with(["systemctl", "stop", "ostf"])
     assert mock_apply.called
     mock_set_astute_password.assert_called_once_with(context)
+    expected_pipelines = [
+        "pipeline:public_api",
+        "pipeline:admin_api",
+        "pipeline:api_v3",
+    ]
+    mock_admin_token.assert_called_once_with(
+        "/etc/keystone/keystone-paste.ini", expected_pipelines)
+    assert mock_subprocess.call_args_list == [
+        mock.call(["systemctl", "stop", "ostf"]),
+        mock.call(["systemctl", "restart", "openstack-keystone"]),
+    ]
 
 
 @pytest.mark.parametrize("nodes", [
