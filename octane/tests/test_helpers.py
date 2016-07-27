@@ -67,3 +67,21 @@ def test_iterate_parameters(source, parameters):
         expected_result.append((line,) + params)
     result = list(helpers.iterate_parameters(source))
     assert result == expected_result
+
+
+DATA = [
+    [{"Field": "id", "Value": 1}, {"Field": "name", "Value": "test"}],
+    {"name": "test", "id": 2}
+]
+
+NORMALIZED_DATA = [
+    {"name": "test", "id": 1},
+    {"name": "test", "id": 2}
+]
+
+
+@pytest.mark.parametrize('data,normalized_data',
+                         zip(DATA, NORMALIZED_DATA))
+def test_normalized_cliff_show_json(data, normalized_data):
+    res = helpers.normalized_cliff_show_json(data)
+    assert res == normalized_data

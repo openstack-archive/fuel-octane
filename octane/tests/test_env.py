@@ -9,7 +9,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 import mock
 import pytest
 
@@ -126,6 +125,32 @@ ENV_SETTINGS = {
         }
     }
 }
+
+NORMALIZED_DATA = [
+    {"name": "test", "id": 2},
+    {"name": "test"},
+]
+
+
+@pytest.mark.parametrize("normalized_data,is_error",
+                         zip(NORMALIZED_DATA, [False, True]))
+def test_clone_env(mocker, normalized_data, is_error):
+    release = mock.Mock(data={'name': "14.04", 'id': 2})
+    mock_fuel_call = mocker.patch('octane.util.env.fuel2_env_call')
+    mock_json_loads = mocker.patch('json.loads')
+    mock_normalized = mocker.patch(
+        'octane.util.helpers.normalized_cliff_show_json'
+    )
+    mock_normalized.return_value = normalized_data
+    orig_id = 1
+    if not is_error:
+        seed_id = env_util.clone_env(orig_id, release)
+        assert seed_id == 2
+        mock_json_loads.assert_called_once_with(mock_fuel_call.return_value)
+    else:
+        with pytest.raises(Exception) as exc_info:
+            assert ("Couldn't find new environment ID in fuel CLI output:"
+                    "\n{0}".format(normalized_data)) == exc_info.value.args[0]
 
 
 def test_copy_vips(mock_subprocess):
