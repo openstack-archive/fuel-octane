@@ -128,6 +128,29 @@ ENV_SETTINGS = {
     }
 }
 
+CLONE_OUTPUT = [
+    {u"name": u"test", u"id": 2},
+    {u"name": u"test"},
+    [{u"Field": u"id", u"Value": 2}, {u"Field": u"name", u"Value": u"test"}],
+    [{u"Field": u"name", u"Value": u"test"}]
+]
+
+
+@pytest.mark.parametrize("mock_output,is_error",
+                         zip(CLONE_OUTPUT, [False, True, False, True]))
+def test_clone_env(mocker, mock_output, is_error):
+    release = mock.Mock(data={'name': "14.04", 'id': 2})
+    mock_fuel_call = mocker.patch('octane.util.env.fuel2_env_call')
+    mock_fuel_call.return_value = json.dumps(mock_output)
+    orig_id = 1
+    if not is_error:
+        seed_id = env_util.clone_env(orig_id, release)
+        assert seed_id == 2
+    else:
+        with pytest.raises(Exception) as exc_info:
+            assert ("Couldn't find new environment ID in fuel CLI output:"
+                    "\n%s" % mock_output) == exc_info.value.args[0]
+
 
 def test_copy_vips(mock_subprocess):
     env_id = -1
