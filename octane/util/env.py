@@ -113,17 +113,17 @@ def change_env_settings(env_id, master_ip=''):
 
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
-    res = fuel2_env_call(["clone", "-f", "json", str(env_id),
-                         uuid.uuid4().hex, str(release.data['id'])],
-                         output=True)
-    for kv in json.loads(res):
+    res_json = fuel2_env_call(["clone", "-f", "json", str(env_id),
+                               uuid.uuid4().hex, str(release.data['id'])],
+                              output=True)
+    res = json.loads(res_json)
+    if isinstance(res, dict):
+        return res.get('id')
+    for kv in res:
         if kv['Field'] == 'id':
-            seed_id = kv['Value']
-            break
-    else:
-        raise Exception("Couldn't find new environment ID in fuel CLI output:"
-                        "\n%s" % res)
-    return seed_id
+            return kv['Value']
+    raise Exception("Couldn't find new environment ID in fuel CLI output:"
+                    "\n%s" % res)
 
 
 def clone_ips(orig_id, networks):

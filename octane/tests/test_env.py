@@ -128,6 +128,37 @@ ENV_SETTINGS = {
     }
 }
 
+CLONE_OUTPUT_1 = {
+    "status": "operational",
+    "is_customized": False,
+    "release_id": 2,
+    "name": "7env",
+    "fuel_version": "7.0",
+    "changes": [],
+    "id": 2
+}
+
+CLONE_OUTPUT_2 = [
+    {"Field": "id", "Value": 2},
+    {"Field": "status", "Value": "operational"},
+    {"Field": "fuel_version", "Value": "8.0"},
+    {"Field": "name", "Value": "test"},
+    {"Field": "release_id", "Value": 2},
+    {"Field": "is_customized", "Value": False},
+    {"Field": "changes", "Value": []}
+]
+
+
+@pytest.mark.parametrize("mock_output",
+                         [CLONE_OUTPUT_1, CLONE_OUTPUT_2])
+def test_clone_env(mocker, mock_output):
+    release = mock.Mock(data={'name': "14.04", 'id': 2})
+    mock_fuel_call = mocker.patch('octane.util.env.fuel2_env_call')
+    mock_fuel_call.return_value = json.dumps(mock_output)
+    orig_id = 1
+    seed_id = env_util.clone_env(orig_id, release)
+    assert seed_id == 2
+
 
 def test_copy_vips(mock_subprocess):
     env_id = -1
