@@ -49,3 +49,9 @@ def iterate_parameters(fp):
             yield line, section, parameter, value
             continue
         yield line, section, None, None
+
+
+def normalized_cliff_show_json(data):
+    if isinstance(data, list):
+        return {i['Field']: i['Value'] for i in data}
+    return  data
