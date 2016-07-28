@@ -9,6 +9,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import pytest
+import yaml
+
+from octane.commands import upgrade_env
 
 
 def test_parser(mocker, octane_app):
@@ -17,4 +21,18 @@ def test_parser(mocker, octane_app):
     octane_app.run(["upgrade-env", "1"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
-    m1.assert_called_once_with(1)
+    m1.assert_called_once_with(1, network_template=None)
+
+
+@pytest.mark.parametrize("return_value", [{'test': 'test'}, ])
+@pytest.mark.parametrize("side_effect",
+                         [None, yaml.parser.ParserError, IOError])
+def test_load_network_template(mocker, return_value, side_effect):
+    mocker.patch("octane.util.helpers.load_yaml",
+                 return_value=return_value,
+                 side_effect=side_effect)
+    if side_effect:
+        with pytest.raises(side_effect):
+            upgrade_env.load_network_template("testfile")
+    else:
+        assert return_value == upgrade_env.load_network_template("testfile")
