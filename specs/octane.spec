@@ -25,6 +25,7 @@ Requires:    python-paramiko
 Requires:    python-stevedore
 Requires:    python-fuelclient
 Requires:    python-cliff
+Requires:    fuel-nailgun-extension-cluster-upgrade
 
 %description
 Project is aimed to provide tools to upgrade the Fuel Admin node and OpenStack
