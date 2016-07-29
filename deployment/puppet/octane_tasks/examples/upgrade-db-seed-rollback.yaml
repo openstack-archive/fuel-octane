@@ -1,0 +1,21 @@
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  role: [primary-controller, controller]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
+- id: start_controller_services
+  type: puppet
+  version: 2.1.0
+  role: [primary-controller, controller]
+  requires: [rsync_octane]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/examples/start_controller_services.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
