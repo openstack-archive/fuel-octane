@@ -1,0 +1,39 @@
+# TODO: Can be improved with https://review.openstack.org/#/c/342959/
+- id: stop_haproxy
+  type: shell
+  version: 2.1.0
+  role: [primary-controller]
+  requires: []
+  required_for: []
+  parameters:
+    cmd: pcs resource disable clone_p_haproxy
+    timeout: 180
+
+# TODO: Rewrite in puppet and get databases list dynamically
+- id: mysqldump_create
+  type: shell
+  version: 2.1.0
+  role: [primary-controller]
+  requires: [stop_haproxy]
+  required_for: []
+  parameters:
+    cmd: >
+      mysqldump
+      --defaults-file=/root/.my.cnf
+      --host localhost
+      --add-drop-database
+      --lock-all-tables
+      --databases nova keystone heat neutron cinder glance |
+      gzip > /tmp/dbs.original.sql.gz
+    timeout: 180
+
+- id: mysqldump_upload_to_master
+  type: sync
+  version: 2.0.0
+  role: [primary-controller]
+  requires: [mysqldump_create]
+  required_for: []
+  parameters:
+    src: /tmp/dbs.original.sql.gz
+    dst: rsync://{MASTER_IP}:/octane/tmp/
+    timeout: 180
