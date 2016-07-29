@@ -20,6 +20,7 @@ from fuelclient.objects import environment as environment_obj
 
 from octane import magic_consts
 from octane.util import db
+from octane.util import deployment as dutil
 from octane.util import env as env_util
 from octane.util import maintenance
 
@@ -57,6 +58,31 @@ def upgrade_db(orig_id, seed_id, db_role_name):
     db.db_sync(seed_env)
 
 
+def upgrade_db_with_graph(orig_id, seed_id):
+    """Upgrade db using deployment graphs."""
+    dutil.graphs_upload(orig_id, seed_id)
+
+    # If any failure try to rollback ONLY original environment.
+
+    # Execute on original environment and rollback if failure
+    if not dutil.graph_execute_and_wait("upgrade-db-orig", orig_id):
+        if 'upgrade-db-orig-rollback' in dutil.graph_list(orig_id):
+            LOG.info("Trying to rollback 'upgrade-db' on environment '%s'."
+                     % orig_id)
+            dutil.graph_execute_and_wait("upgrade-db-orig-rollback", orig_id)
+        raise Exception("Graph 'upgrade-db-orig' failed on environment '%s'."
+                        % orig_id)
+
+    # Execute on seed environment and rollback orig if failure
+    if not dutil.graph_execute_and_wait("upgrade-db-seed", seed_id):
+        if 'upgrade-db-orig-rollback' in dutil.graph_list(orig_id):
+            LOG.info("Trying to rollback 'upgrade-db' on environment '%s'."
+                     % seed_id)
+            dutil.graph_execute_and_wait("upgrade-db-orig-rollback", orig_id)
+        raise Exception("Graph 'upgrade-db-seed' failed on environment '%s'."
+                        % seed_id)
+
+
 class UpgradeDBCommand(cmd.Command):
     """Migrate and upgrade state databases data"""
 
@@ -73,9 +99,17 @@ class UpgradeDBCommand(cmd.Command):
             '--db_role_name', type=str, metavar='DB_ROLE_NAME',
             default="controller", help="Set not standard role name for DB "
                                        "(default controller).")
+        parser.add_argument(
+            '--with-graph', action='store_true',
+            help="EXPERIMENTAL: Use Fuel deployment graphs"
+                 " instead of python-based commands.")
 
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_db(parsed_args.orig_id, parsed_args.seed_id,
-                   parsed_args.db_role_name)
+        # Execute alternative approach if requested
+        if parsed_args.with_graph:
+            upgrade_db_with_graph(parsed_args.orig_id, parsed_args.seed_id)
+        else:
+            upgrade_db(parsed_args.orig_id, parsed_args.seed_id,
+                       parsed_args.db_role_name)
