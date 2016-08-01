@@ -77,14 +77,14 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             if status == "enabled":
                 enabled_compute.append(fqdn)
             elif status == "disabled":
-                enabled_compute.add(fqdn)
+                disabled_computes.add(fqdn)
 
         return (enabled_compute, disabled_computes)
 
     @staticmethod
     def _waiting_for_migration_ends(controller, node_fqdn,
                                     attempts=180, attempt_delay=10):
-        for _ in attempts:
+        for _ in xrange(attempts):
             LOG.info("Waiting until migration ends")
 
             result = nova.run_nova_cmd(['nova', 'list',
