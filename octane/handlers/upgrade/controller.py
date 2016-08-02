@@ -11,10 +11,7 @@
 # under the License.
 
 import logging
-import os
 import subprocess
-
-import yaml
 
 from octane.handlers import upgrade
 from octane.helpers import tasks as tasks_helpers
@@ -36,30 +33,15 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
-        deployment_info = env_util.get_deployment_info(self.env)
+        deployment_info = []
         network_data = self.env.get_network_data()
         gw_admin = transformations.get_network_gw(network_data,
                                                   "fuelweb_admin")
         if self.isolated:
-            # From backup_deployment_info
-            backup_path = os.path.join(
-                magic_consts.FUEL_CACHE,
-                "deployment_{0}.orig".format(self.node.data['cluster']),
-            )
-            if not os.path.exists(backup_path):
-                os.makedirs(backup_path)
-            # Roughly taken from Environment.write_facts_to_dir
-            for info in default_info:
-                if not info['uid'] == str(self.node.id):
-                    continue
-                fname = os.path.join(
-                    backup_path,
-                    "{0}_{1}.yaml".format(info['role'], info['uid']),
-                )
-                with open(fname, 'w') as f:
-                    yaml.safe_dump(info, f, default_flow_style=False)
+            env_util.write_backup_deployment_info(self.env, self.node,
+                                                  default_info)
         for info in default_info:
-            if not (info['role'] == 'primary-controller' or
+            if not ('primary-controller' in info['roles'] or
                     info['uid'] == str(self.node.id)):
                 continue
             if self.isolated:
@@ -72,7 +54,8 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             info['run_ping_checker'] = False
             env_util.prepare_net_info(info)
             deployment_info.append(info)
-        self.env.upload_facts('deployment', deployment_info)
+        if deployment_info:
+            self.env.upload_facts('deployment', deployment_info)
 
         tasks = self.env.get_deployment_tasks()
         tasks_helpers.skip_tasks(tasks)

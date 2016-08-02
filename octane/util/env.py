@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fuelclient
-
 import collections
 import json
 import logging
@@ -270,18 +268,6 @@ def prepare_net_info(info):
         pred_nets['net04']["L2"]["segment_id"] = segment_id
 
 
-def get_deployment_info(env):
-    deployment_info = []
-    try:
-        deployment_info = env.get_facts('deployment')
-    except fuelclient.cli.error.ServerDataException:
-        LOG.warn('Deployment info is unchanged for env: %s',
-                 env.id)
-    deployment_info = [x for x in deployment_info
-                       if x['role'] != 'primary-controller']
-    return deployment_info
-
-
 def get_astute_yaml(env, node=None):
     if not node:
         node = get_one_controller(env)
@@ -357,6 +343,16 @@ def get_backup_deployment_info(env_id):
             deployment_info.append(info)
 
     return deployment_info
+
+
+def write_backup_deployment_info(env, node, default_info):
+    backup_path = os.path.join(
+        magic_consts.FUEL_CACHE,
+        "deployment_{0}.orig".format(node.data['cluster']),
+    )
+    facts = [info for info in default_info
+             if info['uid'] == str(node.id)]
+    env.write_facts_to_dir("deployment", facts, backup_path)
 
 
 def collect_deployment_info(env, nodes):
