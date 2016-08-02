@@ -203,50 +203,63 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     mock_get_one_controller.assert_called_once_with(env)
 
 
+@pytest.mark.parametrize("fuel_version", ["7.0", "8.0"])
 @pytest.mark.parametrize("password", ["password"])
-@pytest.mark.parametrize("fqdn", ["fqdn"])
-@pytest.mark.parametrize("node_id", [1])
-@pytest.mark.parametrize("instances_cmd_out,expected_instances", [
-    ("in1\nin2\nin3\n", ["in1", "in2", "in3"]),
-    (" in1 \n in2 \n in3 \n", ["in1", "in2", "in3"]),
+@pytest.mark.parametrize("node_fqdn", ["node-compute"])
+@pytest.mark.parametrize("cmd_output, instances", [(
+    "\n\n\n0389c396-c703-4a08-9da9-b2da7b6db2c0  \n"
+    "265690ad-7e31-4fec-8f28-4f1edb0b1f09  \n"
+    "85cfb077-3397-405e-ae61-dfce35d3073a  \n\n\n",
+    [
+        "0389c396-c703-4a08-9da9-b2da7b6db2c0",
+        "265690ad-7e31-4fec-8f28-4f1edb0b1f09",
+        "85cfb077-3397-405e-ae61-dfce35d3073a",
+    ]),
 ])
-@pytest.mark.parametrize("fuel_version,is_fqdn_call", [
-    ("6.0", False), ("6.1", True), ("7.0", True), ("8.0", True)])
-def test_shutoff_vm(
-        mocker, password, instances_cmd_out, expected_instances,
-        fqdn, is_fqdn_call, node_id, fuel_version):
-    mocker.patch.object(
-        compute.ComputeUpgrade, "_waiting_for_state_completed")
-    env_mock = mock.Mock()
-    node = mock.Mock()
-    node.env.data = {"fuel_version": fuel_version}
-    ssh_call_output_mock = mocker.patch(
-        "octane.util.ssh.call_output", return_value=instances_cmd_out)
-    ssh_call_mock = mocker.patch("octane.util.ssh.call")
-    node.data = {'fqdn': fqdn, 'id': node_id}
+@pytest.mark.parametrize("nodes_in_error_state", [True, False])
+def test_shutoff_vms(
+        mocker, fuel_version, password, node_fqdn, cmd_output,
+        instances, nodes_in_error_state):
+    env = mock.Mock()
     controller = mock.Mock()
-
-    mock_get_pswd = mocker.patch(
-        "octane.util.env.get_admin_password", return_value=password)
-    mock_get_controller = mocker.patch(
+    node = mock.Mock()
+    node.env = env
+    node.env.data = {"fuel_version": fuel_version}
+    handler = compute.ComputeUpgrade(node, env, False, False)
+    mock_get_one_controller = mocker.patch(
         "octane.util.env.get_one_controller", return_value=controller)
-
-    handler = compute.ComputeUpgrade(node, env_mock, False, False)
-
-    handler.shutoff_vms()
-    hostname = fqdn if is_fqdn_call else "node-{}".format(node_id)
-    ssh_call_output_mock.assert_called_once_with(
-        [
-            "sh", "-c",
-            ". /root/openrc; "
-            "nova --os-password {0} list --host {1} --limit -1".format(
-                password, hostname) +
-            " | awk -F\| '$4~/ACTIVE/{print($2)}'"
-        ],
-        node=controller
-    )
-    assert [mock.call(["sh", "-c", ". /root/openrc; nova stop {0}".format(e)],
-                      node=controller)
-            for e in expected_instances] == ssh_call_mock.call_args_list
-    mock_get_pswd.assert_called_once_with(env_mock)
-    mock_get_controller.assert_called_once_with(env_mock)
+    mock_get_node_fqdn = mocker.patch(
+        "octane.util.node.get_nova_node_handle", return_value=node_fqdn)
+    mock_nova_run = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+    mock_waiting = mocker.patch.object(
+        compute.ComputeUpgrade, "_waiting_for_state_completed")
+    mock_is_nova_state = mocker.patch.object(
+        compute.ComputeUpgrade,
+        "_is_nova_instances_exists_in_state",
+        return_value=nodes_in_error_state)
+    nova_run_calls = []
+    if nodes_in_error_state:
+        with pytest.raises(Exception):
+            handler.shutoff_vms()
+        assert not mock_nova_run.called
+        assert not mock_waiting.called
+    else:
+        handler.shutoff_vms()
+        nova_run_calls.append(mock.call([
+            "nova", "list",
+            "--host", node_fqdn,
+            "--limit", "-1",
+            "--status", "ACTIVE",
+            "--minimal", "|",
+            "awk 'NR>2 {print $2}'"],
+            controller))
+        for instance in instances:
+            nova_run_calls.append(mock.call(
+                ["nova", "stop", instance], controller, output=False))
+        assert nova_run_calls == mock_nova_run.call_args_list
+        mock_waiting.assert_called_once_with(
+            controller, node_fqdn, "ACTIVE", compute.TimeoutStopVMException)
+    mock_get_one_controller.assert_called_once_with(env)
+    mock_get_node_fqdn.assert_called_once_with(node)
+    mock_is_nova_state.assert_called_once_with(controller, node_fqdn, "ERROR")
