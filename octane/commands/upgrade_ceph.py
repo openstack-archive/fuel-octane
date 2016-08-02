@@ -166,7 +166,13 @@ def extract_mon_conf_files(orig_env, tar_filename):
     hostname = short_hostname(
         node_util.get_hostname_remotely(controller))
     db_path = "/var/lib/ceph/mon/ceph-{0}".format(hostname)
-    node_util.tar_files(tar_filename, controller, conf_dir, db_path)
+    ssh.call(["stop", "ceph-mon", "id={0}".format(hostname)],
+             node=controller)
+    try:
+        node_util.tar_files(tar_filename, controller, conf_dir, db_path)
+    finally:
+        ssh.call(["start", "ceph-mon", "id={0}".format(hostname)],
+                 node=controller)
     return conf_filename, db_path
 
 
