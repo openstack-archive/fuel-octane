@@ -26,6 +26,25 @@ from octane.util import ssh
 LOG = logging.getLogger(__name__)
 
 
+class TimeoutException(Exception):
+    message = None
+
+    def __init__(self, hostname, attempts):
+        assert self.message
+        super(TimeoutException, self).__init__(
+            self.message.format(hostname=hostname, attempts=attempts))
+
+
+class TimeoutHostEvacuationException(TimeoutException):
+    message = "After {attempts} tries of live evacuation of {hostname} some " \
+              "instances are not still migrated."
+
+
+class TimeoutStopVMException(TimeoutException):
+    message = "After {attempts} tries of stop vms of {hostname} some " \
+              "instances are not still stopped."
+
+
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         if not self.live_migration:
@@ -64,47 +83,64 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
     @staticmethod
-    def _get_list_instances(controller):
+    def _get_compute_lists(controller):
+        """return tuple of lists enabled and disabled computes"""
         compute_list_str = nova.run_nova_cmd([
             "nova", "service-list",
             "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
             controller,
             True)
-        enabled_compute = []
-        disabled_computes = set()
+        enabled_computes = []
+        disabled_computes = []
         for line in compute_list_str.splitlines():
-            fqdn, status = line.split('|')
+            fqdn, status = line.strip().split('|')
             if status == "enabled":
-                enabled_compute.append(fqdn)
+                enabled_computes.append(fqdn)
             elif status == "disabled":
-                disabled_computes.add(fqdn)
+                disabled_computes.append(fqdn)
 
-        return (enabled_compute, disabled_computes)
+        return (enabled_computes, disabled_computes)
 
     @staticmethod
-    def _waiting_for_migration_ends(controller, node_fqdn,
-                                    attempts=180, attempt_delay=10):
-        for _ in xrange(attempts):
-            LOG.info("Waiting until migration ends")
+    def _is_nova_instances_exists_in_state(controller, node_fqdn, state):
+        result = nova.run_nova_cmd(['nova', 'list',
+                                    '--host', node_fqdn,
+                                    '--status', state,
+                                    '--limit', '1',
+                                    '--minimal'], controller).strip()
+        return len(result.strip().splitlines()) != 4
 
-            result = nova.run_nova_cmd(['nova', 'list',
-                                        '--host', node_fqdn,
-                                        '--status', 'MIGRATING',
-                                        '--limit', '1'], controller)
-            # nova list has no option to remove menu form so empty has 4 rows
-            if len(result.strip().splitlines()) != 4:
+    @classmethod
+    def _waiting_for_state_completed(
+            cls, controller, node_fqdn, state, exception_cls,
+            attempts=180, attempt_delay=10):
+        for iteration in xrange(attempts):
+            LOG.info(
+                "Waiting until migration ends on {0} "
+                "hostname (iteration {1})".format(node_fqdn, iteration))
+            if cls._is_nova_instances_exists_in_state(
+                    controller, node_fqdn, state):
                 time.sleep(attempt_delay)
+            else:
+                return
+        raise exception_cls(node_fqdn, attempts)
 
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
-
-        enabled_compute, disabled_computes = self._get_list_instances(
+        enabled_computes, disabled_computes = self._get_compute_lists(
             controller)
 
-        if len(enabled_compute) < 2:
+        node_fqdn = node_util.get_nova_node_handle(self.node)
+
+        if [node_fqdn] == enabled_computes:
             raise Exception("You can't disable last enabled compute")
 
-        node_fqdn = node_util.get_nova_node_handle(self.node)
+        if self._is_nova_instances_exists_in_state(
+                controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
 
         if node_fqdn in disabled_computes:
             LOG.warn("Node {0} already disabled".format(node_fqdn))
@@ -114,7 +150,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 controller, False)
         nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
                           controller, False)
-        self._waiting_for_migration_ends(controller, node_fqdn)
+        self._waiting_for_state_completed(
+            controller, node_fqdn, "MIGRATING", TimeoutHostEvacuationException)
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
@@ -123,18 +160,31 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         node_util.preserve_partition(self.node, partition)
 
     def shutoff_vms(self):
-        password = env_util.get_admin_password(self.env)
         controller = env_util.get_one_controller(self.env)
         node_fqdn = node_util.get_nova_node_handle(self.node)
+
+        if self._is_nova_instances_exists_in_state(
+                controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
+
         instances_str = nova.run_nova_cmd([
-            "nova", "--os-password", password, "list",
-            "--host", node_fqdn, "--limit", "-1", "|",
-            "awk -F\| '$4~/ACTIVE/{print($2)}'"], controller)
+            "nova", "list",
+            "--host", node_fqdn,
+            "--limit", "-1",
+            "--status", "ACTIVE",
+            "--minimal", "|",
+            "awk 'NR>2 {print $2}'"],
+            controller)
         instances = instances_str.strip().splitlines()
         for instance in instances:
             instance = instance.strip()
             nova.run_nova_cmd(
                 ["nova", "stop", instance], controller, output=False)
+        self._waiting_for_state_completed(
+            controller, node_fqdn, "ACTIVE", TimeoutStopVMException)
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
