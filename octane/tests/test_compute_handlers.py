@@ -106,6 +106,33 @@ def test_waiting_for_state_completed(
         mock_patch_is_nova_state.call_args_list
 
 
+@pytest.mark.parametrize("cmd_output,enabled,disabled", [
+    (
+        "node-10|enabled\nnode-5|disabled\nnode-6|enabled\n",
+        ["node-10", "node-6"],
+        ["node-5"]
+    ),
+    (
+        " node-10|enabled \n node-15|disabled \n node-6|enabled \n",
+        ["node-10", "node-6"],
+        ["node-15"]
+    ),
+])
+def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
+    controller = mock.Mock()
+    run_nova_cmd = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+
+    assert (enabled, disabled) == compute.ComputeUpgrade._get_compute_lists(
+        controller)
+    run_nova_cmd.assert_called_once_with(
+        ["nova", "service-list", "|",
+         "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
+        controller,
+        True
+    )
+
+
 @pytest.mark.parametrize("password", ["password"])
 @pytest.mark.parametrize("fqdn", ["fqdn"])
 @pytest.mark.parametrize("node_id", [1])

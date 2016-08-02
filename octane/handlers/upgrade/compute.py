@@ -82,22 +82,23 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
     @staticmethod
-    def _get_list_instances(controller):
+    def _get_compute_lists(controller):
+        """return tuple of lists enabled and disabled computes"""
         compute_list_str = nova.run_nova_cmd([
             "nova", "service-list",
             "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
             controller,
             True)
-        enabled_compute = []
-        disabled_computes = set()
+        enabled_computes = []
+        disabled_computes = []
         for line in compute_list_str.splitlines():
-            fqdn, status = line.split('|')
+            fqdn, status = line.strip().split('|')
             if status == "enabled":
-                enabled_compute.append(fqdn)
+                enabled_computes.append(fqdn)
             elif status == "disabled":
-                disabled_computes.add(fqdn)
+                disabled_computes.append(fqdn)
 
-        return (enabled_compute, disabled_computes)
+        return (enabled_computes, disabled_computes)
 
     @staticmethod
     def _is_nova_instances_exists_in_state(controller, node_fqdn, state):
@@ -126,7 +127,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
 
-        enabled_compute, disabled_computes = self._get_list_instances(
+        enabled_compute, disabled_computes = self._get_compute_lists(
             controller)
 
         if len(enabled_compute) < 2:
