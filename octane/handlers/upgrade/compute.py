@@ -57,11 +57,10 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 controller, False)
 
         orig_version = self.orig_env.data["fuel_version"]
-        if orig_version == "6.1":
-            openstack_release = magic_consts.VERSIONS[orig_version]
-            node_util.add_compute_upgrade_levels(self.node, openstack_release)
+        openstack_release = magic_consts.VERSIONS[orig_version]
+        node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
-            ssh.call(["service", "nova-compute", "restart"], node=self.node)
+        ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
     @staticmethod
     def _get_list_instances(controller):
