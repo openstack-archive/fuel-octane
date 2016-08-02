@@ -99,13 +99,24 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         node_util.preserve_partition(self.node, partition)
 
     def shutoff_vms(self):
-        password = env_util.get_admin_password(self.env)
         controller = env_util.get_one_controller(self.env)
         node_fqdn = node_util.get_nova_node_handle(self.node)
+
+        if nova.do_nova_instances_exist_in_status(
+                controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
+
         instances_str = nova.run_nova_cmd([
-            "nova", "--os-password", password, "list",
-            "--host", node_fqdn, "--limit", "-1", "|",
-            "awk -F\| '$4~/ACTIVE/{print($2)}'"], controller)
+            "nova", "list",
+            "--host", node_fqdn,
+            "--limit", "-1",
+            "--status", "ACTIVE",
+            "--minimal", "|",
+            "awk 'NR>2 {print $2}'"],
+            controller)
         instances = instances_str.strip().splitlines()
         for instance in instances:
             instance = instance.strip()
