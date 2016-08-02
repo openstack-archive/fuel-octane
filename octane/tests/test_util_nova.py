@@ -29,3 +29,53 @@ def test_nova_runner_call(mocker, cmd, call_output):
     nova.run_nova_cmd(cmd, node, call_output)
     ssh_call_mock.assert_called_once_with(
         ['sh', '-c', '. /root/openrc; ' + ' '.join(cmd)], node=node)
+
+
+@pytest.mark.parametrize("node_fqdn", ["fqdn"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("cmd_output,exists", [
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+""",
+        True,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+\n\n
+        """,
+        True,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+\n\n
+        """,
+        False,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+
+        """,
+        False,
+    ),
+]
+)
+def test_is_there_nova_instances_exists_in_status(
+        mocker, node_fqdn, state, cmd_output, exists):
+    controller = mock.Mock()
+    nova_run_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+    assert exists == nova.do_nova_instances_exist_in_status(
+        controller, node_fqdn, state)
+    nova_run_mock.assert_called_once_with([
+        "nova", "list", "--host", node_fqdn,
+        "--status", state, "--limit", "1", "--minimal"], controller)
