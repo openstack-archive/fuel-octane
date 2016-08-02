@@ -270,18 +270,6 @@ def prepare_net_info(info):
         pred_nets['net04']["L2"]["segment_id"] = segment_id
 
 
-def get_deployment_info(env):
-    deployment_info = []
-    try:
-        deployment_info = env.get_facts('deployment')
-    except fuelclient.cli.error.ServerDataException:
-        LOG.warn('Deployment info is unchanged for env: %s',
-                 env.id)
-    deployment_info = [x for x in deployment_info
-                       if x['role'] != 'primary-controller']
-    return deployment_info
-
-
 def get_astute_yaml(env, node=None):
     if not node:
         node = get_one_controller(env)
