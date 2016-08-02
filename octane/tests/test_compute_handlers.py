@@ -16,6 +16,56 @@ import mock
 import pytest
 
 
+@pytest.mark.parametrize("node_fqdn", ["fqdn"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("cmd_output,exists", [
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+""",
+        True,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+\n\n
+        """,
+        True,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+\n\n
+        """,
+        False,
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+
+        """,
+        False,
+    ),
+]
+)
+def test_is_nova_instances_exists_in_state(
+        mocker, node_fqdn, state, cmd_output, exists):
+    controller = mock.Mock()
+    nova_run_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+    assert exists == compute.ComputeUpgrade._is_nova_instances_exists_in_state(
+        controller, node_fqdn, state)
+    nova_run_mock.assert_called_once_with([
+        "nova", "list", "--host", node_fqdn,
+        "--status", state, "--limit", "1", "--minimal"], controller)
+
+
 @pytest.mark.parametrize("password", ["password"])
 @pytest.mark.parametrize("fqdn", ["fqdn"])
 @pytest.mark.parametrize("node_id", [1])

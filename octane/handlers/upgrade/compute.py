@@ -82,17 +82,20 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         return (enabled_compute, disabled_computes)
 
     @staticmethod
-    def _waiting_for_migration_ends(controller, node_fqdn,
+    def _is_nova_instances_exists_in_state(controller, node_fqdn, state):
+        result = nova.run_nova_cmd(['nova', 'list',
+                                    '--host', node_fqdn,
+                                    '--status', state,
+                                    '--limit', '1',
+                                    '--minimal'], controller).strip()
+        return len(result.strip().splitlines()) != 4
+
+    def _waiting_for_migration_ends(cls, controller, node_fqdn,
                                     attempts=180, attempt_delay=10):
         for _ in xrange(attempts):
             LOG.info("Waiting until migration ends")
-
-            result = nova.run_nova_cmd(['nova', 'list',
-                                        '--host', node_fqdn,
-                                        '--status', 'MIGRATING',
-                                        '--limit', '1'], controller)
-            # nova list has no option to remove menu form so empty has 4 rows
-            if len(result.strip().splitlines()) != 4:
+            if cls._is_nova_instances_exists_in_state(
+                    controller, node_fqdn, 'MIGRATING'):
                 time.sleep(attempt_delay)
 
     def evacuate_host(self):
