@@ -128,13 +128,23 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
 
-        enabled_compute, disabled_computes = self._get_compute_lists(
+        enabled_computes, disabled_computes = self._get_compute_lists(
             controller)
 
-        if len(enabled_compute) < 2:
-            raise Exception("You can't disable last enabled compute")
-
         node_fqdn = node_util.get_nova_node_handle(self.node)
+        if [node_fqdn] == enabled_computes:
+            raise Exception("You try to disable last enabled nova-compute "
+                            "service on {hostname} in cluster. "
+                            "This is lead to disable host evacuation. "
+                            "Fix this problem and run unpgrade-node "
+                            "command again".format(node_fqdn))
+
+        if self._is_nova_instances_exists_in_state(
+                controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
 
         if node_fqdn in disabled_computes:
             LOG.warn("Node {0} already disabled".format(node_fqdn))
