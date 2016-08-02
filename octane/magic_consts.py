@@ -50,18 +50,20 @@ KEYSTONE_TENANT_NAME = "admin"
 
 OPENSTACK_FIXTURES = "/usr/share/fuel-openstack-metadata/openstack.yaml"
 
-OSD_REPOS_UPDATE = [
-    # ("path", "content")
-    (
-        "/etc/apt/sources.list.d/mos.list",
-        "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 "
-        "mos8.0 main restricted"
-    ),
-    (
-        "/etc/apt/sources.list.d/mos-updates.list",
-        'deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted',
-    ),
+
+OSD_UPGRADE_REQUIRED_PACKAGES = [
+    "libcephfs1", "librados2", "librbd1", "python-ceph", "python-cephfs",
+    "python-rados", "python-rbd", "ceph", "ceph-common", "ceph-fs-common",
+    "ceph-mds"
 ]
+OSD_UPGRADE_SOURCE_TEMPLATE = \
+    "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 " \
+    "mos8.0 main restricted\n" \
+    "deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted"
+
+OSD_UPGADE_PREFERENCE_TEMPLATE = "Package: {packages}\n" \
+                                 "Pin: release a=mos8.0,n=mos8.0,l=mos8.0\n" \
+                                 "Pin-Priority: {priority}"
 COBBLER_DROP_VERSION = "7.0"
 CEPH_UPSTART_VERSION = "7.0"
 
