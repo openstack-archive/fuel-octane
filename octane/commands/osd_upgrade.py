@@ -10,15 +10,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import logging
 import os
 
 from cliff import command as cmd
 
-from fuelclient.objects import node as node_obj
+from fuelclient.objects import environment as env_obj
 
 from octane.handlers import backup_restore
 from octane import magic_consts
+from octane.util import env
 from octane.util import fuel_client
 from octane.util import helpers
 from octane.util import ssh
@@ -39,46 +41,66 @@ def _get_backup_path(path, node):
         node=node)
 
 
+def write_content_to_tmp_file_on_node(node, content, directory, template):
+    tmp_name = ssh.call_output(
+        ["mktemp", "-p", directory, "-t", template], node=node).strip()
+    sftp = ssh.sftp(node)
+    with sftp.open(tmp_name, "w") as new:
+        new.write(content)
+    return tmp_name
+
+
+@contextlib.contextmanager
+def applied_repos(nodes, preference_priority):
+    admin_ip = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
+    packages = " ".join(magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES)
+    preference_content = magic_consts.OSD_UPGADE_PREFERENCE_TEMPLATE.format(
+        packages=packages, priority=preference_priority)
+    source_content = magic_consts.OSD_UPGRADE_SOURCE_TEMPLATE.format(
+        admin_ip=admin_ip)
+
+    node_file_to_clear_list = []
+    try:
+        for node in nodes:
+            source = write_content_to_tmp_file_on_node(
+                node, source_content,
+                "/etc/apt/sources.list.d/", "mos.osd_XXX.list")
+            node_file_to_clear_list.append((node, source))
+            preference = write_content_to_tmp_file_on_node(
+                node, preference_content,
+                "/etc/apt/preferences.d/", "mos.osd_XXX.pref")
+            node_file_to_clear_list.append((node, preference))
+        yield
+    finally:
+        for node, file_name_to_remove in node_file_to_clear_list:
+            sftp = ssh.sftp(node)
+            sftp.unlink(file_name_to_remove)
+
+
+def get_repo_highest_priority(orig_env):
+    editable = orig_env.get_attributes()['editable']
+    repos = editable['repo_setup']['repos']['value']
+    return max([i['priority'] for i in repos])
+
+
 def upgrade_osd(env_id, user, password):
     with fuel_client.set_auth_context(
             backup_restore.NailgunCredentialsContext(user, password)):
-        nodes = [
-            n for n in node_obj.Node.get_all()
-            if "ceph-osd" in n.data["roles"] and n.data["cluster"] == env_id]
+        orig_env = env_obj.Environment(env_id)
+        nodes = list(env.get_nodes(orig_env, ["ceph-osd"]))
     if not nodes:
         LOG.info("Nothing to upgrade")
         return
-    backup_val = [
-        # (node, path, backup_path)
-    ]
-    admin_ip = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-    try:
-        hostnames = []
-        for node in nodes:
-            sftp = ssh.sftp(node)
-            for path, content in magic_consts.OSD_REPOS_UPDATE:
-                back_path = _get_backup_path(path, node)
-                ssh.call(["cp", path, back_path], node=node)
-                backup_val.append((node, path, back_path))
-                with ssh.update_file(sftp, path) as (_, new):
-                    new.write(content.format(admin_ip=admin_ip))
-            hostnames.append(node.data["hostname"])
-            ssh.call(["dpkg", "--configure", "-a"], node=node)
+    preference_priority = get_repo_highest_priority(orig_env)
+    hostnames = [n.data['hostname'] for n in nodes]
+    with applied_repos(nodes, preference_priority + 1):
         call_node = nodes[0]
         ssh.call(["ceph", "osd", "set", "noout"], node=call_node)
         ssh.call(['ceph-deploy', 'install', '--release', 'hammer'] + hostnames,
-                 node=call_node, stdout=ssh.PIPE, stderr=ssh.PIPE)
-        for node in nodes:
-            ssh.call(["restart", "ceph-osd-all"], node=node)
-        ssh.call(["ceph", "osd", "unset", "noout"], node=call_node)
-        ssh.call(["ceph", "osd", "stat"], node=call_node)
-    finally:
-        nodes_to_revert = set()
-        for node, path, back_path in backup_val:
-            ssh.call(["mv", back_path, path], node=node)
-            nodes_to_revert.add(node)
-        for node in nodes_to_revert:
-            ssh.call(["dpkg", "--configure", "-a"], node=node)
+                 node=call_node)
+    for node in nodes:
+        ssh.call(["restart", "ceph-osd-all"], node=node)
+    ssh.call(["ceph", "osd", "unset", "noout"], node=call_node)
 
 
 class UpgradeOSDCommand(cmd.Command):
