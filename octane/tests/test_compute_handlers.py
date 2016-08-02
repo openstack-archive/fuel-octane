@@ -66,6 +66,46 @@ def test_is_nova_instances_exists_in_state(
         "--status", state, "--limit", "1", "--minimal"], controller)
 
 
+@pytest.mark.parametrize("node_fqdn", ["fqdn"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("delay", [100])
+@pytest.mark.parametrize("attempts,result_attempt",
+                         [(10, 10), (100, 1), (10, 11)])
+def test_waiting_for_state_completed(
+        mocker, node, node_fqdn, state, delay, attempts, result_attempt):
+
+    class TestException(compute.TimeoutException):
+        message = "{hostname} {attempts}"
+
+    controller = mock.Mock()
+    timeout_calls = []
+    check_instances_exist_side_effects = []
+    check_instances_exist_calls = []
+    for idx in range(1, min(attempts, result_attempt) + 1):
+        if idx < result_attempt:
+            timeout_calls.append(mock.call(delay))
+        check_instances_exist_side_effects.append(idx != result_attempt)
+        check_instances_exist_calls.append(
+            mock.call(controller, node_fqdn, state))
+    mock_patch_is_nova_state = mocker.patch.object(
+        compute.ComputeUpgrade,
+        "_is_nova_instances_exists_in_state",
+        side_effect=check_instances_exist_side_effects)
+    mock_sleep = mocker.patch("time.sleep")
+
+    if result_attempt > attempts:
+        with pytest.raises(TestException):
+            compute.ComputeUpgrade._waiting_for_state_completed(
+                controller, node_fqdn, state, TestException, attempts, delay)
+    else:
+        compute.ComputeUpgrade._waiting_for_state_completed(
+            controller, node_fqdn, state, TestException, attempts, delay)
+
+    assert timeout_calls == mock_sleep.call_args_list
+    assert check_instances_exist_calls == \
+        mock_patch_is_nova_state.call_args_list
+
+
 @pytest.mark.parametrize("password", ["password"])
 @pytest.mark.parametrize("fqdn", ["fqdn"])
 @pytest.mark.parametrize("node_id", [1])
@@ -78,6 +118,8 @@ def test_is_nova_instances_exists_in_state(
 def test_shutoff_vm(
         mocker, password, instances_cmd_out, expected_instances,
         fqdn, is_fqdn_call, node_id, fuel_version):
+    mocker.patch.object(
+        compute.ComputeUpgrade, "_waiting_for_state_completed")
     env_mock = mock.Mock()
     node = mock.Mock()
     node.env.data = {"fuel_version": fuel_version}

@@ -26,6 +26,25 @@ from octane.util import ssh
 LOG = logging.getLogger(__name__)
 
 
+class TimeoutException(Exception):
+    message = None
+
+    def __init__(self, hostname, attempts):
+        assert self.message
+        super(TimeoutException, self).__init__(
+            self.message.format(hostname=hostname, attempts=attempts))
+
+
+class TimeoutHostEvacuationException(TimeoutException):
+    message = "After {attempts} tries of live evacuation of {hostname} some " \
+              "instances are not still migrated."
+
+
+class TimeoutStopVMException(TimeoutException):
+    message = "After {attempts} tries of stop vms of {hostname} some " \
+              "instances are not still stopped."
+
+
 class ComputeUpgrade(upgrade.UpgradeHandler):
     def prepare(self):
         if not self.live_migration:
@@ -89,13 +108,20 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                                     '--minimal'], controller).strip()
         return len(result.strip().splitlines()) != 4
 
-    def _waiting_for_migration_ends(cls, controller, node_fqdn,
-                                    attempts=180, attempt_delay=10):
-        for _ in xrange(attempts):
-            LOG.info("Waiting until migration ends")
+    @classmethod
+    def _waiting_for_state_completed(
+            cls, controller, node_fqdn, state, exception_cls,
+            attempts=180, attempt_delay=10):
+        for iteration in xrange(attempts):
+            LOG.info(
+                "Waiting until migration ends on {0} "
+                "hostname (iteration {1})".format(node_fqdn, iteration))
             if cls._is_nova_instances_exists_in_state(
-                    controller, node_fqdn, 'MIGRATING'):
+                    controller, node_fqdn, state):
                 time.sleep(attempt_delay)
+            else:
+                return
+        raise exception_cls(node_fqdn, attempts)
 
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
@@ -116,7 +142,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 controller, False)
         nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
                           controller, False)
-        self._waiting_for_migration_ends(controller, node_fqdn)
+        self._waiting_for_state_completed(
+            controller, node_fqdn, "MIGRATING", TimeoutHostEvacuationException)
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
@@ -137,6 +164,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             instance = instance.strip()
             nova.run_nova_cmd(
                 ["nova", "stop", instance], controller, output=False)
+        self._waiting_for_state_completed(
+            controller, node_fqdn, "ACTIVE", TimeoutStopVMException)
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
