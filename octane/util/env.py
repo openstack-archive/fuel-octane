@@ -278,7 +278,7 @@ def get_deployment_info(env):
         LOG.warn('Deployment info is unchanged for env: %s',
                  env.id)
     deployment_info = [x for x in deployment_info
-                       if x['role'] != 'primary-controller']
+                       if 'primary-controller' not in x['roles']]
     return deployment_info
 
 
