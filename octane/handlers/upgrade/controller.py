@@ -80,19 +80,18 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]
-        if orig_version == "6.1":
-            openstack_release = magic_consts.VERSIONS[orig_version]
-            node_util.add_compute_upgrade_levels(self.node, openstack_release)
+        openstack_release = magic_consts.VERSIONS[orig_version]
+        node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
-            nova_services = ssh.call_output(
-                ["bash", "-c",
-                 "initctl list | "
-                 "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
-                node=self.node
-            )
+        nova_services = ssh.call_output(
+            ["bash", "-c",
+                "initctl list | "
+                "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
+            node=self.node
+        )
 
-            for nova_service in nova_services.split():
-                ssh.call(["service", nova_service, "restart"], node=self.node)
+        for nova_service in nova_services.split():
+            ssh.call(["service", nova_service, "restart"], node=self.node)
 
         if self.isolated and self.gateway:
             # From restore_default_gateway
