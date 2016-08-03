@@ -257,8 +257,6 @@ def test_move_nodes(mocker, mock_subprocess, provision, compat):
 
     mock_create_configdrive = mocker.patch(
         "octane.util.disk.create_configdrive_partition")
-    mock_update_node_partinfo = mocker.patch(
-        "octane.util.disk.update_node_partition_info")
     mock_wait_for = mocker.patch(
         "octane.util.env.wait_for_nodes")
     mock_get_provision_method = mocker.patch(
