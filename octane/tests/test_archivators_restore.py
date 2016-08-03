@@ -34,14 +34,16 @@ from octane.util import subprocess
 
 class TestMember(object):
 
-    def __init__(self, name, is_file, is_extractable):
+    def __init__(self, name, is_file, is_extractable,
+                 content=None, mode=0x640):
         self.name = name
         self.is_file = is_file
         self.is_extractable = is_extractable
         self.path = ''
         self.is_extracted = False
-        self.dump = ""
+        self.dump = content
         self.read_idx = 0
+        self.mode = mode
 
     def isfile(self):
         return self.is_file
@@ -65,6 +67,8 @@ class TestArchive(object):
     def __init__(self, members, foo):
         self.members = members
         for idx, member in enumerate(self.members):
+            if member.dump is not None:
+                continue
             member.dump = "TestArchive_{0}_TestMember_{1}".format(
                 foo.__name__, idx)
 
@@ -75,9 +79,9 @@ class TestArchive(object):
         member.path = path
         member.is_extracted = True
 
-    def extractfile(self, name):
+    def extractfile(self, member):
         for m in self.members:
-            if m.name == name:
+            if m == member or m.name == member:
                 m.is_extracted = True
                 return m
 
@@ -172,15 +176,6 @@ def test_path_restore(mocker, cls, path, members):
 
 @pytest.mark.parametrize("cls,path,backup_name,members", [
     (
-        cobbler.CobblerSystemArchivator,
-        "/var/lib/cobbler/config/systems.d/",
-        "cobbler",
-        [
-            ("cobbler/file", True, True),
-            ("cobbler/dir/file", True, True),
-        ],
-    ),
-    (
         cobbler.CobblerDistroArchivator,
         "/var/lib/cobbler/config/distros.d/",
         "cobbler_distros",
@@ -205,6 +200,45 @@ def test_path_filter_restore(mocker, cls, path, backup_name, members):
     cls(archive).restore()
     for member in members:
         member.assert_extract()
+
+
+@pytest.mark.parametrize(("profile", "members", "paths", "contents"), [
+    ("fake_profile", [
+        ("cobbler/node-1.json", True, True,
+         '{"profile": "bootstrap"}'),
+        ("cobbler/node-2.json", True, True,
+         '{"profile": "centos-x86_64"}'),
+    ], [
+        "/var/lib/cobbler/config/systems.d/node-1.json",
+        "/var/lib/cobbler/config/systems.d/node-2.json",
+    ], [
+        {"profile": "fake_profile"},
+        {"profile": "centos-x86_64"},
+    ]),
+])
+def test_cobbler_system_archivator(
+        mocker, mock_open, profile, members, paths, contents):
+    mocker.patch("octane.util.helpers.load_yaml",
+                 return_value={"bootstrap_profile": profile})
+    mock_chmod = mocker.patch("os.chmod")
+    mock_dump = mocker.patch("json.dump")
+
+    members = [TestMember(*args) for args in members]
+    archive = TestArchive(members, cobbler.CobblerSystemArchivator)
+
+    archivator = cobbler.CobblerSystemArchivator(archive)
+    archivator.restore()
+
+    for member in members:
+        member.assert_extract()
+    assert mock_dump.call_args_list == [
+        mock.call(c, mock_open.return_value)
+        for c in contents
+    ]
+    assert mock_open.call_args_list == [mock.call(p, "wb") for p in paths]
+    assert mock_chmod.call_args_list == [mock.call(p, 0x640) for p in paths]
+
+
 
 
 def test_cobbler_archivator(mocker, mock_subprocess):
