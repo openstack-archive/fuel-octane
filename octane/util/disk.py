@@ -11,6 +11,8 @@
 # under the License.
 import os.path
 
+import fuelclient
+
 from octane import magic_consts
 from octane.util import ssh
 from octane.util import subprocess
@@ -47,10 +49,10 @@ def create_partition(disk_name, size, node):
 
 
 def update_node_partition_info(node_id):
-    fname = 'update_node_partition_info.py'
-    command = ['python',
-               os.path.join(magic_consts.PATCHES_DIR, fname), str(node_id)]
-    subprocess.call(command)
+    node = fuelclient.objects.Node(node_id)
+    node.connection.post_request(
+        'nodes/{}/volumes/partition_info/'.format(node_id)
+    )
 
 
 def create_configdrive_partition(node):
