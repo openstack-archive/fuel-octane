@@ -17,7 +17,7 @@ import pytest
 
 
 @pytest.mark.parametrize("node_fqdn", ["fqdn"])
-@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING", None])
 @pytest.mark.parametrize("cmd_output,exists", [
     (
         """+--------------------------------------+--------------------+
@@ -54,16 +54,21 @@ import pytest
     ),
 ]
 )
-def test_is_nova_instances_exists_in_state(
+def test_is_nova_instances_exists(
         mocker, node_fqdn, state, cmd_output, exists):
     controller = mock.Mock()
     nova_run_mock = mocker.patch(
         "octane.util.nova.run_nova_cmd", return_value=cmd_output)
-    assert exists == compute.ComputeUpgrade._is_nova_instances_exists_in_state(
+    assert exists == compute.ComputeUpgrade._is_nova_instances_exists(
         controller, node_fqdn, state)
-    nova_run_mock.assert_called_once_with([
-        "nova", "list", "--host", node_fqdn,
-        "--status", state, "--limit", "1", "--minimal"], controller)
+    if state:
+        nova_run_mock.assert_called_once_with([
+            "nova", "list", "--host", node_fqdn,
+            "--limit", "1", "--minimal", "--status", state], controller)
+    else:
+        nova_run_mock.assert_called_once_with([
+            "nova", "list", "--host", node_fqdn,
+            "--limit", "1", "--minimal"], controller)
 
 
 @pytest.mark.parametrize("node_fqdn", ["fqdn"])
@@ -89,7 +94,7 @@ def test_waiting_for_state_completed(
             mock.call(controller, node_fqdn, state))
     mock_patch_is_nova_state = mocker.patch.object(
         compute.ComputeUpgrade,
-        "_is_nova_instances_exists_in_state",
+        "_is_nova_instances_exists",
         side_effect=check_instances_exist_side_effects)
     mock_sleep = mocker.patch("time.sleep")
 
@@ -160,7 +165,7 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
                                       return_value=node_fqdn)
     mock_is_nova_state = mocker.patch.object(
         compute.ComputeUpgrade,
-        "_is_nova_instances_exists_in_state",
+        "_is_nova_instances_exists",
         return_value=nodes_in_error_state)
 
     mock_waiting = mocker.patch.object(
@@ -196,8 +201,10 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     if [node_fqdn] == enabled:
         assert not mock_is_nova_state.called
     else:
-        mock_is_nova_state.assert_called_once_with(
-            controller, node_fqdn, "ERROR")
+        mock_is_nova_state.assert_any_call(controller, node_fqdn, "ERROR")
+        if not error:
+            mock_is_nova_state.assert_any_call(controller, node_fqdn)
+        assert 1 + (not error) == mock_is_nova_state.call_count
     get_node_fqdn_mock.assert_called_once_with(node)
     mock_get_compute_list.assert_called_once_with(controller)
     mock_get_one_controller.assert_called_once_with(env)
@@ -236,7 +243,7 @@ def test_shutoff_vms(
         compute.ComputeUpgrade, "_waiting_for_state_completed")
     mock_is_nova_state = mocker.patch.object(
         compute.ComputeUpgrade,
-        "_is_nova_instances_exists_in_state",
+        "_is_nova_instances_exists",
         return_value=nodes_in_error_state)
     nova_run_calls = []
     if nodes_in_error_state:

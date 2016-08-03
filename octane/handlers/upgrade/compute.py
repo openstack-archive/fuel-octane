@@ -101,12 +101,12 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         return (enabled_computes, disabled_computes)
 
     @staticmethod
-    def _is_nova_instances_exists_in_state(controller, node_fqdn, state):
-        result = nova.run_nova_cmd(['nova', 'list',
-                                    '--host', node_fqdn,
-                                    '--status', state,
-                                    '--limit', '1',
-                                    '--minimal'], controller).strip()
+    def _is_nova_instances_exists(controller, node_fqdn, state=None):
+        cmd = [
+            'nova', 'list', '--host', node_fqdn, '--limit', '1', '--minimal']
+        if state:
+            cmd += ['--status', state]
+        result = nova.run_nova_cmd(cmd, controller).strip()
         return len(result.strip().splitlines()) != 4
 
     @classmethod
@@ -117,8 +117,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             LOG.info(
                 "Waiting until migration ends on {0} "
                 "hostname (iteration {1})".format(node_fqdn, iteration))
-            if cls._is_nova_instances_exists_in_state(
-                    controller, node_fqdn, state):
+            if cls._is_nova_instances_exists(controller, node_fqdn, state):
                 time.sleep(attempt_delay)
             else:
                 return
@@ -138,8 +137,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                             "Fix this problem and run unpgrade-node "
                             "command again".format(hostname=node_fqdn))
 
-        if self._is_nova_instances_exists_in_state(
-                controller, node_fqdn, "ERROR"):
+        if self._is_nova_instances_exists(controller, node_fqdn, "ERROR"):
             raise Exception(
                 "There are instances in ERROR state on {hostname},"
                 "please fix this problem and start upgrade_node "
@@ -156,6 +154,12 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         self._waiting_for_state_completed(
             controller, node_fqdn, "MIGRATING", TimeoutHostEvacuationException)
 
+        if self._is_nova_instances_exists(controller, node_fqdn):
+            raise Exception(
+                "There are instances on {hostname} after host-evacuation, "
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
+
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
     def preserve_partition(self):
@@ -166,8 +170,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         controller = env_util.get_one_controller(self.env)
         node_fqdn = node_util.get_nova_node_handle(self.node)
 
-        if self._is_nova_instances_exists_in_state(
-                controller, node_fqdn, "ERROR"):
+        if self._is_nova_instances_exists(controller, node_fqdn, "ERROR"):
             raise Exception(
                 "There are instances in ERROR state on {hostname},"
                 "please fix this problem and start upgrade_node "
