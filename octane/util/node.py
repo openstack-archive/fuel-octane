@@ -173,3 +173,13 @@ def is_live_migration_supported(node):
                     and "VIR_MIGRATE_LIVE" in line:
                 return True
     return False
+
+
+def restart_nova_services(node):
+    nova_services = ssh.call_output([
+        "bash", "-c", "initctl list | "
+        "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"
+        ], node=node).split()
+
+    for service in nova_services:
+        ssh.call(["service", service, "restart"], node=node)
