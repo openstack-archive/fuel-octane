@@ -74,13 +74,10 @@ def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
     creds = get_env_credentials(node.env)
 
-    params = {}
-    if creds is None:
-        params['username'] = 'root'
-        params['key_filename'] = magic_consts.SSH_KEYS
-    else:
-        params['username'] = creds['user']
-        params['password'] = creds['password']
+    params = {
+        'username': creds['user'] if creds else 'root',
+        'key_filename': magic_consts.SSH_KEYS,
+    }
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
