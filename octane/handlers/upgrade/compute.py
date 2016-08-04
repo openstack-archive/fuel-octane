@@ -109,6 +109,18 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         result = nova.run_nova_cmd(cmd, controller).strip()
         return len(result.strip().splitlines()) != 4
 
+    @staticmethod
+    def _get_active_instances(controller, node_fqdn):
+        instances_str = nova.run_nova_cmd([
+            "nova", "list",
+            "--host", node_fqdn,
+            "--limit", "-1",
+            "--status", "ACTIVE",
+            "--minimal", "|",
+            "awk 'NR>2 {print $2}'"],
+            controller)
+        return [i.strip() for i in instances_str.strip().splitlines()]
+
     @classmethod
     def _waiting_for_state_completed(
             cls, controller, node_fqdn, state, exception_cls,
@@ -149,10 +161,15 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             nova.run_nova_cmd(
                 ["nova", "service-disable", node_fqdn, "nova-compute"],
                 controller, False)
-        nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
-                          controller, False)
-        self._waiting_for_state_completed(
-            controller, node_fqdn, "MIGRATING", TimeoutHostEvacuationException)
+
+        for instance in self._get_active_instances(controller, node_fqdn):
+            nova.run_nova_cmd(
+                ["nova", "live-migration", instance], controller, False)
+            self._waiting_for_state_completed(
+                controller,
+                node_fqdn,
+                "MIGRATING",
+                TimeoutHostEvacuationException)
 
         if self._is_nova_instances_exists(controller, node_fqdn):
             raise Exception(
@@ -176,17 +193,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 "please fix this problem and start upgrade_node "
                 "command again".format(hostname=node_fqdn))
 
-        instances_str = nova.run_nova_cmd([
-            "nova", "list",
-            "--host", node_fqdn,
-            "--limit", "-1",
-            "--status", "ACTIVE",
-            "--minimal", "|",
-            "awk 'NR>2 {print $2}'"],
-            controller)
-        instances = instances_str.strip().splitlines()
-        for instance in instances:
-            instance = instance.strip()
+        for instance in self._get_active_instances(controller, node_fqdn):
             nova.run_nova_cmd(
                 ["nova", "stop", instance], controller, output=False)
         self._waiting_for_state_completed(

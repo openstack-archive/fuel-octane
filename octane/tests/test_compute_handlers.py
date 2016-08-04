@@ -145,8 +145,9 @@ def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
 @pytest.mark.parametrize("node_fqdn", ["node-disabled-1", "node-enabled-1"])
 @pytest.mark.parametrize("nodes_in_error_state", [True, False])
 @pytest.mark.parametrize("fuel_version", ["7.0", "8.0"])
+@pytest.mark.parametrize("instances", [["instance_1", "instance_2"]])
 def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
-                       nodes_in_error_state, fuel_version):
+                       nodes_in_error_state, fuel_version, instances):
     env = mock.Mock()
     controller = mock.Mock()
     node = mock.Mock()
@@ -161,6 +162,10 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
         "octane.util.env.get_one_controller", return_value=controller)
 
     run_nova_cmd = mocker.patch("octane.util.nova.run_nova_cmd")
+    get_instances_mock = mocker.patch.object(
+        compute.ComputeUpgrade,
+        "_get_active_instances",
+        return_value=instances)
     get_node_fqdn_mock = mocker.patch("octane.util.node.get_nova_node_handle",
                                       return_value=node_fqdn)
     mock_is_nova_state = mocker.patch.object(
@@ -188,16 +193,21 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
         nova_calls.append(mock.call(
             ["nova", "service-disable", node_fqdn, "nova-compute"],
             controller, False))
-    nova_calls.append(mock.call(
-        ['nova', 'host-evacuate-live', node_fqdn], controller, False))
+    for instance in instances:
+        nova_calls.append(mock.call(
+            ["nova", "live-migration", instance], controller, False))
     if error:
         assert not run_nova_cmd.called
         assert not mock_waiting.called
+        assert not get_instances_mock.called
     else:
         assert run_nova_cmd.call_args_list == nova_calls
-        mock_waiting.assert_called_once_with(
-            controller, node_fqdn, "MIGRATING",
-            compute.TimeoutHostEvacuationException)
+        get_instances_mock.assert_called_once_with(controller, node_fqdn)
+        waiting_calls = [
+            mock.call(controller, node_fqdn,
+                      "MIGRATING", compute.TimeoutHostEvacuationException)
+            for i in instances]
+        assert waiting_calls == mock_waiting.call_args_list
     if [node_fqdn] == enabled:
         assert not mock_is_nova_state.called
     else:
@@ -270,3 +280,30 @@ def test_shutoff_vms(
     mock_get_one_controller.assert_called_once_with(env)
     mock_get_node_fqdn.assert_called_once_with(node)
     mock_is_nova_state.assert_called_once_with(controller, node_fqdn, "ERROR")
+
+
+@pytest.mark.parametrize("cmd_out,result", [(
+    "\n\n\n0389c396-c703-4a08-9da9-b2da7b6db2c0  \n"
+    "265690ad-7e31-4fec-8f28-4f1edb0b1f09  \n"
+    "85cfb077-3397-405e-ae61-dfce35d3073a  \n\n\n",
+    [
+        "0389c396-c703-4a08-9da9-b2da7b6db2c0",
+        "265690ad-7e31-4fec-8f28-4f1edb0b1f09",
+        "85cfb077-3397-405e-ae61-dfce35d3073a",
+    ]),
+])
+@pytest.mark.parametrize("node_fqdn", ["node_fqdn"])
+def test_get_active_instances(mocker, cmd_out, result, node_fqdn):
+    controller = mock.Mock()
+    nova_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_out)
+    assert result == compute.ComputeUpgrade._get_active_instances(
+        controller, node_fqdn)
+    nova_mock.assert_called_once_with([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal", "|",
+        "awk 'NR>2 {print $2}'"],
+        controller)
