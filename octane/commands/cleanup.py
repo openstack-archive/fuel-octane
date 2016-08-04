@@ -17,17 +17,31 @@ from fuelclient import objects
 
 from octane.util import env as env_util
 from octane.util import node as node_util
+from octane.util import nova
 
 LOG = logging.getLogger(__name__)
 
 
+def clean_services_for_node(controller, node):
+    services_stdout = nova.run_nova_cmd(
+        ["nova", "service-list", "--host", node.data['hostname']],
+        controller)
+    services = nova.nova_stdout_parser(services_stdout)
+    for service in services:
+        nova.run_nova_cmd(
+            ["nova", "service-delete", service['Id']], controller,
+            output=False)
+
+
 def cleanup_environment(env_id):
     env = objects.Environment(env_id)
+    controller = env_util.get_one_controller(env)
 
     nodes = env_util.get_nodes(env, ['controller', 'compute'])
     for node in nodes:
         node_util.remove_compute_upgrade_levels(node)
         node_util.restart_nova_services(node)
+        clean_services_for_node(controller, node)
 
 
 class CleanupCommand(cmd.Command):

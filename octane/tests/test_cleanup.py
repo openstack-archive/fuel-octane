@@ -20,9 +20,14 @@ from octane.commands import cleanup
 @pytest.mark.parametrize("node_count", [0, 1, 10])
 def test_cleanup_env(mocker, env_id, node_count):
     env = mock.Mock()
+    controller = mock.Mock()
     get_env_mock = mocker.patch(
         "fuelclient.objects.Environment", return_value=env)
-    nodes = [mock.MagicMock() for _ in range(node_count)]
+    nodes = [mock.Mock() for idx in range(node_count)]
+    get_controller = mocker.patch(
+        "octane.util.env.get_one_controller", return_value=controller)
+    clean_services_mock = mocker.patch(
+        "octane.commands.cleanup.clean_services_for_node")
     get_nodes_mock = mocker.patch(
         "octane.util.env.get_nodes", return_value=nodes)
     remove_compute_mock = mocker.patch(
@@ -33,5 +38,33 @@ def test_cleanup_env(mocker, env_id, node_count):
     for node in nodes:
         remove_compute_mock.assert_any_call(node)
         restart_service_mock.assert_any_call(node)
+        clean_services_mock.assert_any_call(controller, node)
+    assert len(nodes) == clean_services_mock.call_count
     get_nodes_mock.assert_called_once_with(env, ["controller", "compute"])
     get_env_mock.assert_called_once_with(env_id)
+    get_controller.assert_called_once_with(env)
+
+
+@pytest.mark.parametrize("hostname", ["test_hostname"])
+@pytest.mark.parametrize("stdout,deleted_services", [(
+    "   +----+\n"
+    "   | Id |\n"
+    "   +----+\n"
+    "   | 1  |\n"
+    "   | 2  |\n"
+    "   | 3  |\n"
+    "   +----+\n",
+    ["1", "2", "3"]
+)])
+def test_clean_services_for_node(mocker, hostname, stdout, deleted_services):
+    node = mock.MagicMock(data={"hostname": hostname})
+    controller = mock.Mock()
+    nova_run_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=stdout)
+    cleanup.clean_services_for_node(controller, node)
+    for service_id in deleted_services:
+        nova_run_mock.assert_any_call(
+            ["nova", "service-delete", service_id], controller, output=False)
+    get_service_call = mock.call(
+        ["nova", "service-list", "--host", hostname], controller)
+    assert get_service_call == nova_run_mock.call_args_list[0]
