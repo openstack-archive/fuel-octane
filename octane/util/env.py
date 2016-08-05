@@ -331,8 +331,7 @@ def find_node_deployment_info(node, roles, data):
 
 def get_backup_deployment_info(env_id):
     deployment_info = []
-    backup_path = os.path.join(
-        magic_consts.FUEL_CACHE, 'deployment_{0}.orig'.format(env_id))
+    backup_path = get_dir_deployment_info(env_id)
     if not os.path.exists(backup_path):
         return None
 
@@ -343,6 +342,27 @@ def get_backup_deployment_info(env_id):
             deployment_info.append(info)
 
     return deployment_info
+
+
+def get_dir_deployment_info(env_id):
+    backup_path = os.path.join(
+        magic_consts.FUEL_CACHE,
+        "deployment_{0}.orig".format(env_id),
+    )
+    return backup_path
+
+
+def write_facts_to_dir(facts, env_id):
+    backup_path = get_dir_deployment_info(env_id)
+    if not os.path.exists(backup_path):
+        os.makedirs(backup_path)
+    for info in facts:
+        fname = os.path.join(
+            backup_path,
+            "{0}.yaml".format(info['uid']),
+        )
+        with open(fname, 'w') as f:
+            yaml.safe_dump(info, f, default_flow_style=False)
 
 
 def collect_deployment_info(env, nodes):
