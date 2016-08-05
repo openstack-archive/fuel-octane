@@ -11,10 +11,7 @@
 # under the License.
 
 import logging
-import os
 import subprocess
-
-import yaml
 
 from octane.handlers import upgrade
 from octane.helpers import tasks as tasks_helpers
@@ -41,23 +38,10 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         gw_admin = transformations.get_network_gw(network_data,
                                                   "fuelweb_admin")
         if self.isolated:
-            # From backup_deployment_info
-            backup_path = os.path.join(
-                magic_consts.FUEL_CACHE,
-                "deployment_{0}.orig".format(self.node.data['cluster']),
-            )
-            if not os.path.exists(backup_path):
-                os.makedirs(backup_path)
-            # Roughly taken from Environment.write_facts_to_dir
-            for info in default_info:
-                if not info['uid'] == str(self.node.id):
-                    continue
-                fname = os.path.join(
-                    backup_path,
-                    "{0}.yaml".format(info['uid']),
-                )
-                with open(fname, 'w') as f:
-                    yaml.safe_dump(info, f, default_flow_style=False)
+            facts = [info for info
+                     in default_info if info['uid'] == str(self.node.id)]
+            env_util.write_facts_to_dir(facts, self.node.data['cluster'])
+
         for info in default_info:
             if not ('primary-controller' in info['roles'] or
                     info['uid'] == str(self.node.id)):
