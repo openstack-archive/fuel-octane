@@ -11,6 +11,7 @@
 # under the License.
 
 import mock
+import os
 import pytest
 
 from octane.util import docker
@@ -117,3 +118,116 @@ def test_docker_stop(
             ["docker", "stop", container_id.strip()])
     else:
         assert not mock_subprocess.called
+
+
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("prefix", ["prefix"])
+@pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
+@pytest.mark.parametrize("revert", [None, True, False])
+@pytest.mark.parametrize("files", [[], ["file_1"], ["file_1", "file_2"]])
+def test_apply_patches(mocker, container, prefix, patches, revert, files):
+    kwargs = {}
+    if revert is not None:
+        kwargs['revert'] = revert
+
+    mock_get_filenames = mocker.patch(
+        "octane.util.patch.get_filenames_from_patches", return_value=files)
+    mock_tempdir = mocker.patch("octane.util.tempfile.temp_dir")
+    get_files_mock = mocker.patch("octane.util.docker.get_files_from_docker")
+    put_files_mock = mocker.patch("octane.util.docker.put_files_to_docker")
+    patch_mock = mocker.patch("octane.util.patch.patch_apply")
+
+    docker.apply_patches(container, prefix, *patches, **kwargs)
+
+    mock_get_filenames.assert_called_once_with(prefix, *patches)
+    if files:
+        mock_tempdir.assert_called_once_with(prefix='octane_docker_patches.')
+        temp_dir = mock_tempdir.return_value.__enter__.return_value
+        get_files_mock.assert_called_once_with(
+            container, [os.path.join(prefix, f) for f in files], temp_dir)
+        patch_mock.assert_called_once_with(
+            os.path.join(temp_dir, prefix), patches, bool(revert))
+        put_files_mock.assert_called_once_with(container, "/", temp_dir)
+
+
+@pytest.mark.parametrize("container", ["container_name"])
+@pytest.mark.parametrize("prefix", ["prefix_name"])
+@pytest.mark.parametrize("patches", [["patch_1"], ["patch_1", "patch_2"]])
+@pytest.mark.parametrize("error", [True, False])
+def test_applied_patches(mocker, container, prefix, patches, error):
+
+    class TestException(Exception):
+        pass
+
+    apply_patches = mocker.patch("octane.util.docker.apply_patches")
+    if error:
+        with pytest.raises(TestException):
+            with docker.applied_patches(container, prefix, *patches):
+                raise TestException()
+    else:
+        with docker.applied_patches(container, prefix, *patches):
+            pass
+    assert [
+        mock.call(container, prefix, *patches),
+        mock.call(container, prefix, *patches[::-1], revert=True)
+    ] == apply_patches.call_args_list
+
+
+@pytest.mark.parametrize("is_exception", [True, False])
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("patches", [("patch_1", ), ("patch_1", "patch_2")])
+@pytest.mark.parametrize("service", ["service_1"])
+@pytest.mark.parametrize("prefix ", ["prefix_1", "prefix_2", None])
+def test_patch_container_service(
+        mocker, patches, container, is_exception, service, prefix):
+    patch_mock = mocker.patch("octane.util.docker.applied_patches")
+
+    class TestException(Exception):
+        pass
+
+    docker_run_mock = mocker.patch("octane.util.docker.run_in_container")
+
+    if is_exception:
+        with pytest.raises(TestException):
+            with docker.patch_container_service(
+                    container, service, prefix, *patches):
+                raise TestException
+    else:
+        with docker.patch_container_service(
+                container, service, prefix, *patches):
+            pass
+
+    assert [
+        mock.call(container, ["service", service, "restart"]),
+        mock.call(container, ["service", service, "restart"])
+    ] == docker_run_mock.call_args_list
+    patch_mock.assert_called_once_with(container, prefix, *patches)
+
+
+@pytest.mark.parametrize("container", ["container"])
+@pytest.mark.parametrize("container_name", ["container_name"])
+@pytest.mark.parametrize("is_exception", [True, False])
+def test_destroyed_container(mocker, container, container_name, is_exception):
+    subprocess_call_mock = mocker.patch("octane.util.subprocess.call")
+    get_name_mock = mocker.patch(
+        "octane.util.docker.get_docker_container_name",
+        return_value=container_name)
+
+    class TestException(Exception):
+        pass
+
+    if is_exception:
+        with pytest.raises(TestException):
+            with docker.destroyed_container(container):
+                raise TestException
+    else:
+        with docker.destroyed_container(container):
+            pass
+
+    assert [
+        mock.call(["dockerctl", "destroy", container_name]),
+        mock.call(["dockerctl", "start", container]),
+        mock.call(["dockerctl", "check", container]),
+    ] == subprocess_call_mock.call_args_list
+
+    get_name_mock.assert_called_once_with(container)

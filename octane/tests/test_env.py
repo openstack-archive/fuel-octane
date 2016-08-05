@@ -100,132 +100,6 @@ DEPLOYMENT_INFO = [{
     }],
 }]
 
-
-def test_cache_service_tenant_id(mocker, mock_open, mock_os_path, node):
-    mock_open.return_value.readline.return_value = '111'
-    test_env = mock.Mock()
-    test_env.data = {
-        'id': 111,
-    }
-    res = env_util.cache_service_tenant_id(test_env, node)
-    assert res == '111'
-
-
-def test_get_keystone_tenants(mocker):
-    env = mock.Mock()
-    node = mock.Mock()
-    mocker.patch("octane.util.env.get_admin_password", return_value="passwd")
-    mocker.patch("octane.util.ssh.call_output",
-                 return_value=TENANT_LIST_SAMPLE)
-
-    tenants = env_util.get_keystone_tenants(env, node)
-
-    assert tenants == {"admin": "45632156d201479cb2c0171590435be1",
-                       "services": "7dafd04613524cd4a34524bfa7533c8c"}
-
-TENANT_LIST_SAMPLE = """
-+----------------------------------+----------+---------+
-|                id                |   name   | enabled |
-+----------------------------------+----------+---------+
-| 45632156d201479cb2c0171590435be1 |  admin   |   True  |
-| 7dafd04613524cd4a34524bfa7533c8c | services |   True  |
-+----------------------------------+----------+---------+
-"""[1:]
-
-
-def test_copy_vips(mock_subprocess):
-    env_id = -1
-    env = mock.Mock(data={'id': env_id})
-    env_util.copy_vips(env)
-
-    mock_subprocess.assert_called_once_with(
-        ['fuel2', 'env', 'copy', 'vips', str(env_id)]
-    )
-
-
-PROJECTS = {
-    "admin": "2aed71d8816f4e5f8d4ad06836521d49",
-    "services": "09f1c11740ba4bc399387f3995d5160e",
-}
-
-
-@pytest.mark.parametrize(("data", "expected"), [
-    (
-        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "Name": "admin"}, '
-        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "Name": "services"}]',
-        PROJECTS,
-    ),
-    (
-        '[{"id": "2aed71d8816f4e5f8d4ad06836521d49", "name": "admin"}, '
-        '{"id": "09f1c11740ba4bc399387f3995d5160e", "name": "services"}]',
-        PROJECTS,
-    ),
-    (
-        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "NAME": "admin"}, '
-        '{"ID": "09f1c11740ba4bc399387f3995d5160e", "NAME": "services"}]',
-        PROJECTS,
-    ),
-    (
-        '[{"ID": "2aed71d8816f4e5f8d4ad06836521d49", "NAME": "admin"}]',
-        {"admin": "2aed71d8816f4e5f8d4ad06836521d49"},
-    ),
-])
-def test_openstack_project_value(mocker, data, expected):
-    env = mock.Mock()
-    node = mock.Mock()
-    mocker.patch("octane.util.env.get_admin_password", return_value="pswd")
-    mocker.patch("octane.util.ssh.call_output", return_value=data)
-    projects = env_util.get_openstack_projects(env, node)
-    assert projects == expected
-
-
-@pytest.mark.parametrize(("version", "client"), [
-    ("6.0", "keystone"),
-    ("6.1", "keystone"),
-    ("7.0", "openstack"),
-    ("8.0", "openstack"),
-])
-def test_get_openstack_project_dict(mocker, version, client):
-    env = mock.Mock()
-    node = mock.Mock()
-    node.env.data.get.return_value = version
-    mocker.patch("octane.util.env.get_one_controller", return_value=node)
-    mocker.patch("octane.util.env.get_keystone_tenants",
-                 return_value="keystone")
-    mocker.patch("octane.util.env.get_openstack_projects",
-                 return_value="openstack")
-    result = env_util.get_openstack_project_dict(env)
-    assert result == client
-
-
-@pytest.mark.parametrize(("data", "key", "exception"), [
-    ({'admin': 'ADMINIS'}, 'services', True),
-    ({'services': 'SERVICEID', 'admin': 'ADMINIS'}, 'services', False),
-    ({'services': 'SERVICEID'}, 'SERVICES', False),
-])
-def test_get_openstack_project_value(mocker, data, key, exception):
-    env = mock.Mock()
-    node = mock.Mock()
-    mocker.patch("octane.util.env.get_openstack_project_dict",
-                 return_value=data)
-    if exception:
-        with pytest.raises(Exception) as exc_info:
-            env_util.get_openstack_project_value(env, node, key)
-        assert "Field {0} not found in openstack project list".format(key) == \
-            exc_info.value.message
-    else:
-        project_id = env_util.get_openstack_project_value(env, node, key)
-        assert project_id == 'SERVICEID'
-
-
-@pytest.mark.parametrize("node", [mock.Mock(), None])
-def test_get_service_tenant_id(mocker, node):
-    mock_obj = mocker.patch("octane.util.env.get_openstack_project_value")
-    env = mock.Mock()
-    env_util.get_service_tenant_id(env, node)
-    mock_obj.assert_called_once_with(env, node, "services")
-
-
 ENV_SETTINGS = {
     'editable': {
         'public_ssl': {
@@ -253,6 +127,16 @@ ENV_SETTINGS = {
         }
     }
 }
+
+
+def test_copy_vips(mock_subprocess):
+    env_id = -1
+    env = mock.Mock(data={'id': env_id})
+    env_util.copy_vips(env)
+
+    mock_subprocess.assert_called_once_with(
+        ['fuel2', '--debug', 'env', 'copy', 'vips', str(env_id)]
+    )
 
 
 @pytest.mark.parametrize("env_id,master_ip", [(1, '10.0.0.1')])
@@ -284,7 +168,7 @@ def test_change_env_settings(mocker, env_id, master_ip, format_tuples):
         }
     }
     sql_call_mock = mocker.patch(
-        "octane.util.sql.run_psql_in_container",
+        "octane.util.sql.run_psql",
         side_effect=[
             [json.dumps(env_dict)], [json.dumps(release_dict)], 1
         ]

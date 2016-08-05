@@ -16,7 +16,7 @@ import collections
 import json
 import logging
 import os.path
-import pipes
+import shutil
 import time
 import uuid
 import yaml
@@ -87,12 +87,12 @@ def change_env_settings(env_id, master_ip=''):
     if get_env_provision_method(env) != 'image':
         attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
-    generated_data = sql.run_psql_in_container(
+    generated_data = sql.run_psql(
         "select generated from attributes where cluster_id={0}".format(env_id),
         "nailgun"
     )[0]
     generated_json = json.loads(generated_data)
-    release_data = sql.run_psql_in_container(
+    release_data = sql.run_psql(
         "select attributes_metadata from  releases where id={0}".format(
             env.data['release_id']),
         "nailgun"
@@ -104,7 +104,7 @@ def change_env_settings(env_id, master_ip=''):
     for key, value in generated_json['provision']['image_data'].iteritems():
         value['uri'] = release_image_dict[key]['uri'].format(settings=settings,
                                                              cluster=settings)
-    sql.run_psql_in_container(
+    sql.run_psql(
         "update attributes set generated='{0}' where cluster_id={1}".format(
             json.dumps(generated_json), env_id),
         "nailgun"
@@ -113,10 +113,9 @@ def change_env_settings(env_id, master_ip=''):
 
 def clone_env(env_id, release):
     LOG.info("Cloning env %s for release %s", env_id, release.data['name'])
-    res = subprocess.call_output(
-        ["fuel2", "env", "clone", "-f", "json",
-         str(env_id), uuid.uuid4().hex, str(release.data['id'])],
-    )
+    res = fuel2_env_call(["clone", "-f", "json", str(env_id),
+                         uuid.uuid4().hex, str(release.data['id'])],
+                         output=True)
     for kv in json.loads(res):
         if kv['Field'] == 'id':
             seed_id = kv['Value']
@@ -128,10 +127,10 @@ def clone_env(env_id, release):
 
 
 def clone_ips(orig_id, networks):
-    call_args = ['fuel2', 'env', 'clone-ips', str(orig_id)]
+    call_args = ['clone-ips', str(orig_id)]
     if networks:
         call_args += ['--networks'] + networks
-    subprocess.call(call_args)
+    fuel2_env_call(call_args)
 
 
 def delete_fuel_resources(env):
@@ -145,82 +144,6 @@ def delete_fuel_resources(env):
         ["sh", "-c", ". /root/openrc; python /tmp/delete_fuel_resources.py"],
         node=node,
     )
-
-
-def get_keystone_tenants(env, node):
-    password = get_admin_password(env, node)
-    tenant_out = ssh.call_output(
-        [
-            'sh', '-c',
-            '. /root/openrc; keystone --os-password={0} tenant-list'
-            .format(pipes.quote(password)),
-        ],
-        node=node,
-    )
-    tenants = {}
-    for line in tenant_out.splitlines()[3:-1]:
-        parts = line.split()
-        tenants[parts[3]] = parts[1]
-    return tenants
-
-
-def get_openstack_projects(env, node):
-    password = get_admin_password(env, node)
-    out = ssh.call_output(
-        [
-            'sh', '-c',
-            '. /root/openrc; openstack --os-password {0} project list -f json'
-            .format(pipes.quote(password)),
-        ],
-        node=node,
-    )
-    data = [{k.lower(): v for k, v in d.items()}
-            for d in json.loads(out)]
-    return {i["name"]: i["id"] for i in data}
-
-
-def get_openstack_project_dict(env, node=None):
-    if node is None:
-        node = get_one_controller(env)
-
-    node_env_version = str(node.env.data.get('fuel_version'))
-    if node_env_version < version.StrictVersion("7.0"):
-        mapping = get_keystone_tenants(env, node)
-    else:
-        mapping = get_openstack_projects(env, node)
-    return mapping
-
-
-def get_openstack_project_value(env, node, key):
-    data = get_openstack_project_dict(env, node)
-    try:
-        return data[key.lower()]
-    except KeyError:
-        raise Exception(
-            "Field {0} not found in openstack project list".format(key))
-
-
-def get_service_tenant_id(env, node):
-    return get_openstack_project_value(env, node, "services")
-
-
-def cache_service_tenant_id(env, node=None):
-    env_id = env.data['id']
-    fname = os.path.join(
-        magic_consts.FUEL_CACHE,
-        "env-{0}-service-tenant-id".format(env_id),
-    )
-    if os.path.exists(fname):
-        with open(fname) as f:
-            return f.readline()
-
-    tenant_id = get_service_tenant_id(env, node)
-    dname = os.path.dirname(fname)
-    if not os.path.exists(dname):
-        os.makedirs(dname)
-    with open(fname, 'w') as f:
-        f.write(tenant_id)
-    return tenant_id
 
 
 def wait_for_env(cluster, status, timeout=60 * 60, check_freq=60):
@@ -288,7 +211,7 @@ def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
 
 def move_nodes(env, nodes, provision=True, roles=None):
     env_id = env.data['id']
-    cmd = ["fuel2", "env", "move", "node"]
+    cmd = ["move", "node"]
     if not provision:
         cmd += ['--no-provision']
     if roles:
@@ -299,16 +222,22 @@ def move_nodes(env, nodes, provision=True, roles=None):
         if provision and incompatible_provision_method(env):
             disk.create_configdrive_partition(node)
             disk.update_node_partition_info(node.data["id"])
-        subprocess.call(cmd_move_node)
+        fuel2_env_call(cmd_move_node)
     if provision:
         LOG.info("Nodes provision started. Please wait...")
         wait_for_nodes(nodes, "provisioned")
 
 
 def copy_vips(env):
-    subprocess.call(
-        ["fuel2", "env", "copy", "vips", str(env.data['id'])]
-    )
+    fuel2_env_call(["copy", "vips", str(env.data['id'])])
+
+
+def fuel2_env_call(args, output=False):
+    cmd = ["fuel2", "--debug", "env"] + args
+    if output:
+        return subprocess.call_output(cmd)
+    else:
+        subprocess.call(cmd)
 
 
 def provision_nodes(env, nodes):
@@ -339,10 +268,6 @@ def prepare_net_info(info):
         physnet = pred_nets["net04"]["L2"]["physnet"]
         segment_id = phys_nets[physnet]["vlan_range"].split(":")[1]
         pred_nets['net04']["L2"]["segment_id"] = segment_id
-
-    if 'net04_ext' in pred_nets:
-        pred_nets["net04_ext"]["L2"]["physnet"] = ""
-        pred_nets["net04_ext"]["L2"]["network_type"] = "local"
 
 
 def get_deployment_info(env):
@@ -468,3 +393,15 @@ def incompatible_provision_method(env):
             and provision_method != 'image':
         return True
     return False
+
+
+def copy_fuel_keys(source_env_id, seed_env_id):
+    source_env_keys_path = os.path.join(
+        magic_consts.FUEL_KEYS_BASE_PATH,
+        str(source_env_id)
+    )
+    seed_env_keys_path = os.path.join(
+        magic_consts.FUEL_KEYS_BASE_PATH,
+        str(seed_env_id)
+    )
+    shutil.copytree(source_env_keys_path, seed_env_keys_path)

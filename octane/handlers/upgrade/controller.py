@@ -34,10 +34,6 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.service_tenant_id = None
         self.gateway = None
 
-    def preupgrade(self):
-        self.service_tenant_id = env_util.cache_service_tenant_id(
-            self.env, self.node)
-
     def predeploy(self):
         default_info = self.env.get_default_facts('deployment')
         deployment_info = env_util.get_deployment_info(self.env)
@@ -83,31 +79,20 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.env.update_deployment_tasks(tasks)
 
     def postdeploy(self):
-        # From neutron_update_admin_tenant_id
-        sftp = ssh.sftp(self.node)
-        with ssh.update_file(sftp, '/etc/neutron/neutron.conf') as (old, new):
-            for line in old:
-                if line.startswith('nova_admin_tenant_id'):
-                    new.write('nova_admin_tenant_id = {0}\n'.format(
-                        self.service_tenant_id))
-                else:
-                    new.write(line)
         orig_version = self.orig_env.data["fuel_version"]
-        if orig_version == "6.1":
-            openstack_release = magic_consts.VERSIONS[orig_version]
-            node_util.add_compute_upgrade_levels(self.node, openstack_release)
+        openstack_release = magic_consts.VERSIONS[orig_version]
+        node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
-            nova_services = ssh.call_output(
-                ["bash", "-c",
-                 "initctl list | "
-                 "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
-                node=self.node
-            )
+        nova_services = ssh.call_output(
+            ["bash", "-c",
+                "initctl list | "
+                "awk '/nova/ && /start/ {print $1}' | tr '\n' ' '"],
+            node=self.node
+        )
 
-            for nova_service in nova_services.split():
-                ssh.call(["service", nova_service, "restart"], node=self.node)
+        for nova_service in nova_services.split():
+            ssh.call(["service", nova_service, "restart"], node=self.node)
 
-        ssh.call(['restart', 'neutron-server'], node=self.node)
         if self.isolated and self.gateway:
             # From restore_default_gateway
             LOG.info("Deleting default route at node %s",

@@ -15,6 +15,7 @@ import os.path
 PATCHES = []
 # TODO: use pkg_resources for patches
 CWD = os.path.dirname(__file__)  # FIXME
+PATCHES_DIR = os.path.join(CWD, "patches")
 
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
@@ -62,6 +63,8 @@ OSD_REPOS_UPDATE = [
     ),
 ]
 COBBLER_DROP_VERSION = "7.0"
+CEPH_UPSTART_VERSION = "7.0"
+
 
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
 RELEASE_STATUS_ENABLED = "available"
@@ -77,3 +80,13 @@ CONFIGDRIVE_PART_SIZE = 10
 
 KEYSTONE_CONF = "/etc/keystone/keystone.conf"
 KEYSTONE_PASTE = "/etc/keystone/keystone-paste.ini"
+ACTIVE_IMG_PATH = "/var/www/nailgun/bootstraps/active_bootstrap/"
+
+NOVA_PATCH_PREFIX_DIR = '/usr/lib/python2.7/dist-packages/'
+NOVA_PATCHES = [
+    os.path.join(CWD, "patches/nova.patch"),
+]
+
+SFTP_SERVER_BIN = '/usr/lib/sftp-server'
+
+FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
