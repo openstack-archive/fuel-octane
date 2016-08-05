@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import io
 import json
 import mock
 import pytest
@@ -40,6 +41,36 @@ def test_find_node_deployment_info_none():
     node.id = 2
     res = env_util.find_node_deployment_info(node, roles, DEPLOYMENT_INFO)
     assert res is None
+
+
+@pytest.mark.parametrize("os_path_exist", [True, False])
+def test_write_facts_to_dir(mocker, mock_open, mock_os_path, os_path_exist):
+    mock_os_makedirs = mocker.patch("os.makedirs")
+    mock_os_path.exists.return_value = os_path_exist
+    buf = io.BytesIO()
+    mock_open.return_value.write.side_effect = buf.write
+    mock_yaml = mocker.patch("yaml.safe_dump")
+    facts = [{'uid': 1}, {'uid': 2}]
+    env_id = 1
+    env_util.write_facts_to_dir(facts, env_id)
+    mock_os_path.join.assert_has_calls(
+        [
+            mock.call('/tmp', "deployment_{0}.orig".format(env_id)),
+            mock.call(mock_os_path.join(), "{0}.yaml".format(1)),
+            mock.call(mock_os_path.join(), "{0}.yaml".format(2))
+        ]
+    )
+    mock_open.assert_called_with(mock_os_path.join(), "w")
+    mock_yaml.assert_has_calls(
+        [
+            mock.call({'uid': 1}, mock_open(), default_flow_style=False),
+            mock.call({'uid': 2}, mock_open(), default_flow_style=False)
+        ]
+    )
+    if not os_path_exist:
+        mock_os_makedirs.assert_called_once_with(mock_os_path.join())
+    else:
+        mock_os_makedirs.assert_not_called()
 
 
 def test_get_one_node_of(mocker):
