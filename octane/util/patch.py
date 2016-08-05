@@ -36,4 +36,33 @@ def applied_patch(cwd, *patches):
     try:
         yield
     finally:
-        patch_apply(cwd, patches, revert=True)
+        patch_apply(cwd, patches[::-1], revert=True)
+
+
+def get_filenames_from_single_patch(patch):
+    """Get all files touched by a patch"""
+    result = []
+    with open(patch) as p:
+        for line in p:
+            if line.startswith('+++'):
+                fname = line[4:].strip()
+                if fname.startswith('b/'):
+                    fname = fname[2:]
+                tab_pos = fname.find('\t')
+                if tab_pos > 0:
+                    fname = fname[:tab_pos]
+                result.append(fname)
+    return result
+
+
+def get_filenames_from_patches(prefix, *patches):
+    files = []
+    if not prefix.endswith("/"):
+        prefix = "{0}/".format(prefix)
+    for patch in patches:
+        for file_name in get_filenames_from_single_patch(patch):
+            if file_name.startswith(prefix):
+                files.append(file_name[len(prefix):])
+            else:
+                files.append(file_name)
+    return files

@@ -15,6 +15,7 @@ import io
 import logging
 import pipes
 import random
+import shutil
 import threading
 
 import paramiko
@@ -71,9 +72,16 @@ class _cache(object):
 @_cache
 def get_client(node):
     LOG.info("Creating new SSH connection to node %s", node.data['id'])
+    creds = get_env_credentials(node.env)
+
+    params = {
+        'username': creds['user'] if creds else 'root',
+        'key_filename': magic_consts.SSH_KEYS,
+    }
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(node.data['ip'], key_filename=magic_consts.SSH_KEYS)
+    client.connect(node.data['ip'], **params)
     return client
 
 
@@ -112,7 +120,15 @@ class SSHPopen(subprocess.BasePopen):
         for key in ['stdin', 'stdout', 'stderr']:
             assert popen_kwargs.get(key) in [None, PIPE]
         super(SSHPopen, self).__init__(name, cmd, popen_kwargs)
-        self._channel = get_client(self.node).get_transport().open_session()
+
+        as_root = popen_kwargs.get('as_root', True)
+        transport = get_client(self.node).get_transport()
+        username = transport.get_username()
+
+        if username != 'root' and as_root:
+            cmd = ['sudo', '--'] + cmd
+
+        self._channel = transport.open_session()
         self._channel.exec_command(" ".join(map(pipes.quote, cmd)))
         self.name = "%s[at node-%d]" % (self.name, self.node.data['id'])
         if 'stdin' not in self.popen_kwargs:
@@ -127,9 +143,12 @@ class SSHPopen(subprocess.BasePopen):
             self._pipe_stdout = None
             self.stdout = stdout
         stderr = ChannelStderrFile(self._channel, 'rb')
+
+        stderr_level = self.popen_kwargs.pop('stderr_log_level', logging.ERROR)
+
         if 'stderr' not in self.popen_kwargs:
             self._pipe_stderr = _LogPipe(
-                logging.ERROR, stderr,
+                stderr_level, stderr,
                 parse_levels=popen_kwargs.get('parse_levels', False),
             )
             self._pipe_stderr.start(self.name + " stderr")
@@ -181,6 +200,14 @@ def call_output(cmd, **kwargs):
 @_cache
 def _get_sftp(node):
     transport = get_client(node).get_transport()
+    username = transport.get_username()
+
+    if username != 'root':
+        LOG.info('Run sftp server as root on node %s', node.data['hostname'])
+        channel = transport.open_channel('session')
+        channel.exec_command('sudo ' + magic_consts.SFTP_SERVER_BIN)
+        return paramiko.SFTPClient(channel)
+
     return paramiko.SFTPClient.from_transport(transport)
 
 get_client.invalidate.append(_get_sftp)
@@ -229,3 +256,38 @@ def tempdir(node):
         yield dirname
     finally:
         call(['rm', '-rf', dirname], node=node)
+
+
+@contextlib.contextmanager
+def applied_patches(cwd, node, *patches):
+    patched_files = []
+    try:
+        for path in patches:
+            with open(path, "rb") as patch:
+                with popen(
+                        ["patch", "-N", "-p1", "-d", cwd],
+                        node=node, stdin=PIPE) as proc:
+                    shutil.copyfileobj(patch, proc.stdin)
+            patched_files.append(path)
+        yield
+    finally:
+        patched_files.reverse()
+        for path in patched_files:
+            with open(path, "rb") as patch:
+                with popen(
+                        ["patch", "-R", "-p1", "-d", cwd],
+                        node=node, stdin=PIPE) as proc:
+                    shutil.copyfileobj(patch, proc.stdin)
+
+
+def get_env_credentials(env):
+    attrs = env.get_attributes()
+    editable = attrs['editable'].get('service_user')
+
+    if not editable:
+        return None
+
+    return {
+        'user': editable['name']['value'],
+        'password': editable['password']['value'],
+    }
