@@ -131,12 +131,13 @@ def test_ssh_credentials(mocker, editable, result):
 @pytest.mark.parametrize(
     "editable,result", [
         ({'name': {'value': 'a'}, 'password': {'value': 'b'}},
-         {'username': 'a', 'password': 'b'}),
-        ({}, {'username': 'root', 'key_filename': magic_consts.SSH_KEYS}),
+         {'username': 'a'}),
+        ({}, {'username': 'root'}),
     ]
 )
 def test_get_client_credentials(mocker, editable, result):
     node = mocker.Mock()
+    result['key_filename'] = magic_consts.SSH_KEYS
 
     attrs = {
         'editable': {'service_user': editable},
