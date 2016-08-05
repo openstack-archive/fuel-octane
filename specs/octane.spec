@@ -41,10 +41,13 @@ cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} %{__python
 cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
 cp -vr %{_builddir}/%{name}-%{version}/octane/patches ${RPM_BUILD_ROOT}/%{python2_sitelib}/octane/
 
+mkdir -p ${RPM_BUILD_ROOT}/var/www/nailgun/octane/puppet
+cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet/octane_tasks ${RPM_BUILD_ROOT}/var/www/nailgun/octane/puppet/octane_tasks
+
 %files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
 %{python2_sitelib}/octane/patches/*
+/var/www/nailgun/octane/puppet/octane_tasks/*
 %defattr(-,root,root)
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT

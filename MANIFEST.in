@@ -2,6 +2,7 @@ include AUTHORS
 include ChangeLog
 include octane/patches/*
 include octane/bin/*
+include deployment/*
 exclude .gitignore
 
 global-exclude *.pyc
