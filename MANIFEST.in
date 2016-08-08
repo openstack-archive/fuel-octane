@@ -3,5 +3,6 @@ include ChangeLog
 include octane/patches/*
 include octane/bin/*
 exclude .gitignore
+exclude deployment/puppet/octane_tasks/.gitignore
 
 global-exclude *.pyc
