@@ -97,3 +97,8 @@ KEYSTONE_PIPELINES = [
     "pipeline:admin_api",
     "pipeline:api_v3",
 ]
+
+SKIP_CONTROLLER_TASKS = [
+    "upload_cirros", "ceph_ready_check", "configure_default_route",
+    "enable_rados",
+]
