@@ -86,3 +86,8 @@ NOVA_PATCHES = [
 SFTP_SERVER_BIN = '/usr/lib/sftp-server'
 
 FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
+
+SKIP_CONTROLLER_TASKS = [
+    "upload_cirros", "ceph_ready_check", "configure_default_route",
+    "enable_rados"
+]
