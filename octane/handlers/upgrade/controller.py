@@ -17,7 +17,6 @@ import subprocess
 import yaml
 
 from octane.handlers import upgrade
-from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
@@ -40,6 +39,8 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         network_data = self.env.get_network_data()
         gw_admin = transformations.get_network_gw(network_data,
                                                   "fuelweb_admin")
+
+        skipped_tasks = magic_consts.SKIP_CONTROLLER_TASKS
         if self.isolated:
             # From backup_deployment_info
             backup_path = os.path.join(
@@ -73,10 +74,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             env_util.prepare_net_info(info)
             deployment_info.append(info)
         self.env.upload_facts('deployment', deployment_info)
-
-        tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
-        self.env.update_deployment_tasks(tasks)
+        return skipped_tasks
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]
