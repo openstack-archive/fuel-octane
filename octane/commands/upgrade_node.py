@@ -66,11 +66,8 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
         # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
         env_util.copy_vips(env)
 
-        call_handlers('predeploy')
-        if isolated or len(nodes) == 1:
-            env_util.deploy_nodes(env, nodes)
-        else:
-            env_util.deploy_changes(env, nodes)
+        skipped_tasks = call_handlers('predeploy')
+        env_util.deploy_nodes_with_tasks(env, nodes, skipped_tasks)
         call_handlers('postdeploy')
 
 
