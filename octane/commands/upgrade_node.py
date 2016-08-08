@@ -10,8 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
 import logging
 import os.path
+
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
@@ -64,10 +66,11 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
     env_util.copy_vips(env)
     call_handlers('predeploy')
-    if isolated or len(nodes) == 1:
-        env_util.deploy_nodes(env, nodes)
-    else:
-        env_util.deploy_changes(env, nodes)
+    tasks_to_skip = set(
+        itertools.chain.from_iterable(call_handlers('skip_tasks'))
+    )
+    LOG.info("Tasks to skip: {0}".format(', '.join(tasks_to_skip)))
+    env_util.deploy_nodes_without_tasks(env, nodes, tasks_to_skip)
     call_handlers('postdeploy')
 
 
