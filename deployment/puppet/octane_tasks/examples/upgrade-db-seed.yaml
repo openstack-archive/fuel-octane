@@ -1,3 +1,14 @@
+- id: rsync_octane_section
+  type: puppet
+  version: 2.1.0
+  role: [master]
+  requires: []
+  required_for: []
+  parameters:
+    puppet_manifest: /var/www/nailgun/octane/puppet/octane_tasks/examples/rsync_octane_section.pp
+    puppet_modules:  /etc/puppet/modules
+    timeout: 120
+
 - id: rsync_octane
   type: sync
   version: 2.1.0
@@ -39,6 +50,9 @@
   role: [primary-controller]
   requires: []
   required_for: []
+  cross-depends:
+    - name: rsync_octane_section
+      role: master
   parameters:
     src: rsync://{MASTER_IP}:/octane/tmp/dbs.original.sql.gz
     dst: /tmp
