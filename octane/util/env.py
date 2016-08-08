@@ -246,6 +246,18 @@ def provision_nodes(env, nodes):
     wait_for_nodes(nodes, "provisioned", timeout=180 * 60)
 
 
+def deploy_nodes_without_tasks(env, nodes, skipped_tasks):
+    tasks_to_execute = env.get_tasks(skip=skipped_tasks)
+    env.execute_tasks(nodes, tasks_to_execute, False)
+    LOG.info("Nodes deploy started. Please wait...")
+    wait_for_nodes_tasks(env, nodes)
+
+
+def wait_for_nodes_tasks(env, nodes):
+    wait_for_nodes(nodes, "ready", timeout=180 * 60)
+    wait_for_tasks(env, "running")
+
+
 def deploy_nodes(env, nodes):
     env.install_selected_nodes('deploy', nodes)
     LOG.info("Nodes deploy started. Please wait...")
