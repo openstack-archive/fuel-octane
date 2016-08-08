@@ -31,6 +31,9 @@ class UpgradeHandler(object):
     def predeploy(self):
         raise NotImplementedError('predeploy')
 
+    def skip_tasks(self):
+        return []
+
     def postdeploy(self):
         raise NotImplementedError('postdeploy')
 
