@@ -12,13 +12,15 @@
 
 import shutil
 
-from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
 
 
 def get_databases(env):
     node = env_util.get_one_controller(env)
+    ssh.call(
+        ['nova-manage', 'db', 'migrate_flavor_data'],
+        node=node, parse_levels=True)
     with ssh.popen(
             ['mysql', '--batch', '--skip-column-names', '--host', 'localhost'],
             stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
@@ -58,21 +60,11 @@ def db_sync(env):
     # (this migration check flavor instances consistency)
     # than migrate flavor (transform them to normal state)
     # after that sync nova to the end
-    with ssh.applied_patches(magic_consts.NOVA_PATCH_PREFIX_DIR,
-                             node,
-                             *magic_consts.NOVA_PATCHES):
-        ssh.call(
-            ['nova-manage', 'db', 'sync', '--version', '290'],
-            node=node, parse_levels=True)
-        ssh.call(
-            ['nova-manage', 'db', 'migrate_flavor_data'],
-            node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'migrate'],
-                 node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
-                 node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'migrate'], node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
+             node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
