@@ -10,10 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+
 import glanceclient.client
 import keystoneclient.client as ksclient
 import neutronclient.neutron.client
-
+import keystoneclient
 
 def _get_keystone(username, password, tenant_name, auth_url):
     klient = ksclient.Client(auth_url=auth_url)
@@ -67,10 +69,16 @@ def clenup_resources(username, password, tenant_name, auth_url):
         neutron.delete_network(network["id"])
 
 if __name__ == '__main__':
-    import os
-    clenup_resources(
-        os.environ["OS_USERNAME"],
-        os.environ["OS_PASSWORD"],
-        os.environ["OS_TENANT_NAME"],
-        os.environ["OS_AUTH_URL"],
-    )
+    try:
+        clenup_resources(
+            os.environ["OS_USERNAME"],
+            os.environ["OS_PASSWORD"],
+            os.environ["OS_TENANT_NAME"],
+            os.environ["OS_AUTH_URL"],
+        )
+    except keystoneclient.exceptions.ConnectionError as e:
+        print "There was an error during communication with Keystone. " \
+              "Check VIP and cluster status."
+        print "Original error message: {0}".format(e.message)
+
+
