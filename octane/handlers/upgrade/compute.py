@@ -13,7 +13,6 @@
 import logging
 import os.path
 import subprocess
-import time
 
 from octane.handlers import upgrade
 from octane import magic_consts
@@ -80,15 +79,6 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
         return (enabled_compute, disabled_computes)
 
-    @classmethod
-    def _waiting_for_migration_ends(cls, controller, node_fqdn,
-                                    attempts=180, attempt_delay=10):
-        for _ in xrange(attempts):
-            LOG.info("Waiting until migration ends")
-            if nova.do_nova_instances_exist_in_status(
-                    controller, node_fqdn, 'MIGRATING'):
-                time.sleep(attempt_delay)
-
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
 
@@ -108,7 +98,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 controller, False)
         nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
                           controller, False)
-        self._waiting_for_migration_ends(controller, node_fqdn)
+        nova.waiting_for_status_completed(controller, node_fqdn, "MIGRATING")
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
@@ -129,6 +119,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             instance = instance.strip()
             nova.run_nova_cmd(
                 ["nova", "stop", instance], controller, output=False)
+        nova.waiting_for_status_completed(controller, node_fqdn, "ACTIVE")
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
