@@ -140,3 +140,28 @@ def test_waiting_for_status_completed(
     assert timeout_calls == mock_sleep.call_args_list
     assert check_instances_exist_calls == \
         mock_patch_is_nova_state.call_args_list
+
+
+@pytest.mark.parametrize("cmd_output,enabled,disabled", [
+    (
+        """
+            +----+--------+----------+
+            | Id | Host   | Status   |
+            +----+--------+----------+
+            |  1 | node-1 | enabled  |
+            |  2 | node-2 | enabled  |
+            |  3 | node-3 | disabled |
+            +----+--------+----------+
+        """,
+        ["node-1", "node-2"],
+        ["node-3"]
+    ),
+])
+def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
+    controller = mock.Mock()
+    run_nova_cmd = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+
+    assert (enabled, disabled) == nova.get_compute_lists(controller)
+    run_nova_cmd.assert_called_once_with(
+        ["nova", "service-list", "--binary", "nova-compute"], controller, True)
