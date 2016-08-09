@@ -41,7 +41,7 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     get_node_fqdn_mock = mocker.patch("octane.util.node.get_nova_node_handle",
                                       return_value=node_fqdn)
     mock_is_nova_state = mocker.patch(
-        "octane.util.nova.do_nova_instances_exist_in_status",
+        "octane.util.nova.do_nova_instances_exist",
         return_value=nodes_in_error_state)
 
     mock_waiting = mocker.patch(
@@ -76,8 +76,14 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     if [node_fqdn] == enabled:
         assert not mock_is_nova_state.called
     else:
-        mock_is_nova_state.assert_called_once_with(
-            controller, node_fqdn, "ERROR")
+        if error:
+            mock_is_nova_state.assert_called_once_with(
+                controller, node_fqdn, "ERROR")
+        else:
+            assert [
+                mock.call(controller, node_fqdn, "ERROR"),
+                mock.call(controller, node_fqdn),
+            ] == mock_is_nova_state.call_args_list
     get_node_fqdn_mock.assert_called_once_with(node)
     mock_get_compute_list.assert_called_once_with(controller)
     mock_get_one_controller.assert_called_once_with(env)
@@ -119,7 +125,7 @@ def test_shutoff_vms(
     mock_waiting = mocker.patch(
         "octane.util.nova.waiting_for_status_completed")
     mock_is_nova_state = mocker.patch(
-        "octane.util.nova.do_nova_instances_exist_in_status",
+        "octane.util.nova.do_nova_instances_exist",
         return_value=nodes_in_error_state)
     nova_run_calls = []
     if nodes_in_error_state:
