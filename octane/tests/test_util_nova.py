@@ -32,7 +32,7 @@ def test_nova_runner_call(mocker, cmd, call_output):
 
 
 @pytest.mark.parametrize("node_fqdn", ["fqdn"])
-@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING", None])
 @pytest.mark.parametrize("cmd_output,exists", [
     (
         """+--------------------------------------+--------------------+
@@ -74,11 +74,15 @@ def test_is_there_nova_instances_exists_in_status(
     controller = mock.Mock()
     nova_run_mock = mocker.patch(
         "octane.util.nova.run_nova_cmd", return_value=cmd_output)
-    assert exists == nova.do_nova_instances_exist_in_status(
-        controller, node_fqdn, state)
-    nova_run_mock.assert_called_once_with([
-        "nova", "list", "--host", node_fqdn,
-        "--status", state, "--limit", "1", "--minimal"], controller)
+    assert exists == nova.do_nova_instances_exist(controller, node_fqdn, state)
+    if state:
+        nova_run_mock.assert_called_once_with([
+            "nova", "list", "--host", node_fqdn,
+            "--limit", "1", "--minimal", "--status", state], controller)
+    else:
+        nova_run_mock.assert_called_once_with([
+            "nova", "list", "--host", node_fqdn,
+            "--limit", "1", "--minimal"], controller)
 
 
 @pytest.mark.parametrize("node_fqdn", ["fqdn"])
@@ -99,7 +103,7 @@ def test_waiting_for_status_completed(
         check_instances_exist_calls.append(
             mock.call(controller, node_fqdn, state))
     mock_patch_is_nova_state = mocker.patch(
-        "octane.util.nova.do_nova_instances_exist_in_status",
+        "octane.util.nova.do_nova_instances_exist",
         side_effect=check_instances_exist_side_effects)
     mock_sleep = mocker.patch("time.sleep")
 

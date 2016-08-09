@@ -36,12 +36,12 @@ def run_nova_cmd(cmd, node, output=True):
     return ssh.call(run_cmd, node=node)
 
 
-def do_nova_instances_exist_in_status(controller, node_fqdn, status):
-    result = run_nova_cmd(['nova', 'list',
-                           '--host', node_fqdn,
-                           '--status', status,
-                           '--limit', '1',
-                           '--minimal'], controller)
+def do_nova_instances_exist(controller, node_fqdn, status=None):
+    cmd = [
+        'nova', 'list', '--host', node_fqdn, '--limit', '1', '--minimal']
+    if status:
+        cmd += ['--status', status]
+    result = run_nova_cmd(cmd, controller).strip()
     return len(result.strip().splitlines()) != 4
 
 
@@ -52,7 +52,7 @@ def waiting_for_status_completed(controller, node_fqdn, status,
             "Waiting until instances on {hostname} hostname "
             "exists in {status} (iteration {iteration})".format(
                 hostname=node_fqdn, status=status, iteration=iteration))
-        if do_nova_instances_exist_in_status(controller, node_fqdn, status):
+        if do_nova_instances_exist(controller, node_fqdn, status):
             time.sleep(attempt_delay)
         else:
             return
