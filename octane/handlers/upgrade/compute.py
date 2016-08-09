@@ -75,8 +75,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                             "Fix this problem and run unpgrade-node "
                             "command again".format(hostname=node_fqdn))
 
-        if nova.do_nova_instances_exist_in_status(
-                controller, node_fqdn, "ERROR"):
+        if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
             raise Exception(
                 "There are instances in ERROR state on {hostname},"
                 "please fix this problem and start upgrade_node "
@@ -91,6 +90,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
                           controller, False)
         nova.waiting_for_status_completed(controller, node_fqdn, "MIGRATING")
+        if nova.do_nova_instances_exist(controller, node_fqdn):
+            raise Exception(
+                "There are instances on {hostname} after host-evacuation, "
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
@@ -102,8 +106,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         controller = env_util.get_one_controller(self.env)
         node_fqdn = node_util.get_nova_node_handle(self.node)
 
-        if nova.do_nova_instances_exist_in_status(
-                controller, node_fqdn, "ERROR"):
+        if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
             raise Exception(
                 "There are instances in ERROR state on {hostname},"
                 "please fix this problem and start upgrade_node "
