@@ -143,3 +143,29 @@ def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
          "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
         controller,
         True)
+
+
+@pytest.mark.parametrize("cmd_out,result", [(
+    "\n\n\n0389c396-c703-4a08-9da9-b2da7b6db2c0  \n"
+    "265690ad-7e31-4fec-8f28-4f1edb0b1f09  \n"
+    "85cfb077-3397-405e-ae61-dfce35d3073a  \n\n\n",
+    [
+        "0389c396-c703-4a08-9da9-b2da7b6db2c0",
+        "265690ad-7e31-4fec-8f28-4f1edb0b1f09",
+        "85cfb077-3397-405e-ae61-dfce35d3073a",
+    ]),
+])
+@pytest.mark.parametrize("node_fqdn", ["node_fqdn"])
+def test_get_active_instances(mocker, cmd_out, result, node_fqdn):
+    controller = mock.Mock()
+    nova_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_out)
+    assert result == nova.get_active_instances(controller, node_fqdn)
+    nova_mock.assert_called_once_with([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal", "|",
+        "awk 'NR>2 {print $2}'"],
+        controller)
