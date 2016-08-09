@@ -57,3 +57,22 @@ def waiting_for_status_completed(controller, node_fqdn, status,
         else:
             return
     raise WaiterException(node_fqdn, attempts, status)
+
+
+def get_compute_lists(controller):
+    """return tuple of lists enabled and disabled computes"""
+    compute_list_str = run_nova_cmd([
+        "nova", "service-list",
+        "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
+        controller,
+        True)
+    enabled_computes = []
+    disabled_computes = []
+    for line in compute_list_str.splitlines():
+        fqdn, status = line.strip().split('|')
+        if status == "enabled":
+            enabled_computes.append(fqdn)
+        elif status == "disabled":
+            disabled_computes.append(fqdn)
+
+    return (enabled_computes, disabled_computes)

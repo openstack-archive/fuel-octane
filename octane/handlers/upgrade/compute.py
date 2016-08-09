@@ -61,29 +61,10 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
         ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
-    @staticmethod
-    def _get_list_instances(controller):
-        compute_list_str = nova.run_nova_cmd([
-            "nova", "service-list",
-            "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
-            controller,
-            True)
-        enabled_compute = []
-        disabled_computes = set()
-        for line in compute_list_str.splitlines():
-            fqdn, status = line.split('|')
-            if status == "enabled":
-                enabled_compute.append(fqdn)
-            elif status == "disabled":
-                disabled_computes.add(fqdn)
-
-        return (enabled_compute, disabled_computes)
-
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
 
-        enabled_compute, disabled_computes = self._get_list_instances(
-            controller)
+        enabled_compute, disabled_computes = nova.get_compute_lists(controller)
 
         if len(enabled_compute) < 2:
             raise Exception("You can't disable last enabled compute")
