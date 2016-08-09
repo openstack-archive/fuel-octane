@@ -105,3 +105,38 @@ def test_is_there_nova_instances_exists_in_status(
 ])
 def test_nova_stdout_parser(cmd_output, expected_result):
     assert expected_result == nova.nova_stdout_parser(cmd_output)
+
+
+@pytest.mark.parametrize("node_fqdn", ["fqdn"])
+@pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING"])
+@pytest.mark.parametrize("delay", [100])
+@pytest.mark.parametrize("attempts,result_attempt",
+                         [(10, 10), (100, 1), (10, 11)])
+def test_waiting_for_status_completed(
+        mocker, node, node_fqdn, state, delay, attempts, result_attempt):
+    controller = mock.Mock()
+    timeout_calls = []
+    check_instances_exist_side_effects = []
+    check_instances_exist_calls = []
+    for idx in range(1, min(attempts, result_attempt) + 1):
+        if idx < result_attempt:
+            timeout_calls.append(mock.call(delay))
+        check_instances_exist_side_effects.append(idx != result_attempt)
+        check_instances_exist_calls.append(
+            mock.call(controller, node_fqdn, state))
+    mock_patch_is_nova_state = mocker.patch(
+        "octane.util.nova.do_nova_instances_exist_in_status",
+        side_effect=check_instances_exist_side_effects)
+    mock_sleep = mocker.patch("time.sleep")
+
+    if result_attempt > attempts:
+        with pytest.raises(nova.WaiterException):
+            nova.waiting_for_status_completed(
+                controller, node_fqdn, state, attempts, delay)
+    else:
+        nova.waiting_for_status_completed(
+            controller, node_fqdn, state, attempts, delay)
+
+    assert timeout_calls == mock_sleep.call_args_list
+    assert check_instances_exist_calls == \
+        mock_patch_is_nova_state.call_args_list
