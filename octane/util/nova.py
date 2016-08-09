@@ -91,3 +91,15 @@ def get_compute_lists(controller):
         elif service['Status'] == 'disabled':
             disabled_computes.append(service['Host'])
     return (enabled_computes, disabled_computes)
+
+
+def get_active_instances(controller, node_fqdn):
+    instances_stdout = run_nova_cmd([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal"],
+        controller)
+    instances = nova_stdout_parser(instances_stdout)
+    return [i["ID"] for i in instances]
