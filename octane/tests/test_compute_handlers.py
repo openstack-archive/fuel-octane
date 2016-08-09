@@ -23,8 +23,9 @@ import pytest
 @pytest.mark.parametrize("node_fqdn", ["node-disabled-1", "node-enabled-1"])
 @pytest.mark.parametrize("nodes_in_error_state", [True, False])
 @pytest.mark.parametrize("fuel_version", ["7.0", "8.0"])
+@pytest.mark.parametrize("instances", [["instance_1", "instance_2"]])
 def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
-                       nodes_in_error_state, fuel_version):
+                       nodes_in_error_state, fuel_version, instances):
     env = mock.Mock()
     controller = mock.Mock()
     node = mock.Mock()
@@ -43,6 +44,9 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     mock_is_nova_state = mocker.patch(
         "octane.util.nova.do_nova_instances_exist",
         return_value=nodes_in_error_state)
+
+    get_instances_mock = mocker.patch(
+        "octane.util.nova.get_active_instances", return_value=instances)
 
     mock_waiting = mocker.patch(
         "octane.util.nova.waiting_for_status_completed")
@@ -64,15 +68,19 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
         nova_calls.append(mock.call(
             ["nova", "service-disable", node_fqdn, "nova-compute"],
             controller, False))
-    nova_calls.append(mock.call(
-        ['nova', 'host-evacuate-live', node_fqdn], controller, False))
+    for instance in instances:
+        nova_calls.append(mock.call(
+            ["nova", "live-migration", instance], controller, False))
     if error:
         assert not run_nova_cmd.called
         assert not mock_waiting.called
+        assert not get_instances_mock.called
     else:
         assert run_nova_cmd.call_args_list == nova_calls
-        mock_waiting.assert_called_once_with(
-            controller, node_fqdn, "MIGRATING")
+        get_instances_mock.assert_called_once_with(controller, node_fqdn)
+        waiting_calls = [mock.call(controller, node_fqdn, "MIGRATING")
+                         for i in instances]
+        assert waiting_calls == mock_waiting.call_args_list
     if [node_fqdn] == enabled:
         assert not mock_is_nova_state.called
     else:

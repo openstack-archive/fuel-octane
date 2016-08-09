@@ -169,3 +169,32 @@ def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
     assert (enabled, disabled) == nova.get_compute_lists(controller)
     run_nova_cmd.assert_called_once_with(
         ["nova", "service-list", "--binary", "nova-compute"], controller, True)
+
+
+@pytest.mark.parametrize("cmd_out,result", [(
+    "+--------------------------------------+\n"
+    "| ID                                   |\n"
+    "+--------------------------------------+\n"
+    "| d5c35583-f498-4841-a032-069ec066d2d5 |\n"
+    "| 8d274e6b-91db-4d76-a5e8-13a23c3335c9 |\n"
+    "| 093c55f2-4a30-4a74-95ea-d7c39fcb4e3a |\n"
+    "+--------------------------------------+\n",
+    [
+        "d5c35583-f498-4841-a032-069ec066d2d5",
+        "8d274e6b-91db-4d76-a5e8-13a23c3335c9",
+        "093c55f2-4a30-4a74-95ea-d7c39fcb4e3a",
+    ]),
+])
+@pytest.mark.parametrize("node_fqdn", ["node_fqdn"])
+def test_get_active_instances(mocker, cmd_out, result, node_fqdn):
+    controller = mock.Mock()
+    nova_mock = mocker.patch(
+        "octane.util.nova.run_nova_cmd", return_value=cmd_out)
+    assert result == nova.get_active_instances(controller, node_fqdn)
+    nova_mock.assert_called_once_with([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal"],
+        controller)
