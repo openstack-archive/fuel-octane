@@ -10,7 +10,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+import time
+
 from octane.util import ssh
+
+LOG = logging.getLogger(__name__)
+
+
+class WaiterException(Exception):
+
+    message = "After {attempts} tries of checking instances on {hostname}" \
+              "some instances are still in {status} status"
+
+    def __init__(self, hostname, attempts, status):
+        msg = self.message.format(
+            hostname=hostname, attempts=attempts, status=status)
+        super(Exception, self).__init__(msg)
 
 
 def run_nova_cmd(cmd, node, output=True):
@@ -27,3 +43,16 @@ def do_nova_instances_exist_in_status(controller, node_fqdn, status):
                            '--limit', '1',
                            '--minimal'], controller)
     return len(result.strip().splitlines()) != 4
+
+
+def waiting_for_status_completed(controller, node_fqdn, status,
+                                 attempts=180, attempt_delay=10):
+    for iteration in xrange(attempts):
+        LOG.info(
+            "Waiting until migration ends on {0} "
+            "hostname (iteration {1})".format(node_fqdn, iteration))
+        if do_nova_instances_exist_in_status(controller, node_fqdn, status):
+            time.sleep(attempt_delay)
+        else:
+            return
+    raise WaiterException(node_fqdn, attempts, status)

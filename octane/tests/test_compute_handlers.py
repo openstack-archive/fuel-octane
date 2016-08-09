@@ -28,6 +28,7 @@ import pytest
 def test_shutoff_vm(
         mocker, password, instances_cmd_out, expected_instances,
         fqdn, is_fqdn_call, node_id, fuel_version):
+    mocker.patch("octane.util.nova.waiting_for_status_completed")
     env_mock = mock.Mock()
     node = mock.Mock()
     node.env.data = {"fuel_version": fuel_version}
