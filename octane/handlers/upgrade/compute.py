@@ -87,9 +87,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             nova.run_nova_cmd(
                 ["nova", "service-disable", node_fqdn, "nova-compute"],
                 controller, False)
-        nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
-                          controller, False)
-        nova.waiting_for_status_completed(controller, node_fqdn, "MIGRATING")
+        for instance in nova.get_active_instances(controller, node_fqdn):
+            nova.run_nova_cmd(
+                ["nova", "live-migration", instance], controller, False)
+            nova.waiting_for_status_completed(
+                controller, node_fqdn, "MIGRATING")
         if nova.do_nova_instances_exist(controller, node_fqdn):
             raise Exception(
                 "There are instances on {hostname} after host-evacuation, "
@@ -112,16 +114,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 "please fix this problem and start upgrade_node "
                 "command again".format(hostname=node_fqdn))
 
-        instances_str = nova.run_nova_cmd([
-            "nova", "list",
-            "--host", node_fqdn,
-            "--limit", "-1",
-            "--status", "ACTIVE",
-            "--minimal", "|",
-            "awk 'NR>2 {print $2}'"],
-            controller)
-        instances = instances_str.strip().splitlines()
-        for instance in instances:
+        for instance in nova.get_active_instances(controller, node_fqdn):
             instance = instance.strip()
             nova.run_nova_cmd(
                 ["nova", "stop", instance], controller, output=False)

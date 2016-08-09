@@ -76,3 +76,15 @@ def get_compute_lists(controller):
             disabled_computes.append(fqdn)
 
     return (enabled_computes, disabled_computes)
+
+
+def get_active_instances(controller, node_fqdn):
+    instances_str = run_nova_cmd([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal", "|",
+        "awk 'NR>2 {print $2}'"],
+        controller)
+    return [i.strip() for i in instances_str.strip().splitlines()]
