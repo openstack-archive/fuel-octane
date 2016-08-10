@@ -20,10 +20,30 @@ def run_nova_cmd(cmd, node, output=True):
     return ssh.call(run_cmd, node=node)
 
 
+def nova_stdout_parser(cmd_stdout):
+    """Parse nova cmd stdout
+
+    Return list of dicts ther keys are the header of the cmd out table.
+    """
+    results = []
+    headers = None
+    for line in cmd_stdout.splitlines():
+        line = line.strip()
+        if not line or line[0] == '+':
+            continue
+        cols = line.strip("|").split("|")
+        cols = [c.strip() for c in cols]
+        if headers is None:
+            headers = cols
+        else:
+            results.append(dict(zip(headers, cols)))
+    return results
+
+
 def do_nova_instances_exist_in_status(controller, node_fqdn, status):
     result = run_nova_cmd(['nova', 'list',
                            '--host', node_fqdn,
                            '--status', status,
                            '--limit', '1',
                            '--minimal'], controller)
-    return len(result.strip().splitlines()) != 4
+    return bool(nova_stdout_parser(result))
