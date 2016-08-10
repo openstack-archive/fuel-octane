@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import shlex
+
 from octane.util import ssh
 
 
@@ -20,10 +22,32 @@ def run_nova_cmd(cmd, node, output=True):
     return ssh.call(run_cmd, node=node)
 
 
+def nova_stdout_parser(cmd_stdout):
+    """Parse nova cmd stdout
+
+    Return list of dicts ther keys are the header of the cmd out table.
+    """
+    results = []
+    headers = None
+    for line in cmd_stdout.splitlines():
+        lex = shlex.shlex(line, posix=True)
+        lex.whitespace_split = True
+        lex.commenters = '+'
+        lex.whitespace += "|"
+        lex_list = list(lex)
+        if not lex_list:
+            continue
+        if headers is None:
+            headers = lex_list
+        else:
+            results.append(dict(zip(headers, lex_list)))
+    return results
+
+
 def do_nova_instances_exist_in_status(controller, node_fqdn, status):
     result = run_nova_cmd(['nova', 'list',
                            '--host', node_fqdn,
                            '--status', status,
                            '--limit', '1',
                            '--minimal'], controller)
-    return len(result.strip().splitlines()) != 4
+    return bool(nova_stdout_parser(result))
