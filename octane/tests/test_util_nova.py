@@ -79,3 +79,49 @@ def test_is_there_nova_instances_exists_in_status(
     nova_run_mock.assert_called_once_with([
         "nova", "list", "--host", node_fqdn,
         "--status", state, "--limit", "1", "--minimal"], controller)
+
+
+@pytest.mark.parametrize("cmd_output, expected_result", [
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+""",
+        [
+            {
+                "ID": "85cfb077-3397-405e-ae61-dfce35d3073a",
+                "Name": "test_boot_volume_2",
+            }
+        ]
+    ),
+    (
+        """
+        +------+-------------+
+        | ID   | Name        |
+        +------+-------------+
+        | id_1 | test_name_1 |
+        | id_2 | test_name_2 |
+        +------+-------------+
+        """,
+        [
+            {
+                "ID": "id_1",
+                "Name": "test_name_1",
+            },
+            {
+                "ID": "id_2",
+                "Name": "test_name_2",
+            }
+        ]
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+""",
+        []
+    ),
+])
+def test_nova_stdout_parser(cmd_output, expected_result):
+    assert expected_result == nova.nova_stdout_parser(cmd_output)
