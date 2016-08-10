@@ -18,3 +18,12 @@ def run_nova_cmd(cmd, node, output=True):
     if output:
         return ssh.call_output(run_cmd, node=node)
     return ssh.call(run_cmd, node=node)
+
+
+def do_nova_instances_exist_in_status(controller, node_fqdn, status):
+    result = run_nova_cmd(['nova', 'list',
+                           '--host', node_fqdn,
+                           '--status', status,
+                           '--limit', '1',
+                           '--minimal'], controller)
+    return len(result.strip().splitlines()) != 4
