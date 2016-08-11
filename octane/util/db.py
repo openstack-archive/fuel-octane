@@ -27,6 +27,14 @@ def get_databases(env):
     return out.splitlines()
 
 
+def migrate_data(env):
+    node = env_util.get_one_controller(env)
+    # if env 7.0/kilo
+    ssh.call(
+        ['nova-manage', 'db', 'migrate_flavor_data'],
+        node=node, parse_levels=True)
+
+
 def mysqldump_from_env(env, role_name, dbs, fname):
     node = env_util.get_one_node_of(env, role_name)
     cmd = [
@@ -73,21 +81,23 @@ def db_sync(env):
     # (this migration check flavor instances consistency)
     # than migrate flavor (transform them to normal state)
     # after that sync nova to the end
-    with ssh.applied_patches(magic_consts.NOVA_PATCH_PREFIX_DIR,
-                             node,
-                             *magic_consts.NOVA_PATCHES):
-        ssh.call(
-            ['nova-manage', 'db', 'sync', '--version', '290'],
-            node=node, parse_levels=True)
-        ssh.call(
-            ['nova-manage', 'db', 'migrate_flavor_data'],
-            node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'migrate'],
-                 node=node, parse_levels=True)
-        ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
-                 node=node, parse_levels=True)
+#    with ssh.applied_patches(magic_consts.NOVA_PATCH_PREFIX_DIR,
+#                             node,
+#                             *magic_consts.NOVA_PATCHES):
+#        ssh.call(
+#            ['nova-manage', 'db', 'sync', '--version', '290'],
+#            node=node, parse_levels=True)
+#        ssh.call(
+#            ['nova-manage', 'db', 'migrate_flavor_data'],
+#            node=node, parse_levels=True)
+#        ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
+#        ssh.call(['nova-manage', 'db', 'expand'], node=node, parse_levels=True)
+#        ssh.call(['nova-manage', 'db', 'migrate'],
+#                 node=node, parse_levels=True)
+#        ssh.call(['nova-manage', 'db', 'contract', '--force-experimental'],
+#                 node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'db', 'sync'], node=node, parse_levels=True)
+    ssh.call(['nova-manage', 'api_db', 'sync'], node=node, parse_levels=True)
     ssh.call(['heat-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['glance-manage', 'db_sync'], node=node, parse_levels=True)
     ssh.call(['neutron-db-manage', '--config-file=/etc/neutron/neutron.conf',
