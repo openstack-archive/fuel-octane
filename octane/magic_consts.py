@@ -19,6 +19,7 @@ PATCHES_DIR = os.path.join(CWD, "patches")
 
 FUEL_CACHE = "/tmp"  # TODO: we shouldn't need this
 PUPPET_DIR = "/etc/puppet/modules"
+DEPLOYMENT_DIR = "/var/www/nailgun/octane"
 NAILGUN_ARCHIVATOR_PATCHES = (
     PUPPET_DIR,
     os.path.join(CWD, "patches/timeout.patch"),
