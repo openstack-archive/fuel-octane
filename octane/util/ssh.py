@@ -284,6 +284,7 @@ def get_env_credentials(env):
     attrs = env.get_attributes()
     editable = attrs['editable'].get('service_user')
 
+    return None
     if not editable:
         return None
 
