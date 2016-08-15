@@ -37,6 +37,13 @@ def test_merge_dicts(mocker, base, update, result):
     assert result == helpers.merge_dicts(base, update)
 
 
+def test_get_astute_dict(mocker):
+    mock_load = mocker.patch("octane.util.helpers.load_yaml")
+    data = helpers.get_astute_dict()
+    mock_load.assert_called_once_with("/etc/fuel/astute.yaml")
+    assert data is mock_load.return_value
+
+
 @pytest.mark.parametrize(("source", "parameters"), [
     ([
         "option1 =  value1\n",
