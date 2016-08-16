@@ -9,15 +9,34 @@
   role: [controller]
   fault_tolerance: 0
 
+- id: master
+  type: group
+  role: [master]
+  fault_tolerance: 0
+
 # TASKS
+- id: rsync_octane_section
+  type: puppet
+  version: 2.1.0
+  groups: [master]
+  requires: []
+  required_for: []
+  parameters:
+    puppet_manifest: /var/www/nailgun/octane_code/puppet/octane_tasks/modular/rsync_octane_section.pp
+    puppet_modules:  /var/www/nailgun/octane_code/puppet/:/etc/puppet/modules
+    timeout: 120
+
 - id: rsync_octane
   type: sync
   version: 2.1.0
   groups: [primary-controller, controller]
   requires: []
   required_for: []
+  cross-depends:
+    - name: rsync_octane_section
+      role: master
   parameters:
-    src: rsync://{MASTER_IP}:/octane/puppet
+    src: rsync://{MASTER_IP}:/octane_code/puppet
     dst: /etc/fuel/octane/
     timeout: 180
 
@@ -51,8 +70,11 @@
   groups: [primary-controller]
   requires: []
   required_for: []
+  cross-depends:
+    - name: rsync_octane_section
+      role: master
   parameters:
-    src: rsync://{MASTER_IP}:/octane/tmp/dbs.original.sql.gz
+    src: rsync://{MASTER_IP}:/octane_data/dbs.original.sql.gz
     dst: /var/tmp
     timeout: 180
 

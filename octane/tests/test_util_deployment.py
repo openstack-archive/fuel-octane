@@ -67,9 +67,9 @@ def test_upload_graphs(mocker, orig_id, seed_id):
     mock_upload = mocker.patch("octane.util.deployment.upload_graphs_to_env")
     deployment.upload_graphs(orig_id, seed_id)
     assert mock_upload.call_args_list == [
-        mock.call("/var/www/nailgun/octane/puppet/octane_tasks/graphs/orig",
+        mock.call("/var/www/nailgun/octane_code/puppet/octane_tasks/graphs/orig",
                   orig_id),
-        mock.call("/var/www/nailgun/octane/puppet/octane_tasks/graphs/seed",
+        mock.call("/var/www/nailgun/octane_code/puppet/octane_tasks/graphs/seed",
                   seed_id),
     ]
 
