@@ -4,13 +4,23 @@
   role: [primary-controller]
   fault_tolerance: 0
 
-- id: controller
+- id: master
   type: group
-  role: [controller]
+  role: [master]
   fault_tolerance: 0
 
 # TASKS
-# TODO: Improve with https://review.openstack.org/#/c/342959/
+- id: rsync_octane_section
+  type: puppet
+  version: 2.1.0
+  groups: [master]
+  requires: []
+  required_for: []
+  parameters:
+    puppet_manifest: /var/www/nailgun/octane/puppet/octane_tasks/modular/rsync_octane_section.pp
+    puppet_modules:  /var/www/nailgun/octane/puppet/:/etc/puppet/modules
+    timeout: 120
+
 - id: stop_haproxy
   type: shell
   version: 2.1.0
@@ -45,7 +55,10 @@
   groups: [primary-controller]
   requires: [mysqldump_create]
   required_for: []
+  cross-depends:
+    - name: rsync_octane_section
+      role: master
   parameters:
     src: /var/tmp/dbs.original.sql.gz
-    dst: rsync://{MASTER_IP}:/octane/tmp/
+    dst: rsync://{MASTER_IP}:/octane_data/
     timeout: 180
