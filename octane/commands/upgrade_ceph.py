@@ -191,6 +191,10 @@ class UpgradeCephCommand(cmd.Command):
         parser.add_argument(
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
+        parser.add_argument(
+            '--with-graph', action='store_true',
+            help='EXPERIMENTAL: Use Fuel deployment graphs'
+                 ' instead of python-based commands.')
         return parser
 
     def take_action(self, parsed_args):
