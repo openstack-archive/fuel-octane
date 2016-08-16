@@ -214,6 +214,7 @@ def test_cobbler_archivator(mocker, mock_subprocess):
     mocker.patch.object(cobbler.CobblerDistroArchivator, "restore")
     mocker.patch.object(cobbler.CobblerProfileArchivator, "restore")
     mock_puppet = mocker.patch("octane.util.puppet.apply_task")
+    mocker.patch("octane.util.cobbler.rename_bootstrap_profile_for_systems")
     cobbler.CobblerArchivator(mock.Mock(), mock.Mock()).restore()
     mock_subprocess.assert_called_once_with(
         ["systemctl", "stop", "cobblerd"])
