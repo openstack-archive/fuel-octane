@@ -11,6 +11,7 @@
 # under the License.
 
 from octane.handlers.backup_restore import base
+from octane.util import cobbler
 from octane.util import puppet
 from octane.util import subprocess
 
@@ -34,7 +35,6 @@ class CobblerDistroArchivator(base.PathFilterArchivator):
 
 
 class CobblerArchivator(base.CollectionArchivator):
-
     archivators_classes = [
         CobblerSystemArchivator,
         CobblerProfileArchivator,
@@ -42,6 +42,9 @@ class CobblerArchivator(base.CollectionArchivator):
     ]
 
     def restore(self):
-        super(CobblerArchivator, self).restore()
-        subprocess.call(["systemctl", "stop", "cobblerd"])
-        puppet.apply_task("cobbler")
+        # NOTE(akscram): Ubuntu systems created in the 7.0 release
+        # use the 'bootstrap' profile that was removed since 9.0.
+        with cobbler.rename_bootstrap_profile_for_systems():
+            super(CobblerArchivator, self).restore()
+            subprocess.call(["systemctl", "stop", "cobblerd"])
+            puppet.apply_task("cobbler")
