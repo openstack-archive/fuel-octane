@@ -26,6 +26,7 @@ Requires:    python-stevedore
 Requires:    python-fuelclient
 Requires:    python-cliff
 Requires:    fuel-nailgun-extension-cluster-upgrade
+Requires:    puppet
 
 %description
 Project is aimed to provide tools to upgrade the Fuel Admin node and OpenStack
@@ -41,14 +42,19 @@ cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} %{__python
 cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
 cp -vr %{_builddir}/%{name}-%{version}/octane/patches ${RPM_BUILD_ROOT}/%{python2_sitelib}/octane/
 
-mkdir -p ${RPM_BUILD_ROOT}/var/www/nailgun/octane
-cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet ${RPM_BUILD_ROOT}/var/www/nailgun/octane/puppet
+install -d ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code
+install -d -m 0750 ${RPM_BUILD_ROOT}/var/www/nailgun/octane_data
+cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code/puppet
 
 %files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
 %{python2_sitelib}/octane/patches/*
-/var/www/nailgun/octane/puppet/octane_tasks/*
+/var/www/nailgun/octane_code/puppet/octane_tasks/*
+/var/www/nailgun/octane_data
 %defattr(-,root,root)
 
+%post
+# TODO(pchechetin): When Rsync 3.1.0 is available in the repository, start using `include` directory to configure Rsync.
+puppet apply --modulepath /var/www/nailgun/octane_code/puppet/ /var/www/nailgun/octane_code/puppet/octane_tasks/modular/rsync_octane_section.pp
 
 %clean
 rm -rf $RPM_BUILD_ROOT

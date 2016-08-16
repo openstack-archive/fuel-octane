@@ -9,6 +9,7 @@
   role: [controller]
   fault_tolerance: 0
 
+
 # TASKS
 - id: rsync_octane
   type: sync
@@ -17,7 +18,7 @@
   requires: []
   required_for: []
   parameters:
-    src: rsync://{MASTER_IP}:/octane/puppet
+    src: rsync://{MASTER_IP}:/octane_code/puppet
     dst: /etc/fuel/octane/
     timeout: 180
 
@@ -52,7 +53,7 @@
   requires: []
   required_for: []
   parameters:
-    src: rsync://{MASTER_IP}:/octane/tmp/dbs.original.sql.gz
+    src: rsync://{MASTER_IP}:/octane_data/dbs.original.sql.gz
     dst: /var/tmp
     timeout: 180
 
