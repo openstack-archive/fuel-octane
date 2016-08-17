@@ -65,14 +65,14 @@ def upgrade_db_with_graph(orig_id, seed_id):
 
     # If any failure try to rollback ONLY original environment.
     try:
-        deploy.execute_graph_and_wait("upgrade-db-orig", orig_id)
-        deploy.execute_graph_and_wait("upgrade-db-seed", seed_id)
+        deploy.execute_graph_and_wait("upgrade-db", orig_id)
+        deploy.execute_graph_and_wait("upgrade-db", seed_id)
     except Exception:
         cluster_graphs = deploy.get_cluster_graph_names(orig_id)
-        if "upgrade-db-orig-rollback" in cluster_graphs:
+        if "upgrade-db-rollback" in cluster_graphs:
             LOG.info("Trying to rollback 'upgrade-db' on the "
                      "orig environment '%s'.", orig_id)
-            deploy.execute_graph_and_wait("upgrade-db-orig-rollback", orig_id)
+            deploy.execute_graph_and_wait("upgrade-db-rollback", orig_id)
         raise
 
 
