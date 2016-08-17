@@ -10,6 +10,17 @@
   fault_tolerance: 0
 
 # TASKS
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  groups: [primary-controller, controller]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
 # TODO: Improve with https://review.openstack.org/#/c/342959/
 - id: stop_haproxy
   type: shell
@@ -49,3 +60,14 @@
     src: /var/tmp/dbs.original.sql.gz
     dst: rsync://{MASTER_IP}:/octane/tmp/
     timeout: 180
+
+- id: nova_db_migrate_flavor_data_70
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [rsync_octane]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/nova_db_migrate_flavor_data_70.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
