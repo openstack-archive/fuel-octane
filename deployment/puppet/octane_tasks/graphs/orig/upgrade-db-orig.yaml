@@ -4,13 +4,9 @@
   role: [primary-controller]
   fault_tolerance: 0
 
-- id: controller
-  type: group
-  role: [controller]
-  fault_tolerance: 0
-
 # TASKS
-# TODO: Improve with https://review.openstack.org/#/c/342959/
+# TODO: Don't stop haproxy, but disable only specific backend using Puppet provider
+#       from https://review.openstack.org/#/c/342959/
 - id: stop_haproxy
   type: shell
   version: 2.1.0
@@ -47,5 +43,5 @@
   required_for: []
   parameters:
     src: /var/tmp/dbs.original.sql.gz
-    dst: rsync://{MASTER_IP}:/octane/tmp/
+    dst: rsync://{MASTER_IP}:/octane_data/
     timeout: 180
