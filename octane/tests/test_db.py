@@ -68,8 +68,11 @@ def test_db_sync(mocker, node, mock_subprocess, mock_ssh_call):
     get_one_controller.return_value = node
 
     applied_patches = mocker.patch("octane.util.ssh.applied_patches")
+    fix_migration_mock = mocker.patch("octane.util.db.fix_neutron_migrations")
 
     db.db_sync('env')
+
+    fix_migration_mock.assert_called_once_with(node)
 
     applied_patches.assert_called_once_with(
         magic_consts.NOVA_PATCH_PREFIX_DIR, node, *magic_consts.NOVA_PATCHES)

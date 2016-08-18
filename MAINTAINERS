@@ -66,3 +66,9 @@ maintainers:
   - name:   Igor Yozhikov
     email:  iyozhikov@mirantis.com
     IRC:    IgorYozhikov
+
+- deployment/:
+  - name:   Roman Sokolkov
+    email:  rsokolkov@mirantis.com
+  - name:   Pavel Chechetin
+    email:  pchechetin@mirantis.com
