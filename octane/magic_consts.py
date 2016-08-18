@@ -91,3 +91,25 @@ NOVA_PATCHES = [
 SFTP_SERVER_BIN = '/usr/lib/sftp-server'
 
 FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
+
+
+SOURCES_PATH = '/etc/apt/sourses.list.d/'
+
+SOURSES_LIST = '/etc/apt/sourses.list'
+
+COMPUTE_SOURSES = [
+    'deb http://10.109.10.2:8080/liberty-8.0/ubuntu/auxiliary '
+    'auxiliary main restricted\n',
+    'deb http://10.109.10.2:8080/liberty-8.0/ubuntu/x86_64 mos8.0 '
+    'main restricted\n',
+    'deb http://10.109.10.2:8080/mirrors/mos-repos/ubuntu/8.0/ '
+    'mos8.0-security main restricted\n',
+    'deb http://10.109.10.2:8080/mirrors/mos-repos/ubuntu/8.0/ '
+    'mos8.0-updates main restricted\n',
+    'deb http://10.109.10.2:8080/mirrors/ubuntu/ '
+    'trusty main universe multiverse\n',
+    'deb http://10.109.10.2:8080/mirrors/ubuntu/ '
+    'trusty-security main universe multiverse\n',
+    'deb http://10.109.10.2:8080/mirrors/ubuntu/ '
+    'trusty-updates main universe multiverse'
+]
