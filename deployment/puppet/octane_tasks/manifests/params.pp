@@ -5,6 +5,7 @@
 class octane_tasks::params (
 ) {
 
+  $nova_hash        = hiera_hash('nova')
   $ceilometer_hash  = hiera_hash('ceilometer', {'enabled' => false})
   $sahara_hash      = hiera_hash('sahara', {'enabled' => false})
   $murano_hash      = hiera_hash('murano', {'enabled' => false})
