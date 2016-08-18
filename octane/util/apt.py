@@ -48,6 +48,9 @@ def _run_apt_get(mode, options, node, packages, fix_broken=False):
 
 
 install_packages = functools.partial(_run_apt_get, 'install', [])
+upgrade_packages = functools.partial(
+    _run_apt_get, 'install', ['--only-upgrade']
+)
 
 
 def fetch_release_parameters(repo):
