@@ -10,6 +10,7 @@ class octane_tasks::dbsync (
   include ::neutron::db::sync
   include ::cinder::db::sync
   include ::heat::db::sync
+  include ::ironic::db::sync
 
   if $murano_enabled {
     include ::murano::db::sync
@@ -17,6 +18,10 @@ class octane_tasks::dbsync (
 
   if $sahara_enabled {
     include ::sahara::db::sync
+  }
+
+  if $ironic_enabled {
+    include ::ironic::db::sync
   }
 
   # All db sync classes have "refreshonly => true" by default
