@@ -38,7 +38,7 @@
   type: puppet
   version: 2.1.0
   groups: [primary-controller, controller]
-  requires: [delete_fuel_resources]
+  requires: [rsync_octane, delete_fuel_resources]
   required_for: []
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/stop_controller_services.pp
@@ -52,25 +52,26 @@
   requires: []
   required_for: []
   parameters:
-    src: rsync://{MASTER_IP}:/octane_data/dbs.original.sql.gz
+    src: rsync://{MASTER_IP}:/octane_data/dbs.original.sql.gz.enc
     dst: /var/tmp
     timeout: 180
 
 - id: mysqldump_restore
-  type: shell
+  type: puppet
   version: 2.1.0
   groups: [primary-controller]
-  requires: [mysqldump_download_from_master, stop_controller_services]
+  requires: [rsync_octane, mysqldump_download_from_master, stop_controller_services]
   required_for: []
   parameters:
-    cmd: zcat /var/tmp/dbs.original.sql.gz | mysql --defaults-file=/root/.my.cnf
-    timeout: 180
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/mysqldump_restore.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
 
 - id: db_sync
   type: puppet
   version: 2.1.0
   groups: [primary-controller]
-  requires: [mysqldump_restore]
+  requires: [rsync_octane, mysqldump_restore]
   required_for: []
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/db_sync.pp
