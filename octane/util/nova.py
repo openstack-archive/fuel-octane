@@ -10,7 +10,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+import time
+
 from octane.util import ssh
+
+LOG = logging.getLogger(__name__)
+
+
+class WaiterException(Exception):
+
+    message = "After {attempts} tries of checking instances on {hostname}" \
+              "some instances are still in {status} status"
+
+    def __init__(self, hostname, attempts, status):
+        msg = self.message.format(
+            hostname=hostname, attempts=attempts, status=status)
+        super(Exception, self).__init__(msg)
 
 
 def run_nova_cmd(cmd, node, output=True):
@@ -18,3 +34,72 @@ def run_nova_cmd(cmd, node, output=True):
     if output:
         return ssh.call_output(run_cmd, node=node)
     return ssh.call(run_cmd, node=node)
+
+
+def nova_stdout_parser(cmd_stdout):
+    """Parse nova cmd stdout
+
+    Return list of dicts ther keys are the header of the cmd out table.
+    """
+    results = []
+    headers = None
+    for line in cmd_stdout.splitlines():
+        line = line.strip()
+        if not line or line[0] == '+':
+            continue
+        cols = line.strip("|").split("|")
+        cols = [c.strip() for c in cols]
+        if headers is None:
+            headers = cols
+        else:
+            results.append(dict(zip(headers, cols)))
+    return results
+
+
+def do_nova_instances_exist(controller, node_fqdn, status=None):
+    cmd = ['nova', 'list', '--host', node_fqdn, '--limit', '1', '--minimal']
+    if status:
+        cmd += ['--status', status]
+    result = run_nova_cmd(cmd, controller)
+    return bool(nova_stdout_parser(result))
+
+
+def waiting_for_status_completed(controller, node_fqdn, status,
+                                 attempts=180, attempt_delay=10):
+    for iteration in xrange(attempts):
+        LOG.info(
+            "Waiting until instances on {hostname} hostname "
+            "exists in {status} (iteration {iteration})".format(
+                hostname=node_fqdn, status=status, iteration=iteration))
+        if do_nova_instances_exist(controller, node_fqdn, status):
+            time.sleep(attempt_delay)
+        else:
+            return
+    raise WaiterException(node_fqdn, attempts, status)
+
+
+def get_compute_lists(controller):
+    """return tuple of lists enabled and disabled computes"""
+    service_stdout = run_nova_cmd(
+        ["nova", "service-list", "--binary", "nova-compute"], controller)
+    parsed_service_list = nova_stdout_parser(service_stdout)
+    enabled_computes = []
+    disabled_computes = []
+    for service in parsed_service_list:
+        if service['Status'] == 'enabled':
+            enabled_computes.append(service['Host'])
+        elif service['Status'] == 'disabled':
+            disabled_computes.append(service['Host'])
+    return (enabled_computes, disabled_computes)
+
+
+def get_active_instances(controller, node_fqdn):
+    instances_stdout = run_nova_cmd([
+        "nova", "list",
+        "--host", node_fqdn,
+        "--limit", "-1",
+        "--status", "ACTIVE",
+        "--minimal"],
+        controller)
+    instances = nova_stdout_parser(instances_stdout)
+    return [i["ID"] for i in instances]
