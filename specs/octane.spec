@@ -51,6 +51,7 @@ cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet ${RPM_BUILD_ROOT}/var/w
 %{python2_sitelib}/octane/patches/*
 /var/www/nailgun/octane_code/puppet/octane_tasks/*
 /var/www/nailgun/octane_data
+%attr(750, nobody, nobody) /var/www/nailgun/octane_data
 %defattr(-,root,root)
 
 %post
