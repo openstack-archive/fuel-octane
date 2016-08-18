@@ -22,6 +22,7 @@ from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
 from octane import magic_consts
+from octane.util import deployment as deploy
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -180,6 +181,15 @@ def upgrade_ceph(orig_id, seed_id):
     ceph_set_new_mons(orig_env, seed_env, tar_filename, conf_filename, db_path)
 
 
+def upgrade_ceph_with_graph(orig_id, seed_id):
+    """Upgrade ceph using deployment graphs"""
+
+    deploy.upload_graphs(orig_id, seed_id)
+
+    deploy.execute_graph_and_wait('upgrade-ceph', orig_id)
+    deploy.execute_graph_and_wait('upgrade-ceph', seed_id)
+
+
 class UpgradeCephCommand(cmd.Command):
     """update Ceph cluster configuration."""
 
@@ -191,7 +201,14 @@ class UpgradeCephCommand(cmd.Command):
         parser.add_argument(
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
+        parser.add_argument(
+            '--with-graph', action='store_true',
+            help='EXPERIMENTAL: Use Fuel deployment graphs'
+                 ' instead of python-based commands.')
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_ceph(parsed_args.orig_id, parsed_args.seed_id)
+        if parsed_args.with_graph:
+            upgrade_ceph_with_graph(parsed_args.orig_id, parsed_args.seed_id)
+        else:
+            upgrade_ceph(parsed_args.orig_id, parsed_args.seed_id)
