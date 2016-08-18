@@ -4,7 +4,7 @@
 #
 class octane_tasks::params (
 ) {
-
+  $nova_hash        = hiera_hash('nova')
   $ceilometer_hash  = hiera_hash('ceilometer', {'enabled' => false})
   $sahara_hash      = hiera_hash('sahara', {'enabled' => false})
   $murano_hash      = hiera_hash('murano', {'enabled' => false})
@@ -73,6 +73,8 @@ class octane_tasks::params (
   } else {
     $sahara_services_list = []
   }
+
+  # TODO(pchechetin): Add Ironic support
 
   # Pacemaker services
   $cluster_services_list = [
