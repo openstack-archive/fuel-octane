@@ -20,6 +20,7 @@ import yaml
 
 from distutils import version
 
+from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
 from fuelclient.objects import task as task_obj
 
@@ -352,3 +353,8 @@ def copy_fuel_keys(source_env_id, seed_env_id):
         str(seed_env_id)
     )
     shutil.copytree(source_env_keys_path, seed_env_keys_path)
+
+
+def get_generated(env_id):
+    return environment_obj.Environment.connection.get_request(
+        'clusters/{0}/generated'.format(env_id))
