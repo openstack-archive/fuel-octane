@@ -13,6 +13,7 @@
 import contextlib
 import io
 import logging
+import os
 import pipes
 import random
 import shutil
@@ -291,3 +292,13 @@ def get_env_credentials(env):
         'user': editable['name']['value'],
         'password': editable['password']['value'],
     }
+
+
+def remove_all_files_from_dirs(dir_names, node):
+    for dir_name in dir_names:
+        call(['rm', os.path.join(dir_name, '*')], node=node)
+
+
+def write_content_to_file(sftp, filename, content):
+    with sftp.open(filename, 'w') as file:
+        file.write(content)
