@@ -174,3 +174,29 @@ def test_get_nova_node_handle(mocker, node_data, fuel_version, expected_name):
     else:
         with pytest.raises(Exception):
             node_util.get_nova_node_handle(node)
+
+
+@pytest.mark.parametrize('stdout,nova_services_to_restart', [
+    (
+        "   [ + ] nova-service-1\n"
+        "   [ + ] nova-service-2\n"
+        "   [ - ] nova-service-3\n"
+        "   [ - ] not-nova-service-1\n"
+        "   [ + ] not-nova-service-2\n"
+        "   [ + ] nova-service-4\n",
+        [
+            'nova-service-1',
+            'nova-service-2',
+            'nova-service-4',
+        ]
+    )
+])
+def test_restart_nova_services(mocker, node, stdout, nova_services_to_restart):
+    call_output_mock = mocker.patch(
+        "octane.util.ssh.call_output", return_value=stdout)
+    call_mock = mocker.patch("octane.util.ssh.call")
+    node_util.restart_nova_services(node)
+    for service in nova_services_to_restart:
+        call_mock.assert_any_call(["service", service, "restart"], node=node)
+    call_output_mock.assert_called_once_with(
+        ["service", "--status-all"], node=node)

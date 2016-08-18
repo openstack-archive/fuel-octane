@@ -13,7 +13,6 @@
 import logging
 import os.path
 import subprocess
-import time
 
 from octane.handlers import upgrade
 from octane import magic_consts
@@ -62,48 +61,25 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
         ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
-    @staticmethod
-    def _get_list_instances(controller):
-        compute_list_str = nova.run_nova_cmd([
-            "nova", "service-list",
-            "|", "awk", "'/nova-compute/ {print $6\"|\"$10}'"],
-            controller,
-            True)
-        enabled_compute = []
-        disabled_computes = set()
-        for line in compute_list_str.splitlines():
-            fqdn, status = line.split('|')
-            if status == "enabled":
-                enabled_compute.append(fqdn)
-            elif status == "disabled":
-                disabled_computes.add(fqdn)
-
-        return (enabled_compute, disabled_computes)
-
-    @staticmethod
-    def _waiting_for_migration_ends(controller, node_fqdn,
-                                    attempts=180, attempt_delay=10):
-        for _ in xrange(attempts):
-            LOG.info("Waiting until migration ends")
-
-            result = nova.run_nova_cmd(['nova', 'list',
-                                        '--host', node_fqdn,
-                                        '--status', 'MIGRATING',
-                                        '--limit', '1'], controller)
-            # nova list has no option to remove menu form so empty has 4 rows
-            if len(result.strip().splitlines()) != 4:
-                time.sleep(attempt_delay)
-
     def evacuate_host(self):
         controller = env_util.get_one_controller(self.env)
 
-        enabled_compute, disabled_computes = self._get_list_instances(
+        enabled_computes, disabled_computes = nova.get_compute_lists(
             controller)
 
-        if len(enabled_compute) < 2:
-            raise Exception("You can't disable last enabled compute")
-
         node_fqdn = node_util.get_nova_node_handle(self.node)
+        if [node_fqdn] == enabled_computes:
+            raise Exception("You try to disable last enabled nova-compute "
+                            "service on {hostname} in cluster. "
+                            "This leads to disable host evacuation. "
+                            "Fix this problem and run unpgrade-node "
+                            "command again".format(hostname=node_fqdn))
+
+        if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
 
         if node_fqdn in disabled_computes:
             LOG.warn("Node {0} already disabled".format(node_fqdn))
@@ -111,9 +87,16 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
             nova.run_nova_cmd(
                 ["nova", "service-disable", node_fqdn, "nova-compute"],
                 controller, False)
-        nova.run_nova_cmd(['nova', 'host-evacuate-live', node_fqdn],
-                          controller, False)
-        self._waiting_for_migration_ends(controller, node_fqdn)
+        for instance_id in nova.get_active_instances(controller, node_fqdn):
+            nova.run_nova_cmd(
+                ["nova", "live-migration", instance_id], controller, False)
+            nova.waiting_for_status_completed(
+                controller, node_fqdn, "MIGRATING")
+        if nova.do_nova_instances_exist(controller, node_fqdn):
+            raise Exception(
+                "There are instances on {hostname} after host-evacuation, "
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
@@ -122,18 +105,19 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         node_util.preserve_partition(self.node, partition)
 
     def shutoff_vms(self):
-        password = env_util.get_admin_password(self.env)
         controller = env_util.get_one_controller(self.env)
         node_fqdn = node_util.get_nova_node_handle(self.node)
-        instances_str = nova.run_nova_cmd([
-            "nova", "--os-password", password, "list",
-            "--host", node_fqdn, "--limit", "-1", "|",
-            "awk -F\| '$4~/ACTIVE/{print($2)}'"], controller)
-        instances = instances_str.strip().splitlines()
-        for instance in instances:
-            instance = instance.strip()
+
+        if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
+            raise Exception(
+                "There are instances in ERROR state on {hostname},"
+                "please fix this problem and start upgrade_node "
+                "command again".format(hostname=node_fqdn))
+
+        for instance_id in nova.get_active_instances(controller, node_fqdn):
             nova.run_nova_cmd(
-                ["nova", "stop", instance], controller, output=False)
+                ["nova", "stop", instance_id], controller, output=False)
+        nova.waiting_for_status_completed(controller, node_fqdn, "ACTIVE")
 
     def backup_iscsi_initiator_info(self):
         if not plugin.is_enabled(self.env, 'emc_vnx'):
