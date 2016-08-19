@@ -13,8 +13,28 @@ from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
 from octane.util import env as env_util
+from octane.util import ssh
 from octane.util import maintenance
 from octane.util import network
+
+
+def upgrade_osd(orig_env, seed_env):
+    osds = list(env_util.get_nodes(orig_env, ['ceph-osd']))
+    if not osds:
+        return
+    seed_controller = env_util.get_one_controller(seed_env)
+    ssh.call(["ceph", "osd", "set", "noout"], node=seed_controller)
+    ssh.call(["ceph", "osd", "set", "noout"], node=osds[0])
+    ceph_conf = ssh.call_output(
+        ['cat', '/etc/ceph/ceph.conf'], node=seed_controller)
+    for node in osds:
+        sftp = ssh.sftp(node)
+        ssh.call(["stop", "ceph-osd-all"], node=node)
+        with ssh.update_file(sftp, "/etc/ceph/ceph.conf") as (_, new):
+            new.write(ceph_conf)
+        ssh.call(["start", "ceph-osd-all"], node=node)
+    # controllers and osd in same env now
+    ssh.call(["ceph", "osd", "unset", "noout"], node=osds[0])
 
 
 def upgrade_control_plane(orig_id, seed_id):
@@ -27,6 +47,7 @@ def upgrade_control_plane(orig_id, seed_id):
     else:
         maintenance.start_corosync_services(seed_env)
         maintenance.start_upstart_services(seed_env)
+    upgrade_osd(orig_env, seed_env)
     # disable cluster services on orig env
     maintenance.stop_cluster(orig_env)
     # switch networks to seed env
