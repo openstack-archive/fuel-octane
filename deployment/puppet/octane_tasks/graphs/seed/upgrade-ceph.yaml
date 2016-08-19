@@ -1,0 +1,92 @@
+# GROUPS
+- id: primary-controller
+  type: group
+  role: [primary-controller]
+  fault_tolerance: 0
+
+# TASKS
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_code/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
+- id: ceph_mon_dump_download
+  type: sync
+  version: 2.0.0
+  groups: [primary-controller]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_data/ceph_mon.tar.gz
+    dst: /var/tmp
+    timeout: 180
+
+- id: ceph_mon_conf_download
+  type: sync
+  version: 2.0.0
+  groups: [primary-controller]
+  requires: []
+  required_for: []
+  cross-depends:
+    - name: rsync_octane_section
+      role: master
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_data/ceph.conf
+    dst: /var/tmp
+    timeout: 180
+
+- id: ceph_reconfiguration
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [
+    rsync_octane,
+    ceph_mon_conf_download,
+    ceph_mon_dump_download,
+    ceph_mon_stop
+  ]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/ceph_reconfiguration.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
+
+- id: ceph_mon_stop
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [rsync_octane]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/ceph_mon_stop.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 180
+
+- id: ceph_mon_start
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [rsync_octane,ceph_reconfiguration]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/ceph_mon_start.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 180
+
+
+- id: ceph_bootstrap
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [rsync_octane,ceph_mon_start]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/ceph_bootstrap.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 180
