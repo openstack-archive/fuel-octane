@@ -22,9 +22,13 @@ class octane_tasks::mysqldump_create inherits octane_tasks::params {
     $murano_db = []
   }
 
-  # TODO(pchechetin): Add Ironic support
+  if $ironic_enabled {
+    $ironic_db = ['ironic']
+  } else {
+    $ironic_db = []
+  }
 
-  $db_list = join(concat($os_base_dbs, $sahara_db, $murano_db), ' ')
+  $db_list = join(concat($os_base_dbs, $sahara_db, $murano_db, $ironic_db), ' ')
 
   exec { 'backup_and_encrypt':
     command     => "mysqldump ${mysql_args} --databases ${db_list} | ${compress_and_enc_command}",

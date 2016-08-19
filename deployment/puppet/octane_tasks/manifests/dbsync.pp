@@ -19,6 +19,10 @@ class octane_tasks::dbsync (
     include ::sahara::db::sync
   }
 
+  if $ironic_enabled {
+    include ::ironic::db::sync
+  }
+
   # All db sync classes have "refreshonly => true" by default
   Exec <||> {
     refreshonly => false
