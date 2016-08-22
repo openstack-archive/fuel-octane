@@ -8,7 +8,7 @@
 - id: rsync_octane
   type: sync
   version: 2.1.0
-  groups: [primary-controller, controller]
+  groups: [primary-controller]
   requires: []
   required_for: []
   parameters:
@@ -39,23 +39,16 @@
     cmd: pcs resource disable clone_p_haproxy
     timeout: 180
 
-# TODO: Rewrite in puppet and get databases list dynamically
 - id: mysqldump_create
-  type: shell
+  type: puppet
   version: 2.1.0
   groups: [primary-controller]
-  requires: [stop_haproxy]
+  requires: [rsync_octane,stop_haproxy]
   required_for: []
   parameters:
-    cmd: >
-      mysqldump
-      --defaults-file=/root/.my.cnf
-      --host localhost
-      --add-drop-database
-      --lock-all-tables
-      --databases nova keystone heat neutron cinder glance |
-      gzip > /var/tmp/dbs.original.sql.gz
-    timeout: 180
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/mysqldump_create.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
 
 - id: mysqldump_upload_to_master
   type: sync
@@ -64,6 +57,6 @@
   requires: [mysqldump_create]
   required_for: []
   parameters:
-    src: /var/tmp/dbs.original.sql.gz
+    src: /var/tmp/dbs.original.sql.gz.enc
     dst: rsync://{MASTER_IP}:/octane_data/
     timeout: 180
