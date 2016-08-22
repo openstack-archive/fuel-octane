@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
 import yaml
 
 from octane import magic_consts
@@ -28,3 +29,33 @@ def merge_dicts(base_dict, update_dict):
 def get_astute_dict():
     with open(magic_consts.ASTUTE_YAML, "r") as current:
         return yaml.load(current)
+
+
+def iterate_parameters(fp):
+    section = None
+    for line in fp:
+        match = re.match(r'^\s*\[(?P<section>[^\]]+)', line)
+        if match:
+            section = match.group('section')
+            yield line, section, None, None
+            continue
+        match = re.match(r'^\s*(?P<parameter>[^=\s]+)\s*='
+                         '\s*(?P<value>[^\s.+](?:\s*[^\s.+])*)\s*$', line)
+        if match:
+            parameter, value = match.group("parameter", "value")
+            yield line, section, parameter, value
+            continue
+        yield line, section, None, None
+
+
+def get_parameters(fp, parameters_to_get):
+    parameters_map = {}
+    for key, values in parameters_to_get.items():
+        for value in values:
+            parameters_map[value] = key
+    parameters = {}
+    for _, section, parameter, value in iterate_parameters(fp):
+        parameter_name = parameters_map.get((section, parameter))
+        if parameter_name is not None and value is not None:
+            parameters[parameter_name] = value
+    return parameters
