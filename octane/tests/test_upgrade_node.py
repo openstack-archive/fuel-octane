@@ -35,6 +35,7 @@ def test_parser(mocker, octane_app, live_migration):
     [(['test-node-1', 'test-node-2', 'test-node-3'],
       False, True, None), ])
 def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
+    nodes = []
 
     def _create_node(node_id):
         node = mock.Mock('node', spec_set=['data', 'id'])
@@ -43,6 +44,7 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
         node.data['id'] = node_id
         node.data['cluster'] = None
         node.data['roles'] = 'controller'
+        nodes.append(node)
         return node
 
     test_env_id = 'test-env'
@@ -62,16 +64,16 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
     mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     upgrade_node.upgrade_node(test_env_id, node_ids)
-
-    mock_copy_patches.assert_called_once()
-    mock_move_nodes.assert_called_once()
+    mock_copy_patches.assert_called_once_with()
+    mock_move_nodes.assert_called_once_with(mock_env.return_value, nodes)
     assert mock_handlers.call_args_list == [
         mock.call('preupgrade'), mock.call('prepare'),
         mock.call('predeploy'), mock.call('postdeploy')]
     if isolated:
-        mock_deploy_nodes.assert_called_once()
+        mock_deploy_nodes.assert_called_once_with(mock_env.return_value, nodes)
     else:
-        mock_deploy_changes.assert_called_once()
+        mock_deploy_changes.assert_called_once_with(
+            mock_env.return_value, nodes)
 
 
 @pytest.mark.parametrize('node_data,expected_error', [

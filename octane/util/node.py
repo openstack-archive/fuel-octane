@@ -18,6 +18,7 @@ import sys
 import time
 
 from distutils import version
+from octane.util import helpers
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -182,3 +183,49 @@ def restart_nova_services(node):
         _, status, _, service = service_line.split()
         if status == "+" and service.startswith("nova"):
             ssh.call(["service", service, "restart"], node=node)
+
+
+class AbsentParametersError(Exception):
+    msg = "Could not get parameters from the file " \
+          "node-{node_id}[{filename}]: {parameters}"
+
+    def __init__(self, node_id, filename, parameters):
+        super(AbsentParametersError, self).__init__(self.msg.format(
+            node_id=node_id,
+            filename=filename,
+            parameters=", ".join(parameters),
+        ))
+
+
+def get_parameters(node, filename, parameters_to_get, ensure=True):
+    with ssh.sftp(node).open(filename) as fp:
+        parameters = helpers.get_parameters(fp, parameters_to_get)
+    if ensure:
+        required_parameters = set(parameters_to_get)
+        current_parameters = set(parameters)
+        absent_parameters = required_parameters - current_parameters
+        if absent_parameters:
+            flat_parameters = []
+            for aparam in absent_parameters:
+                for param in parameters_to_get[aparam]:
+                    flat_parameters.append("/".join(param))
+            raise AbsentParametersError(
+                node.data["id"], filename, flat_parameters)
+    return parameters
+
+
+def restart_mcollective_on_node(node):
+    if not node.data['online']:
+        LOG.warning("Not possible to restart mcollective on the offline "
+                    "node {0}", node.id)
+        return
+    try:
+        ssh.call(["service", "mcollective", "restart"], node=node)
+    except Exception as exc:
+        LOG.warning("Failed to restart mcollective on the node %s: %s",
+                    node.id, exc)
+
+
+def restart_mcollective(nodes):
+    for node in nodes:
+        restart_mcollective_on_node(node)
