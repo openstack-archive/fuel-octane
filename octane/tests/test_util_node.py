@@ -242,3 +242,16 @@ def test_get_parameters(mocker, parameters, parameters_to_get, required,
     mock_get.assert_called_once_with(
         mock_sftp.return_value.open.return_value.__enter__.return_value,
         parameters_to_get)
+
+
+@pytest.mark.parametrize(("online", "result", "error"), [
+    (True, True, False),
+    (False, None, False),
+    (True, False, True),
+])
+def test_restart_mcollective(mocker, online, result, error):
+    node = mock.Mock(data={"online": online, "id": 123})
+    mock_ssh = mocker.patch("octane.util.ssh.call")
+    if error:
+        mock_ssh.side_effect = Exception()
+    assert node_util.restart_mcollective(node) == result
