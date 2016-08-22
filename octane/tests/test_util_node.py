@@ -257,3 +257,16 @@ def test_run_with_openrc(mocker, cmd, call_output):
     node_util.run_with_openrc(cmd, node, call_output)
     ssh_call_mock.assert_called_once_with(
         ['sh', '-c', '. /root/openrc; ' + ' '.join(cmd)], node=node)
+
+
+@pytest.mark.parametrize(("online", "result", "error"), [
+    (True, True, False),
+    (False, None, False),
+    (True, False, True),
+])
+def test_restart_mcollective(mocker, online, result, error):
+    node = mock.Mock(data={"online": online, "id": 123})
+    mock_ssh = mocker.patch("octane.util.ssh.call")
+    if error:
+        mock_ssh.side_effect = Exception()
+    assert node_util.restart_mcollective(node) == result
