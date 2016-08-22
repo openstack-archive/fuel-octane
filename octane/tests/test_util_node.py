@@ -200,3 +200,16 @@ def test_restart_nova_services(mocker, node, stdout, nova_services_to_restart):
         call_mock.assert_any_call(["service", service, "restart"], node=node)
     call_output_mock.assert_called_once_with(
         ["service", "--status-all"], node=node)
+
+
+@pytest.mark.parametrize(("online", "result", "error"), [
+    (True, True, False),
+    (False, None, False),
+    (True, False, True),
+])
+def test_restart_mcollective(mocker, online, result, error):
+    node = mock.Mock(data={"online": online, "id": 123})
+    mock_ssh = mocker.patch("octane.util.ssh.call")
+    if error:
+        mock_ssh.side_effect = Exception()
+    assert node_util.restart_mcollective(node) == result
