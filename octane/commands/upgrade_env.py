@@ -34,30 +34,10 @@ def load_network_template(network_template):
     return data
 
 
-def find_release(operating_system, version):
-    for release in release_obj.Release.get_all():
-        if release.data['operating_system'] == operating_system and \
-                release.data['version'] == version:
-            return release
-    else:
-        raise Exception("Release not found for os %s and version %s",
-                        operating_system, version)
-
-
-def find_deployable_release(operating_system):
-    for release in release_obj.Release.get_all():
-        if release.data['operating_system'] == operating_system and \
-                release.data['is_deployable']:
-            return release
-    else:
-        raise Exception("Deployable release not found for os %s",
-                        operating_system)
-
-
-def upgrade_env(env_id, network_template=None):
+def upgrade_env(env_id, release_id, network_template=None):
     env = environment_obj.Environment(env_id)
-    target_release = find_deployable_release("Ubuntu")
-    seed_id = env_util.clone_env(env_id, target_release)
+    release = release_obj.Release(release_id)
+    seed_id = env_util.clone_env(env_id, release)
     env_util.copy_fuel_keys(env_id, seed_id)
     if network_template:
         network_template_data = load_network_template(network_template)
@@ -74,11 +54,14 @@ class UpgradeEnvCommand(cmd.Command):
             'env_id', type=int, metavar='ENV_ID',
             help="ID of environment to be upgraded")
         parser.add_argument(
+            'release_id', type=int, metavar='RELEASE_ID',
+            help="ID of a release for the new environment.")
+        parser.add_argument(
             '--template', type=str, metavar='TEMPLATE_FILE',
             help="Use network template from file")
         return parser
 
     def take_action(self, parsed_args):
-        seed_id = upgrade_env(parsed_args.env_id,
+        seed_id = upgrade_env(parsed_args.env_id, parsed_args.release_id,
                               network_template=parsed_args.template)
         print(seed_id)  # TODO: This shouldn't be needed
