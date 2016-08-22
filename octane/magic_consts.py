@@ -59,14 +59,12 @@ OSD_UPGRADE_REQUIRED_PACKAGES = [
     "python-rados", "python-rbd", "ceph", "ceph-common", "ceph-fs-common",
     "ceph-mds",
 ]
-OSD_UPGRADE_SOURCE_TEMPLATE = \
-    "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 " \
-    "mos8.0 main restricted\n" \
-    "deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted"
+OSD_UPGRADE_SOURCE_TEMPLATE = "{type} {uri} {suite} {section}"
 
-OSD_UPGADE_PREFERENCE_TEMPLATE = "Package: {packages}\n" \
-                                 "Pin: release a=mos8.0,n=mos8.0,l=mos8.0\n" \
-                                 "Pin-Priority: {priority}"
+OSD_UPGADE_PREFERENCE_TEMPLATE = \
+    "Package: {packages}\n" \
+    "Pin: release a={suite},n={suite},l={suite}\n" \
+    "Pin-Priority: {priority}"
 COBBLER_DROP_VERSION = "7.0"
 CEPH_UPSTART_VERSION = "7.0"
 
