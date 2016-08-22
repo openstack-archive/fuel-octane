@@ -18,6 +18,7 @@ from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
+from octane.handlers.backup_restore import mcollective
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import nailgun_plugins
 from octane.handlers.backup_restore import postgres
@@ -263,3 +264,15 @@ def test_repos_backup(
         ],
         any_order=True)
     assert test_archive.add.call_count == len(archive_add_list)
+
+
+def test_mcollective_backup(mocker):
+    archive = mock.Mock()
+    mocker.patch("octane.util.mcollective.get_mco_ping_status")
+    mock_json = mocker.patch("json.dumps")
+    mock_io = mocker.patch("io.BytesIO")
+    mcollective.McollectiveArchivator(archive).backup()
+    archive.getattrinfo.assert_called_once_with(archname="mco/ping.json")
+    archive.addfile.assert_called_once_with(
+        archive.getattrinfo.return_value, fileobj=mock_io.return_value)
+    mock_io.assert_called_once_with(mock_json.return_value)
