@@ -257,3 +257,49 @@ def test_run_with_openrc(mocker, cmd, call_output):
     node_util.run_with_openrc(cmd, node, call_output)
     ssh_call_mock.assert_called_once_with(
         ['sh', '-c', '. /root/openrc; ' + ' '.join(cmd)], node=node)
+
+
+@pytest.mark.parametrize('online', [True, False])
+@pytest.mark.parametrize('exception', [True, False])
+def test_restart_mcollective_node(mocker, online, exception):
+
+    class TestException(Exception):
+        pass
+
+    side_effect = TestException('test exception')
+    log_patch = mocker.patch.object(node_util, 'LOG')
+    node = mock.Mock(id='node_test_id', data={'online': online})
+    ssh_call_mock = mocker.patch('octane.util.ssh.call')
+    if exception:
+        ssh_call_mock.side_effect = side_effect
+    node_util.restart_mcollective_on_node(node)
+
+    if online:
+        ssh_call_mock.assert_called_once_with(
+            ["service", "mcollective", "restart"], node=node)
+    else:
+        assert not ssh_call_mock.called
+    if not online:
+        log_patch.warning.assert_called_once_with(
+            "Not possible to restart mcollective on the offline node {0}",
+            node.id)
+    elif exception:
+        log_patch.warning.assert_called_once_with(
+            "Failed to restart mcollective on the node %s: %s",
+            node.id, side_effect)
+    else:
+        assert not log_patch.warning.called
+
+
+@pytest.mark.parametrize('nodes_count', [0, 1, 10])
+def test_restart_mcollective(mocker, nodes_count):
+    nodes = []
+    calls = []
+    for _ in range(nodes_count):
+        node = mock.Mock()
+        calls.append(mock.call(node))
+        nodes.append(node)
+    mock_restart_mcol = mocker.patch(
+        'octane.util.node.restart_mcollective_on_node')
+    node_util.restart_mcollective(nodes)
+    assert calls == mock_restart_mcol.call_args_list

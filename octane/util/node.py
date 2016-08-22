@@ -219,3 +219,20 @@ def run_with_openrc(cmd, node, output=True):
     if output:
         return ssh.call_output(run_cmd, node=node)
     return ssh.call(run_cmd, node=node)
+
+
+def restart_mcollective_on_node(node):
+    if not node.data['online']:
+        LOG.warning("Not possible to restart mcollective on the offline "
+                    "node {0}", node.id)
+        return
+    try:
+        ssh.call(["service", "mcollective", "restart"], node=node)
+    except Exception as exc:
+        LOG.warning("Failed to restart mcollective on the node %s: %s",
+                    node.id, exc)
+
+
+def restart_mcollective(nodes):
+    for node in nodes:
+        restart_mcollective_on_node(node)
