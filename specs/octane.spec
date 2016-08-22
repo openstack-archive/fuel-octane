@@ -44,13 +44,13 @@ cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-vers
 cp -vr %{_builddir}/%{name}-%{version}/octane/patches ${RPM_BUILD_ROOT}/%{python2_sitelib}/octane/
 
 install -d ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code
-install -d -m 0750 ${RPM_BUILD_ROOT}/var/www/nailgun/octane_data
+install -d ${RPM_BUILD_ROOT}/var/www/nailgun/octane_data
 cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code/puppet
 
 %files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
 %{python2_sitelib}/octane/patches/*
 /var/www/nailgun/octane_code/puppet/octane_tasks/*
-/var/www/nailgun/octane_data
+%attr(750, nobody, nobody) /var/www/nailgun/octane_data
 %defattr(-,root,root)
 
 %post
