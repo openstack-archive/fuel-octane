@@ -24,6 +24,7 @@ from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
 from octane.handlers.backup_restore import fuel_uuid
 from octane.handlers.backup_restore import logs
+from octane.handlers.backup_restore import mcollective
 from octane.handlers.backup_restore import mirrors
 from octane.handlers.backup_restore import postgres
 from octane.handlers.backup_restore import puppet
@@ -677,3 +678,43 @@ def test_admin_network_restore(mocker, members, is_exist):
         mock_puppet.assert_called_once_with('dhcp-ranges')
     else:
         mock_puppet.assert_not_called()
+
+
+@pytest.mark.parametrize(("members", "check_status"), [
+    ([TestMember("mco/ping.json", True, False)], True),
+    ([], False),
+])
+def test_mcollective_restore(mocker, members, check_status):
+    nodes = [mock.Mock(), mock.Mock()]
+    mocker.patch("octane.util.fuel_client.set_auth_context")
+    mock_get = mocker.patch("fuelclient.objects.Node.get_all")
+    mock_get.return_value = nodes
+    mock_restart = mocker.patch("octane.util.node.restart_mcollective")
+    mock_json = mocker.patch("json.load")
+    mock_status = mocker.patch("octane.util.mcollective.get_mco_ping_status")
+    mock_cmp = mocker.patch(
+        "octane.util.mcollective.compair_mco_ping_statuses")
+    mock_cmp.return_value = set(["1"])
+    mock_log = mocker.patch(
+        "octane.handlers.backup_restore.mcollective.LOG.warning")
+
+    archive = TestArchive(members, mcollective.McollectiveArchivator)
+    mcollective.McollectiveArchivator(archive).restore()
+    assert mock_restart.call_args_list == [
+        mock.call(node) for node in nodes
+    ]
+    if check_status:
+        effective = [
+            member
+            for member in members if member.name == "mco/ping.json"
+        ][-1]
+        assert effective
+        mock_json.assert_called_once_with(effective)
+        mock_status.assert_called_once_with()
+        mock_cmp.assert_called_once_with(
+            mock_json.return_value, mock_status.return_value)
+        mock_log.assert_called_once_with(mock.ANY, "1")
+    else:
+        assert not mock_json.called
+        assert not mock_status.called
+        assert not mock_cmp.called
