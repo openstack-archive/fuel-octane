@@ -14,7 +14,6 @@ import logging
 import subprocess
 
 from octane.handlers import upgrade
-from octane.helpers import tasks as tasks_helpers
 from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
@@ -59,9 +58,8 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         if deployment_info:
             self.env.upload_facts('deployment', deployment_info)
 
-        tasks = self.env.get_deployment_tasks()
-        tasks_helpers.skip_tasks(tasks)
-        self.env.update_deployment_tasks(tasks)
+    def skip_tasks(self):
+        return magic_consts.SKIP_CONTROLLER_TASKS
 
     def postdeploy(self):
         orig_version = self.orig_env.data["fuel_version"]
