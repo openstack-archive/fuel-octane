@@ -38,13 +38,14 @@ DEFAULT_DISKS = True
 DEFAULT_NETS = True
 ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
 VERSIONS = {
-    '8.0': 'liberty',
-    '7.0': 'kilo',
-    '6.1': 'juno',
-    '6.0': 'juno',
-    '5.2.9': 'icehouse',
-    '5.1.1': 'icehouse',
-    '5.1': 'icehouse',
+    '9.0': 'liberty',
+    '8.0': 'kilo',
+    '7.0': 'juno',
+    '6.1': 'icehouse',
+    '6.0': 'icehouse',
+    '5.2.9': 'havana',
+    '5.1.1': 'havana',
+    '5.1': 'havana',
 }
 
 NAILGUN_URL = "http://127.0.0.1:8000"

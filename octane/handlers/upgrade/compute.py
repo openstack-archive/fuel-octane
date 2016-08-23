@@ -55,8 +55,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 ["nova", "service-enable", call_host, "nova-compute"],
                 controller, False)
 
-        orig_version = self.orig_env.data["fuel_version"]
-        openstack_release = magic_consts.VERSIONS[orig_version]
+        seed_version = self.env.data["fuel_version"]
+        openstack_release = magic_consts.VERSIONS[seed_version]
         node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
         ssh.call(["service", "nova-compute", "restart"], node=self.node)
