@@ -34,3 +34,17 @@ def set_osd_noout(env):
 def unset_osd_noout(env):
     controller = env_util.get_one_controller(env)
     ssh.call(['ceph', 'osd', 'unset', 'noout'], node=controller)
+
+
+def get_ceph_conf_filename(node):
+    cmd = [
+        'bash', '-c',
+        'pgrep ceph-mon | xargs -I{} cat /proc/{}/cmdline',
+    ]
+    cmdlines = ssh.call_output(cmd, node=node)
+    if cmdlines:
+        cmdline = cmdlines.split('\n')[0].split('\0')
+        for i, value in enumerate(cmdline):
+            if value == '-c' and i < len(cmdline):
+                return cmdline[i + 1]
+    return '/etc/ceph/ceph.conf'
