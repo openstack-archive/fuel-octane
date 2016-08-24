@@ -191,6 +191,7 @@ def stop_upstart_services(env):
                 to_stop = svc_file.read().splitlines()
         for service in to_stop:
             ssh.call(['stop', service], node=node)
+        ssh.call(['service', 'apache2', 'stop'], node=node)
 
 
 def start_upstart_services(env):
@@ -206,6 +207,7 @@ def start_upstart_services(env):
                 to_start = svc_file.read().splitlines()
         for service in to_start:
             ssh.call(['start', service], node=node)
+        ssh.call(['service', 'apache2', 'start'], node=node)
 
 
 def stop_cluster(env):

@@ -4,16 +4,18 @@
 #
 class octane_tasks::params (
 ) {
-
+  $nova_hash        = hiera_hash('nova')
   $ceilometer_hash  = hiera_hash('ceilometer', {'enabled' => false})
   $sahara_hash      = hiera_hash('sahara', {'enabled' => false})
   $murano_hash      = hiera_hash('murano', {'enabled' => false})
+  $ironic_hash      = hiera_hash('ironic', {'enabled' => false})
   $storage_hash     = hiera_hash('storage', {})
   $fuel_version     = hiera('fuel_version', '9.0')
 
   $ceilometer_enabled  = $ceilometer_hash['enabled']
   $sahara_enabled      = $sahara_hash['enabled']
   $murano_enabled      = $murano_hash['enabled']
+  $ironic_enabled      = $ironic_hash['enabled']
   $cinder_vol_on_ctrl  = $storage_hash['volumes_ceph']
 
   # Nova
@@ -74,6 +76,14 @@ class octane_tasks::params (
     $sahara_services_list = []
   }
 
+  # Ironic
+  # NOTE(pchechetin): A list of services for Ironic support should be tested in a lab
+  if $ironic_enabled {
+    $ironic_services_list = ['ironic-api']
+  } else {
+    $ironic_services_list = []
+  }
+
   # Pacemaker services
   $cluster_services_list = [
     'neutron-openvswitch-agent',
@@ -91,7 +101,8 @@ class octane_tasks::params (
     $cinder_services_list,
     $heat_services_list,
     $murano_services_list,
-    $sahara_services_list
+    $sahara_services_list,
+    $ironic_services_list
   )
 
   # NOTE: Swift is not supported by Octane

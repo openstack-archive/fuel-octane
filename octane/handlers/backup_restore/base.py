@@ -35,10 +35,10 @@ class Base(object):
         return name
 
     def backup(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def restore(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def pre_restore_check(self):
         pass

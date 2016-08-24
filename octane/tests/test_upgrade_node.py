@@ -43,7 +43,12 @@ def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
     "node_ids,isolated,provision,roles",
     [(['test-node-1', 'test-node-2', 'test-node-3'],
       False, True, None), ])
-def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
+@pytest.mark.parametrize("skip_task_return_value,set_skip_tasks",
+                         [([['test'], ['test', 'test_1'], []],
+                          set(['test', 'test_1']))]
+                         )
+def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
+                      skip_task_return_value, set_skip_tasks):
 
     def _create_node(node_id):
         node = mock.Mock('node', spec_set=['data', 'id'])
@@ -68,22 +73,22 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles):
     mock_get_handlers = mocker.patch(
         "octane.handlers.upgrade.get_nodes_handlers")
     mock_handlers = mock_get_handlers.return_value
+    mock_handlers.return_value = skip_task_return_value
     mock_move_nodes = mocker.patch("octane.util.env.move_nodes")
     mock_copy_vips = mocker.patch("octane.util.env.copy_vips")
-    mock_deploy_nodes = mocker.patch("octane.util.env.deploy_nodes")
-    mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
+    mock_deploy_nodes = mocker.patch(
+        "octane.util.env.deploy_nodes_without_tasks"
+    )
     upgrade_node.upgrade_node(test_env_id, node_ids)
 
     mock_copy_vips.assert_called_once_with(mock_env)
     mock_move_nodes.assert_called_once_with(mock_env, mock_nodes_list,
                                             True, None)
     assert mock_handlers.call_args_list == [
-        mock.call('preupgrade'), mock.call('prepare'),
-        mock.call('predeploy'), mock.call('postdeploy')]
-    if isolated:
-        mock_deploy_nodes.assert_called_once_with(mock_env, mock_nodes_list)
-    else:
-        mock_deploy_changes.assert_called_once_with(mock_env, mock_nodes_list)
+        mock.call('preupgrade'), mock.call('prepare'), mock.call('predeploy'),
+        mock.call('skip_tasks'), mock.call('postdeploy')]
+    mock_deploy_nodes.assert_called_once_with(mock_env, mock_nodes_list,
+                                              set_skip_tasks)
 
 
 @pytest.mark.parametrize('node_data,expected_error', [

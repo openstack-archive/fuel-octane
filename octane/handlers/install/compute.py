@@ -26,7 +26,6 @@ LOG = logging.getLogger(__name__)
 class ComputeInstall(install.InstallHandler):
     def prepare(self):
         self.create_configdrive_partition()
-        disk.update_node_partition_info(self.node.id)
         self.preserve_partition()
 
     def postdeploy(self):
