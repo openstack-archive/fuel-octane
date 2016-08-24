@@ -19,9 +19,13 @@ from octane.util import ssh
 
 def get_databases(env):
     node = env_util.get_one_controller(env)
-    with ssh.popen(
-            ['mysql', '--batch', '--skip-column-names', '--host', 'localhost'],
-            stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
+    with ssh.popen([
+            'mysql',
+            '--user', 'root',
+            '--batch',
+            '--skip-column-names',
+            '--host', 'localhost',
+    ], stdin=ssh.PIPE, stdout=ssh.PIPE, node=node) as proc:
         proc.stdin.write('SHOW DATABASES')
         out = proc.communicate()[0]
     return out.splitlines()
@@ -33,6 +37,7 @@ def mysqldump_from_env(env, role_name, dbs, fname):
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
         'mysqldump --add-drop-database --lock-all-tables '
+        '--user root '
         '--host localhost '
         '--databases {0}'.format(' '.join(dbs)) +
         ' | gzip',
@@ -45,7 +50,7 @@ def mysqldump_from_env(env, role_name, dbs, fname):
 def mysqldump_restore_to_env(env, role_name, fname):
     node = env_util.get_one_node_of(env, role_name)
     with open(fname, 'rb') as local_file:
-        with ssh.popen(['sh', '-c', 'zcat | mysql'],
+        with ssh.popen(['sh', '-c', 'zcat | mysql --user root'],
                        stdin=ssh.PIPE, node=node) as proc:
             shutil.copyfileobj(local_file, proc.stdin)
 
@@ -60,7 +65,9 @@ def fix_neutron_migrations(node):
         "UPDATE ml2_network_segments " \
         "SET network_type='flat',physical_network='physnet1' " \
         "WHERE network_id IN (SELECT network_id FROM externalnetworks);"
-    with ssh.popen(["mysql", "neutron"], node=node, stdin=ssh.PIPE) as proc:
+
+    cmd = ['mysql', '--user', 'root', 'neutron']
+    with ssh.popen(cmd, node=node, stdin=ssh.PIPE) as proc:
         proc.stdin.write(add_networksecuritybindings_sql)
         proc.stdin.write(update_network_segments_sql)
 
