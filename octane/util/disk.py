@@ -9,11 +9,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os.path
 
 from octane import magic_consts
 from octane.util import ssh
-from octane.util import subprocess
 
 
 class NoDisksInfoError(Exception):
@@ -44,13 +42,6 @@ def create_partition(disk_name, size, node):
     ssh.call(['parted', '/dev/%s' % disk_name, 'unit', 'MB', 'mkpart',
               'custom', 'ext4', str(start), str(end)],
              node=node)
-
-
-def update_node_partition_info(node_id):
-    fname = 'update_node_partition_info.py'
-    command = ['python',
-               os.path.join(magic_consts.PATCHES_DIR, fname), str(node_id)]
-    subprocess.call(command)
 
 
 def create_configdrive_partition(node):

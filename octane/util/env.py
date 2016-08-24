@@ -181,7 +181,6 @@ def move_nodes(env, nodes, provision=True, roles=None):
         cmd_move_node = cmd + [str(node_id), str(env_id)]
         if provision and incompatible_provision_method(env):
             disk.create_configdrive_partition(node)
-            disk.update_node_partition_info(node.data["id"])
         fuel2_env_call(cmd_move_node)
     if provision:
         LOG.info("Nodes provision started. Please wait...")
