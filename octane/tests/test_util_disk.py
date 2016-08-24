@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
 import pytest
 
 from octane import magic_consts
@@ -33,19 +32,6 @@ def test_create_partition(mocker, mock_ssh_call, mock_ssh_call_output, node,
     mock_ssh_call.assert_called_once_with(
         ['parted', '/dev/%s' % disk, 'unit', 'MB', 'mkpart',
          'custom', 'ext4', str(last_part + 1), str(end_part)], node=node)
-
-
-def test_update_partition_info(mocker, node):
-    test_node_id = 1
-    fname = 'update_node_partition_info.py'
-    mock_call = mocker.patch("octane.util.subprocess.call")
-    expected_command = [
-        'python',
-        os.path.join(magic_consts.PATCHES_DIR, fname),
-        str(test_node_id),
-    ]
-    disk_util.update_node_partition_info(test_node_id)
-    mock_call.assert_called_once_with(expected_command)
 
 
 NODE_DISKS_ATTRIBUTE = [

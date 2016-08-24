@@ -38,13 +38,14 @@ DEFAULT_DISKS = True
 DEFAULT_NETS = True
 ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
 VERSIONS = {
-    '8.0': 'liberty',
-    '7.0': 'kilo',
-    '6.1': 'juno',
-    '6.0': 'juno',
-    '5.2.9': 'icehouse',
-    '5.1.1': 'icehouse',
-    '5.1': 'icehouse',
+    '9.0': 'liberty',
+    '8.0': 'kilo',
+    '7.0': 'juno',
+    '6.1': 'icehouse',
+    '6.0': 'icehouse',
+    '5.2.9': 'havana',
+    '5.1.1': 'havana',
+    '5.1': 'havana',
 }
 
 NAILGUN_URL = "http://127.0.0.1:8000"
@@ -59,14 +60,12 @@ OSD_UPGRADE_REQUIRED_PACKAGES = [
     "python-rados", "python-rbd", "ceph", "ceph-common", "ceph-fs-common",
     "ceph-mds",
 ]
-OSD_UPGRADE_SOURCE_TEMPLATE = \
-    "deb http://{admin_ip}:8080/liberty-8.0/ubuntu/x86_64 " \
-    "mos8.0 main restricted\n" \
-    "deb http://{admin_ip}:8080/ubuntu/x86_64/ mos8.0 main restricted"
+OSD_UPGRADE_SOURCE_TEMPLATE = "{type} {uri} {suite} {section}"
 
-OSD_UPGADE_PREFERENCE_TEMPLATE = "Package: {packages}\n" \
-                                 "Pin: release a=mos8.0,n=mos8.0,l=mos8.0\n" \
-                                 "Pin-Priority: {priority}"
+OSD_UPGADE_PREFERENCE_TEMPLATE = \
+    "Package: {packages}\n" \
+    "Pin: release a={suite},n={suite},l={suite}\n" \
+    "Pin-Priority: {priority}"
 COBBLER_DROP_VERSION = "7.0"
 CEPH_UPSTART_VERSION = "7.0"
 
@@ -91,3 +90,40 @@ NOVA_PATCHES = [
 SFTP_SERVER_BIN = '/usr/lib/sftp-server'
 
 FUEL_KEYS_BASE_PATH = "/var/lib/fuel/keys"
+
+KEYSTONE_PIPELINES = [
+    "pipeline:public_api",
+    "pipeline:admin_api",
+    "pipeline:api_v3",
+]
+
+SKIP_CONTROLLER_TASKS = [
+    "upload_cirros", "ceph_ready_check", "configure_default_route",
+    "enable_rados",
+]
+
+COMPUTE_PREUPGRADE_PACKAGES = {
+    'liberty-8.0': [
+        "python-routes", "python-oslo.concurrency", "python-sqlparse",
+        "nova-common", "python-pkg-resources", "python-oslo.policy",
+        "neutron-plugin-ml2", "python-oslo.config", "python-glanceclient",
+        "python-paramiko", "python-jinja2", "python-nova", "python-editor",
+        "python-contextlib2", "libvirt-clients", "python-oslo.serialization",
+        "python-urllib3", "python-keystonemiddleware", "python-openssl",
+        "libvirt0", "fuel-ha-utils", "python-netaddr", "python-oslo.i18n",
+        "python-cliff", "python-oslo.reports", "python-libvirt",
+        "neutron-common", "python-oslo.versionedobjects", "python-oslo.db",
+        "nailgun-mcagents", "python-novaclient", "python-unicodecsv",
+        "neutron-plugin-openvswitch-agent", "python-oslo.rootwrap",
+        "python-oslo.utils", "python-ipaddress", "python-oslo.lo",
+        "python-msgpack", "python-amqp", "python-cryptography", "python-six",
+        "python-oslo.context", "python-openvswitch", "python-netifaces",
+        "libvirt-daemon", "network-checker", "python-oslo.messaging",
+        "mcollective-common", "python-oslo.middleware", "python-jsonschema",
+        "python-keystoneclient", "python-oslo.service", "python-neutronclient",
+        "python-requests", "python-singledispatch", "python-neutron",
+        "python-stevedore", "python-sqlalchemy", "nova-compute",
+        "nova-compute-qemu", "python-extras", "mcollective", "libvirt-bin",
+        "python-cinderclient", "python-concurrent.futures"
+    ]
+}

@@ -44,66 +44,66 @@ def test_parser_exclusive_group(mocker, octane_app):
     # Orig is fine, seed is fine and there is no need to rollback.
     (
         [
-            ("upgrade-db-orig", False),
-            ("upgrade-db-seed", False),
+            ("upgrade-db", False),
+            ("upgrade-db", False),
         ],
-        ["upgrade-db-orig", "upgrade-db-orig-rollback", "upgrade-db-seed"],
+        ["upgrade-db", "upgrade-db-rollback", "upgrade-db"],
         None,
     ),
     # Orig is fine, seed fails and there is no rollback.
     (
         [
-            ("upgrade-db-orig", False),
-            ("upgrade-db-seed", True),
+            ("upgrade-db", False),
+            ("upgrade-db", True),
         ],
-        ["upgrade-db-orig", "upgrade-db-seed"],
-        "upgrade-db-seed",
+        ["upgrade-db", "upgrade-db"],
+        "upgrade-db",
     ),
     # Orig is fine, seed fails and rollback is fine.
     (
         [
-            ("upgrade-db-orig", False),
-            ("upgrade-db-seed", True),
-            ("upgrade-db-orig-rollback", False),
+            ("upgrade-db", False),
+            ("upgrade-db", True),
+            ("upgrade-db-rollback", False),
         ],
-        ["upgrade-db-orig", "upgrade-db-orig-rollback", "upgrade-db-seed"],
-        "upgrade-db-seed",
+        ["upgrade-db", "upgrade-db-rollback", "upgrade-db"],
+        "upgrade-db",
     ),
     # Orig is fine, seed fails and rollback fails too.
     (
         [
-            ("upgrade-db-orig", False),
-            ("upgrade-db-seed", True),
-            ("upgrade-db-orig-rollback", True),
+            ("upgrade-db", False),
+            ("upgrade-db", True),
+            ("upgrade-db-rollback", True),
         ],
-        ["upgrade-db-orig", "upgrade-db-orig-rollback", "upgrade-db-seed"],
-        "upgrade-db-orig-rollback",
+        ["upgrade-db", "upgrade-db-rollback", "upgrade-db"],
+        "upgrade-db-rollback",
     ),
     # Orig fails and there is no rollback.
     (
         [
-            ("upgrade-db-orig", True),
+            ("upgrade-db", True),
         ],
-        ["upgrade-db-orig", "upgrade-db-seed"],
-        "upgrade-db-orig",
+        ["upgrade-db", "upgrade-db"],
+        "upgrade-db",
     ),
     # Orig fails, rollback is fine.
     (
         [
-            ("upgrade-db-orig", True),
-            ("upgrade-db-orig-rollback", False),
+            ("upgrade-db", True),
+            ("upgrade-db-rollback", False),
         ],
-        ["upgrade-db-orig", "upgrade-db-orig-rollback", "upgrade-db-seed"],
-        "upgrade-db-orig",
+        ["upgrade-db", "upgrade-db-rollback", "upgrade-db"],
+        "upgrade-db",
     ),
     # Orig fails, rollback is also fails.
     (
         [
-            ("upgrade-db-orig", True),
-            ("upgrade-db-orig-rollback", True),
+            ("upgrade-db", True),
+            ("upgrade-db-rollback", True),
         ],
-        ["upgrade-db-orig", "upgrade-db-orig-rollback", "upgrade-db-seed"],
-        "upgrade-db-orig-rollback",
+        ["upgrade-db", "upgrade-db-rollback", "upgrade-db"],
+        "upgrade-db-rollback",
     ),
 ])
 def test_upgrade_db_with_graph(mocker, calls, graph_names, catch):

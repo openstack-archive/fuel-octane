@@ -22,6 +22,7 @@ from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 
 from octane import magic_consts
+from octane.util import ceph
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import ssh
@@ -66,20 +67,6 @@ def import_bootstrap_osd(node):
               '/root/ceph.bootstrap-osd.keyring'], node=node)
     ssh.call(['ceph', 'auth', 'caps', 'client.bootstrap-osd', 'mon',
               "allow profile bootstrap-osd"], node=node)
-
-
-def get_ceph_conf_filename(node):
-    cmd = [
-        'bash', '-c',
-        'pgrep ceph-mon | xargs -I{} cat /proc/{}/cmdline',
-    ]
-    cmdlines = ssh.call_output(cmd, node=node)
-    if cmdlines:
-        cmdline = cmdlines.split('\n')[0].split('\0')
-        for i, value in enumerate(cmdline):
-            if value == '-c' and i < len(cmdline):
-                return cmdline[i + 1]
-    return '/etc/ceph/ceph.conf'
 
 
 def add_rgw_frontends(conf):
@@ -161,7 +148,7 @@ def ceph_set_new_mons(orig_env, seed_env, filename, conf_filename, db_path):
 
 def extract_mon_conf_files(orig_env, tar_filename):
     controller = env_util.get_one_controller(orig_env)
-    conf_filename = get_ceph_conf_filename(controller)
+    conf_filename = ceph.get_ceph_conf_filename(controller)
     conf_dir = os.path.dirname(conf_filename)
     hostname = short_hostname(
         node_util.get_hostname_remotely(controller))

@@ -22,7 +22,6 @@ from octane.handlers import backup_restore
 from octane import magic_consts
 from octane.util import env
 from octane.util import fuel_client
-from octane.util import helpers
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -50,26 +49,55 @@ def write_content_to_tmp_file_on_node(node, content, directory, template):
     return tmp_name
 
 
-@contextlib.contextmanager
-def applied_repos(nodes, preference_priority):
-    admin_ip = helpers.get_astute_dict()["ADMIN_NETWORK"]["ipaddress"]
-    packages = " ".join(magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES)
-    preference_content = magic_consts.OSD_UPGADE_PREFERENCE_TEMPLATE.format(
-        packages=packages, priority=preference_priority)
-    source_content = magic_consts.OSD_UPGRADE_SOURCE_TEMPLATE.format(
-        admin_ip=admin_ip)
+def generate_source_content(repos):
+    return '\n'.join([magic_consts.OSD_UPGRADE_SOURCE_TEMPLATE.format(**repo)
+                      for repo in repos])
 
+
+def generate_preference_pin(repos, priority):
+    packages = " ".join(magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES)
+    contents = []
+    for repo in repos:
+        suite = repo['suite']
+        contents.append(
+            magic_consts.OSD_UPGADE_PREFERENCE_TEMPLATE.format(
+                packages=packages,
+                suite=suite,
+                priority=priority
+            ))
+    return '\n'.join(contents)
+
+
+def apply_source_for_node(node, content):
+    return write_content_to_tmp_file_on_node(
+        node, content, "/etc/apt/sources.list.d/", "mos.osd_XXX.list")
+
+
+def apply_preference_for_node(node, content):
+    return write_content_to_tmp_file_on_node(
+        node, content, "/etc/apt/preferences.d/", "mos.osd_XXX.pref")
+
+
+def get_env_repos(env):
+    return env.get_attributes()['editable']['repo_setup']['repos']['value']
+
+
+def get_repo_highest_priority(env):
+    return max([i['priority'] for i in get_env_repos(env)]) or 0
+
+
+@contextlib.contextmanager
+def applied_repos(nodes, preference_priority, seed_repos):
     node_file_to_clear_list = []
+    preference_content = generate_preference_pin(
+        seed_repos, preference_priority)
+    source_content = generate_source_content(seed_repos)
     try:
         for node in nodes:
-            source = write_content_to_tmp_file_on_node(
-                node, source_content,
-                "/etc/apt/sources.list.d/", "mos.osd_XXX.list")
-            node_file_to_clear_list.append((node, source))
-            preference = write_content_to_tmp_file_on_node(
-                node, preference_content,
-                "/etc/apt/preferences.d/", "mos.osd_XXX.pref")
-            node_file_to_clear_list.append((node, preference))
+            node_file_to_clear_list.append(
+                (node, apply_preference_for_node(node, preference_content)))
+            node_file_to_clear_list.append(
+                (node, apply_source_for_node(node, source_content)))
         yield
     finally:
         for node, file_name_to_remove in node_file_to_clear_list:
@@ -77,23 +105,19 @@ def applied_repos(nodes, preference_priority):
             sftp.unlink(file_name_to_remove)
 
 
-def get_repo_highest_priority(orig_env):
-    editable = orig_env.get_attributes()['editable']
-    repos = editable['repo_setup']['repos']['value']
-    return max([i['priority'] for i in repos])
-
-
-def upgrade_osd(env_id, user, password):
+def upgrade_osd(orig_env_id, seed_env_id, user, password):
     with fuel_client.set_auth_context(
             backup_restore.NailgunCredentialsContext(user, password)):
-        orig_env = env_obj.Environment(env_id)
+        orig_env = env_obj.Environment(orig_env_id)
         nodes = list(env.get_nodes(orig_env, ["ceph-osd"]))
+        seed_env = env_obj.Environment(seed_env_id)
+        seed_repos = get_env_repos(seed_env)
+        preference_priority = get_repo_highest_priority(orig_env)
     if not nodes:
         LOG.info("Nothing to upgrade")
         return
-    preference_priority = get_repo_highest_priority(orig_env)
     hostnames = [n.data['hostname'] for n in nodes]
-    with applied_repos(nodes, preference_priority + 1):
+    with applied_repos(nodes, preference_priority + 1, seed_repos):
         call_node = nodes[0]
         ssh.call(["ceph", "osd", "set", "noout"], node=call_node)
         ssh.call(['ceph-deploy', 'install', '--release', 'hammer'] + hostnames,
@@ -109,10 +133,15 @@ class UpgradeOSDCommand(cmd.Command):
     def get_parser(self, prog_name):
         parser = super(UpgradeOSDCommand, self).get_parser(prog_name)
         parser.add_argument(
-            'env_id',
+            'orig_env_id',
             type=int,
-            metavar='ENV_ID',
-            help="ID of target environment")
+            metavar='ORIG_ENV_ID',
+            help="ID of orig environment")
+        parser.add_argument(
+            'seed_env_id',
+            type=int,
+            metavar='SEED_ENV_ID',
+            help="ID of seed environment")
         parser.add_argument(
             "--admin-password",
             type=str,
@@ -123,4 +152,8 @@ class UpgradeOSDCommand(cmd.Command):
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_osd(parsed_args.env_id, 'admin', parsed_args.admin_password)
+        upgrade_osd(
+            parsed_args.orig_env_id,
+            parsed_args.seed_env_id,
+            'admin',
+            parsed_args.admin_password)
