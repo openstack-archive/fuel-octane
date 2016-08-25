@@ -9,7 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
+import os
 
 import mock
 import pytest
@@ -150,3 +150,34 @@ def test_get_client_credentials(mocker, editable, result):
     mocker.patch('paramiko.SSHClient')
     client = ssh.get_client.new(node)
     client.connect.assert_called_with(ip, **result)
+
+
+@pytest.mark.parametrize("dir_names,lists_files", [
+    (["test_dir_1", "test_dir_2"], [["file_1", "file_2"], ["file_3"]]),
+    (["test_dir_3", "test_dir_4"], [[], []])
+])
+def test_remove_all_files_from_dirs(mocker, dir_names, lists_files):
+    node = mock.Mock()
+    mock_sftp = mocker.patch("octane.util.ssh.sftp")
+    mock_list_dir = mocker.patch('paramiko.SFTPClient.listdir')
+    mock_list_dir.side_effect = lists_files
+    mock_unlink = mocker.patch("paramiko.SFTPClient.unlink")
+    ssh.remove_all_files_from_dirs(dir_names, node)
+    mock_sftp.assert_called_once_with(node)
+    mock_list_dir.call_args_list == [
+        mock.call(dir_name) for dir_name in dir_names
+    ]
+    mock_unlink.call_args_list == [
+        mock.call(os.path.join(dir_name, file)
+                  for dir_name, files in zip(dir_names, lists_files)
+                  for file in files)
+    ]
+
+
+def test_write_content_to_file(mocker):
+    filename = "filename"
+    content = "content"
+    sftp = mocker.patch("paramiko.SFTPClient")
+    mock_open = mocker.patch("paramiko.SFTPClient.open")
+    ssh.write_content_to_file(sftp, filename, content)
+    mock_open.assert_called_once_with(filename, 'w')
