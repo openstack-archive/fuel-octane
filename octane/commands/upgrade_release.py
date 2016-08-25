@@ -10,16 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from cliff import show
-
-from fuelclient.commands import base
+from cliff import command as cmd
 from fuelclient.commands import release
-from fuelclient.common import data_utils
 from octane.util import fuel_client
 
 
-class CreateUpgradeRelease(release.ReleaseMixIn, show.ShowOne,
-                           base.BaseCommand):
+class CreateUpgradeRelease(cmd.Command):
     """Clone release and translate settings from the given cluster."""
 
     columns = release.ReleaseList.columns
@@ -38,5 +34,4 @@ class CreateUpgradeRelease(release.ReleaseMixIn, show.ShowOne,
     def take_action(self, parsed_args):
         data = fuel_client.upgrade_release(
             parsed_args.env_id, parsed_args.release_id)
-        data = data_utils.get_display_data_single(self.columns, data)
-        return (self.columns, data)
+        return data['id']

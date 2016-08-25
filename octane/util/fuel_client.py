@@ -11,6 +11,7 @@
 # under the License.
 
 import contextlib
+import json
 
 import fuelclient
 from fuelclient import client
@@ -52,3 +53,10 @@ if fuelclient.__version__ == "8.0.0":
     set_auth_context = set_auth_context_80
 else:
     set_auth_context = set_auth_context_90
+
+
+def upgrade_release(env_id, release_id):
+    """Generate new release ready for upgrade env"""
+    results = client.APIClient.post_request(
+        "clusters/{0}/upgrade/clone_release/{1}".format(env_id, release_id))
+    return json.loads(results)
