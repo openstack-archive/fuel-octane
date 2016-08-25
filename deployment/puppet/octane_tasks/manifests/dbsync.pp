@@ -5,6 +5,7 @@
 class octane_tasks::dbsync (
 ) inherits octane_tasks::params {
 
+  include ::keystone::db::sync
   include ::nova::db::sync
   include ::glance::db::sync
   include ::neutron::db::sync
