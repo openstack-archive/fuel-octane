@@ -82,7 +82,7 @@ def mysqldump_from_env(env, role_name, dbs, fname):
 def mysqldump_restore_to_env(env, role_name, fname):
     node = env_util.get_one_node_of(env, role_name)
     with open(fname, 'rb') as local_file:
-        with ssh.popen(['sh', '-c', 'zcat | mysql --user root'],
+        with ssh.popen(['sh', '-c', 'zcat | sudo -iu root mysql --user root'],
                        stdin=ssh.PIPE, node=node) as proc:
             shutil.copyfileobj(local_file, proc.stdin)
 
