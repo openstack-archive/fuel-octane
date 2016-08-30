@@ -349,7 +349,6 @@ def collect_deployment_info(env, nodes):
 def iter_deployment_info(env, roles):
     controllers = list(get_controllers(env))
     full_info = get_backup_deployment_info(env.id)
-    roles = ['primary-controller', 'controller']
 
     if not full_info:
         full_info = collect_deployment_info(env, controllers)
