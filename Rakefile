@@ -1,4 +1,5 @@
-require 'rspec-puppet/rake_task'
+# TODO(pchechetin): Uncomment when rspec-puppet is necessary.
+# require 'rspec-puppet/rake_task'
 
 begin
   if Gem::Specification::find_by_name('puppet-lint')
