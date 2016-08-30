@@ -12,15 +12,15 @@ class octane_tasks::dbsync (
   include ::cinder::db::sync
   include ::heat::db::sync
 
-  if $murano_enabled {
+  if $octane_tasks::params::murano_enabled {
     include ::murano::db::sync
   }
 
-  if $sahara_enabled {
+  if $octane_tasks::params::sahara_enabled {
     include ::sahara::db::sync
   }
 
-  if $ironic_enabled {
+  if $octane_tasks::params::ironic_enabled {
     include ::ironic::db::sync
   }
 

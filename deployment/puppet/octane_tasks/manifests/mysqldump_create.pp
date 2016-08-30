@@ -4,25 +4,25 @@
 # It dumps, encrypts and compreses DB to a dump.
 #
 class octane_tasks::mysqldump_create inherits octane_tasks::params {
-  $password                   = $nova_hash['db_password']
+  $password                   = $octane_tasks::params::nova_hash['db_password']
   $compress_and_enc_command   = 'gzip | openssl enc -e -aes256 -pass env:PASSWORD -out /var/tmp/dbs.original.sql.gz.enc'
   $mysql_args                 = '--defaults-file=/root/.my.cnf --host localhost --add-drop-database --lock-all-tables'
 
   $os_base_dbs = ['cinder', 'glance', 'heat', 'keystone', 'neutron', 'nova']
 
-  if $sahara_enabled {
+  if $octane_tasks::params::sahara_enabled {
     $sahara_db = ['sahara']
   } else {
     $sahara_db = []
   }
 
-  if $murano_enabled {
+  if $octane_tasks::params::murano_enabled {
     $murano_db = ['murano']
   } else {
     $murano_db = []
   }
 
-  if $ironic_enabled {
+  if $octane_tasks::params::ironic_enabled {
     $ironic_db = ['ironic']
   } else {
     $ironic_db = []
