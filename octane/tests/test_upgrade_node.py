@@ -125,3 +125,48 @@ def test_check_sanity(mocker, node, node_data, expected_error):
                 in exc_info.value.args[0]
     else:
         assert upgrade_node.check_sanity(test_env_id, mock_nodes) is None
+
+
+@pytest.mark.parametrize(
+    'nodes_to_upgrade,seed_controllers_count,isolated,exception_msg', [
+        ([{'roles': ['controller']}], 0, True, None),
+        (
+            [{'roles': ['compute']}], 0, True,
+            "At first upgrade one controller in isolation"
+        ),
+        (
+            [{'roles': ['controller']}, {'roles': ['compute']}], 0, True,
+            "At first upgrade one controller in isolation"
+        ),
+        (
+            [{'roles': ['controller']}], 0, False,
+            "At first upgrade one controller in isolation"
+        ),
+        (
+            [{'roles': ['controller']}], 1, True,
+            "Only first controller should be upgrade in isolation"
+        ),
+        (
+            [{'roles': ['compute']}], 1, True,
+            "Only first controller should be upgrade in isolation"
+        ),
+        ([{'roles': ['compute']}, {'roles': ['compute']}], 10, False, None),
+        (
+            [{'roles': ['controller']}, {'roles': ['controller']}],
+            1, False, None
+        ),
+        ])
+def test_check_isolation(mocker, nodes_to_upgrade, isolated,
+                         seed_controllers_count, exception_msg):
+    nodes = [mock.MagicMock(data=d) for d in nodes_to_upgrade]
+    seed_controllers = [mock.Mock() for _ in range(seed_controllers_count)]
+    env = mock.Mock()
+    mock_get_nodes = mocker.patch(
+        "octane.util.env.get_nodes", return_value=seed_controllers)
+    if exception_msg:
+        with pytest.raises(Exception) as exc_info:
+            upgrade_node.check_isolation(env, nodes, isolated)
+        assert exception_msg == exc_info.value.args[0]
+    else:
+        upgrade_node.check_isolation(env, nodes, isolated)
+    mock_get_nodes.assert_called_once_with(env, ['controller'])

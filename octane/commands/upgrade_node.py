@@ -27,8 +27,21 @@ from octane.util import env as env_util
 LOG = logging.getLogger(__name__)
 
 
+def check_isolation(env, nodes, isolated):
+    seed_env_controllers = env_util.get_nodes(env, ['controller'])
+    one_controller_upgraded = len(nodes) == 1 and \
+        'controller' in nodes[0].data['roles']
+
+    if not seed_env_controllers and not (isolated and one_controller_upgraded):
+        raise Exception("At first upgrade one controller in isolation")
+
+    if isolated and seed_env_controllers:
+        raise Exception("Only first controller should be upgrade in isolation")
+
+
 def check_sanity(env_id, nodes):
     one_orig_id = None
+
     for node in nodes:
         node_id = node.data['id']
         orig_id = node.data['cluster']
@@ -53,6 +66,7 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     nodes = [node_obj.Node(node_id) for node_id in node_ids]
 
     check_sanity(env_id, nodes)
+    check_isolation(env, nodes, isolated)
 
     call_handlers = upgrade_handlers.get_nodes_handlers(
         nodes, env, isolated, live_migration)
