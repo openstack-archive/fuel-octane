@@ -35,13 +35,13 @@ def load_network_template(network_template):
 
 
 def upgrade_env(env_id, release_id, network_template=None):
-    env = environment_obj.Environment(env_id)
     release = release_obj.Release(release_id)
     seed_id = env_util.clone_env(env_id, release)
     env_util.copy_fuel_keys(env_id, seed_id)
     if network_template:
         network_template_data = load_network_template(network_template)
-        env.set_network_template_data(network_template_data)
+        seed_env = environment_obj.Environment(seed_id)
+        seed_env.set_network_template_data(network_template_data)
     return seed_id
 
 
