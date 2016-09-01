@@ -11,6 +11,7 @@
 # under the License.
 
 import io
+import itertools
 
 import mock
 import pytest
@@ -88,3 +89,35 @@ def test_db_sync(mocker, node, mock_subprocess, mock_ssh_call):
 def test_does_perform_flavor_data_migration(version, result):
     env = mock.Mock(data={"fuel_version": version})
     assert db.does_perform_flavor_data_migration(env) == result
+
+
+@pytest.mark.parametrize(("statuses", "is_error", "is_timeout"), [
+    ([(0, 0)], True, False),
+    ([(0, 0)], False, False),
+    ([(10, 0), (10, 5), (5, 5)], False, False),
+    ([(10, 0)], False, True),
+])
+def test_nova_migrate_flavor_data(mocker, statuses, is_error, is_timeout):
+    env = mock.Mock()
+    mocker.patch("time.sleep")
+    mocker.patch("octane.util.env.get_one_controller")
+    mock_output = mocker.patch("octane.util.ssh.call_output")
+    attempts = len(statuses)
+    mock_output.side_effect = itertools.starmap(FLAVOR_STATUS.format, statuses)
+    if is_error:
+        mock_output.side_effect = None
+        mock_output.return_value = "UNRECOGNIZABLE"
+        with pytest.raises(Exception) as excinfo:
+            db.nova_migrate_flavor_data(env, attempts=attempts)
+        assert excinfo.exconly().startswith(
+            "Exception: The format of the migrate_flavor_data command")
+    elif is_timeout:
+        with pytest.raises(Exception) as excinfo:
+            db.nova_migrate_flavor_data(env, attempts=attempts)
+        assert excinfo.exconly().startswith(
+            "Exception: After {0} attempts flavors data migration"
+            .format(attempts))
+    else:
+        db.nova_migrate_flavor_data(env, attempts=attempts)
+
+FLAVOR_STATUS = "{0} instances matched query, {1} completed"

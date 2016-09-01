@@ -51,21 +51,22 @@ def nova_migrate_flavor_data(env, attempts=20, attempt_delay=30):
         output = ssh.call_output(['nova-manage', 'db', 'migrate_flavor_data'],
                                  node=node, parse_levels=True)
         match = FLAVOR_STATUS_RE.match(output)
-        if not match:
+        if match is None:
             raise Exception(
                 "The format of the migrate_flavor_data command was changed: "
                 "'{0}'".format(output))
         params = match.groupdict()
         matched = int(params["matched"])
         completed = int(params["completed"])
-        if matched == 0:
+        if matched == 0 or matched == completed:
             LOG.info("All flavors were successfully migrated.")
             return
         LOG.debug("Trying to migrate flavors data, iteration %s: %s matches, "
-                  "%s completed", i, matched, completed)
+                  "%s completed.", i, matched, completed)
         time.sleep(attempt_delay)
     raise Exception(
-        "After %s attempts flavors data migration is still not ""completed")
+        "After {0} attempts flavors data migration is still not completed."
+        .format(attempts))
 
 FLAVOR_STATUS_RE = re.compile(
     r"^(?P<matched>[0-9]+) instances matched query, "
