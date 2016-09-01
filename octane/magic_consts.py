@@ -67,7 +67,7 @@ OSD_UPGADE_PREFERENCE_TEMPLATE = \
     "Pin: release a={suite},n={suite},l={suite}\n" \
     "Pin-Priority: {priority}"
 COBBLER_DROP_VERSION = "7.0"
-CEPH_UPSTART_VERSION = "7.0"
+NOVA_FLAVOR_DATA_MIGRATION = "7.0"
 
 
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
