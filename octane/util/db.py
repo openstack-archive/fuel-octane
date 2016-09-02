@@ -15,6 +15,9 @@ import re
 import shutil
 import time
 
+from distutils import version
+
+from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
 
@@ -25,8 +28,8 @@ LOG = logging.getLogger(__name__)
 def get_databases(env):
     node = env_util.get_one_controller(env)
     with ssh.popen([
+            'sudo', '-iu', 'root',
             'mysql',
-            '--user', 'root',
             '--batch',
             '--skip-column-names',
             '--host', 'localhost',
@@ -36,27 +39,34 @@ def get_databases(env):
     return out.splitlines()
 
 
+def does_perform_flavor_data_migration(env):
+    env_version = version.StrictVersion(env.data["fuel_version"])
+    return env_version == \
+        version.StrictVersion(magic_consts.NOVA_FLAVOR_DATA_MIGRATION_VERSION)
+
+
 def nova_migrate_flavor_data(env, attempts=20, attempt_delay=30):
     node = env_util.get_one_controller(env)
     for i in xrange(attempts):
         output = ssh.call_output(['nova-manage', 'db', 'migrate_flavor_data'],
                                  node=node, parse_levels=True)
         match = FLAVOR_STATUS_RE.match(output)
-        if not match:
+        if match is None:
             raise Exception(
                 "The format of the migrate_flavor_data command was changed: "
                 "'{0}'".format(output))
         params = match.groupdict()
         matched = int(params["matched"])
         completed = int(params["completed"])
-        if matched == 0:
+        if matched == 0 or matched == completed:
             LOG.info("All flavors were successfully migrated.")
             return
         LOG.debug("Trying to migrate flavors data, iteration %s: %s matches, "
-                  "%s completed", i, matched, completed)
+                  "%s completed.", i, matched, completed)
         time.sleep(attempt_delay)
     raise Exception(
-        "After %s attempts flavors data migration is still not ""completed")
+        "After {0} attempts flavors data migration is still not completed."
+        .format(attempts))
 
 FLAVOR_STATUS_RE = re.compile(
     r"^(?P<matched>[0-9]+) instances matched query, "
@@ -68,8 +78,8 @@ def mysqldump_from_env(env, role_name, dbs, fname):
     cmd = [
         'bash', '-c',
         'set -o pipefail; ' +  # We want to fail if mysqldump fails
+        'sudo -iu root '
         'mysqldump --add-drop-database --lock-all-tables '
-        '--user root '
         '--host localhost '
         '--databases {0}'.format(' '.join(dbs)) +
         ' | gzip',
@@ -82,7 +92,7 @@ def mysqldump_from_env(env, role_name, dbs, fname):
 def mysqldump_restore_to_env(env, role_name, fname):
     node = env_util.get_one_node_of(env, role_name)
     with open(fname, 'rb') as local_file:
-        with ssh.popen(['sh', '-c', 'zcat | mysql --user root'],
+        with ssh.popen(['sh', '-c', 'zcat | sudo -iu root mysql'],
                        stdin=ssh.PIPE, node=node) as proc:
             shutil.copyfileobj(local_file, proc.stdin)
 
@@ -98,7 +108,7 @@ def fix_neutron_migrations(node):
         "SET network_type='flat',physical_network='physnet1' " \
         "WHERE network_id IN (SELECT network_id FROM externalnetworks);"
 
-    cmd = ['mysql', '--user', 'root', 'neutron']
+    cmd = ['sudo', '-iu', 'root', 'mysql', 'neutron']
     with ssh.popen(cmd, node=node, stdin=ssh.PIPE) as proc:
         proc.stdin.write(add_networksecuritybindings_sql)
         proc.stdin.write(update_network_segments_sql)
