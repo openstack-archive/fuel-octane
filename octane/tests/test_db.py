@@ -13,6 +13,7 @@
 import io
 
 import mock
+import pytest
 
 from octane.util import db
 from octane.util import ssh
@@ -77,3 +78,13 @@ def test_db_sync(mocker, node, mock_subprocess, mock_ssh_call):
                for call in mock_ssh_call.call_args_list)
     assert all(call[1]['node'] == node
                for call in mock_ssh_call.call_args_list)
+
+
+@pytest.mark.parametrize(("version", "result"), [
+    ("6.1", False),
+    ("7.0", True),
+    ("8.0", False),
+])
+def test_does_perform_flavor_data_migration(version, result):
+    env = mock.Mock(data={"fuel_version": version})
+    assert db.does_perform_flavor_data_migration(env) == result

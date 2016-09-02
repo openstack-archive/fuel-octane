@@ -33,7 +33,8 @@ def upgrade_db(orig_id, seed_id, db_role_name):
     env_util.delete_fuel_resources(seed_env)
     # Wait for Neutron to reconfigure networks
     time.sleep(7)  # FIXME: Use more deterministic way
-    db.nova_migrate_flavor_data(orig_env)
+    if db.does_perform_flavor_data_migration(orig_env):
+        db.nova_migrate_flavor_data(orig_env)
     maintenance.disable_apis(orig_env)
     maintenance.stop_corosync_services(seed_env)
     maintenance.stop_upstart_services(seed_env)

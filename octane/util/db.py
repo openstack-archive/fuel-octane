@@ -15,6 +15,9 @@ import re
 import shutil
 import time
 
+from distutils import version
+
+from octane import magic_consts
 from octane.util import env as env_util
 from octane.util import ssh
 
@@ -34,6 +37,12 @@ def get_databases(env):
         proc.stdin.write('SHOW DATABASES')
         out = proc.communicate()[0]
     return out.splitlines()
+
+
+def does_perform_flavor_data_migration(env):
+    env_version = version.StrictVersion(env.data["fuel_version"])
+    return env_version == \
+        version.StrictVersion(magic_consts.NOVA_FLAVOR_DATA_MIGRATION_VERSION)
 
 
 def nova_migrate_flavor_data(env, attempts=20, attempt_delay=30):
