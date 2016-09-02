@@ -1,0 +1,8 @@
+Code-Review+2: Ilya Kharin <akscram@gmail.com>
+Workflow+1: Ilya Kharin <akscram@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 02 Sep 2016 16:30:52 +0000
+Reviewed-on: https://review.openstack.org/365042
+Project: openstack/fuel-octane
+Branch: refs/heads/stable/mitaka
