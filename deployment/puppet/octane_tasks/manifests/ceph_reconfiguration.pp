@@ -13,7 +13,7 @@ class octane_tasks::ceph_reconfiguration {
   $orig_fsid    = ceph_get_fsid('/var/tmp/ceph.conf')
   $tmp_mon_map  = '/var/tmp/ceph_mon_map'
 
-  validate_re($orig_fsid, '\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z')
+  validate_re($orig_fsid, '\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z')
 
   exec { 'extract_map':
     command => "ceph-mon -i ${::hostname} --extract-monmap ${tmp_mon_map}",
