@@ -25,12 +25,14 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
         parser.add_argument('--roles', nargs='?',
                             help="Assign the given roles to the node (a comma "
                                  "separated list of roles).")
-        parser.add_argument('node_id',
-                            type=int,
-                            help='ID of the node to upgrade.')
         parser.add_argument('env_id',
                             type=str,
                             help='ID of the environment.')
+        parser.add_argument('nodes_ids',
+                            type=int,
+                            metavar='node-id',
+                            nargs='+',
+                            help='IDs of the nodes to upgrade.')
         return parser
 
     def take_action(self, parsed_args):
@@ -38,7 +40,7 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
         #                fuelclient.objects.Environment the connection
         #                will be called directly.
         data = {
-            'node_id': parsed_args.node_id,
+            'nodes_ids': parsed_args.nodes_ids,
             'reprovision': parsed_args.provision,
         }
         if parsed_args.roles:
@@ -47,9 +49,9 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
             "clusters/{0}/upgrade/assign".format(parsed_args.env_id),
             data,
         )
-        msg = ('Node {node_id} successfully relocated to the environment'
+        msg = ('Nodes {nodes_ids} successfully relocated to the environment'
                ' {env_id}.\n'.format(
-                   node_id=parsed_args.node_id,
+                   nodes_ids=parsed_args.nodes_ids,
                    env_id=parsed_args.env_id,
                ))
         self.app.stdout.write(msg)
