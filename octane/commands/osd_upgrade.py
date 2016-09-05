@@ -22,6 +22,7 @@ from fuelclient.objects import environment as env_obj
 
 from octane.handlers import backup_restore
 from octane import magic_consts
+from octane.util import apt
 from octane.util import env
 from octane.util import fuel_client
 from octane.util import ssh
@@ -51,23 +52,32 @@ def write_content_to_tmp_file_on_node(node, content, directory, template):
     return tmp_name
 
 
+def get_repos_for_upgrade(orig_env, seed_env):
+    seed_repos = get_env_repos(seed_env)
+    orig_repos = {
+        apt.create_repo_source(r)[1] for r in get_env_repos(orig_env)}
+    results = []
+    for repo in seed_repos:
+        source = apt.create_repo_source(repo)[1]
+        if source not in orig_repos:
+            results.append(repo)
+    return results
+
+
 def generate_source_content(repos):
-    return '\n'.join([magic_consts.OSD_UPGRADE_SOURCE_TEMPLATE.format(**repo)
-                      for repo in repos])
+    return '\n\n'.join([apt.create_repo_source(r)[1] for r in repos])
 
 
 def generate_preference_pin(repos, priority):
     packages = " ".join(magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES)
     contents = []
-    for repo in repos:
-        suite = repo['suite']
-        contents.append(
-            magic_consts.OSD_UPGADE_PREFERENCE_TEMPLATE.format(
-                packages=packages,
-                suite=suite,
-                priority=priority
-            ))
-    return '\n'.join(contents)
+    for repo in sorted(repos, key=lambda r: r['priority']):
+        if repo['priority'] is None:
+            continue
+        repo['priority'] = max(repo['priority'], priority)
+        _, content = apt.create_repo_preferences(repo, packages)
+        contents.append(content)
+    return '\n\n'.join(contents)
 
 
 def apply_source_for_node(node, content):
@@ -161,7 +171,7 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
         orig_env = env_obj.Environment(orig_env_id)
         nodes = list(env.get_nodes(orig_env, ["ceph-osd"]))
         seed_env = env_obj.Environment(seed_env_id)
-        seed_repos = get_env_repos(seed_env)
+        seed_repos = get_repos_for_upgrade(orig_env, seed_env)
         preference_priority = get_repo_highest_priority(orig_env)
     if not nodes:
         LOG.info("Nothing to upgrade")

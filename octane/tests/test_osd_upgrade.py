@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 import mock
 import pytest
 
@@ -147,14 +148,14 @@ def test_upgrade_osd(
     mock_get_priority = mocker.patch(
         "octane.commands.osd_upgrade.get_repo_highest_priority",
         return_value=priority)
-    mock_get_env_repos = mocker.patch(
-        "octane.commands.osd_upgrade.get_env_repos")
     ssh_call_mock = mocker.patch("octane.util.ssh.call")
     mock_is_same_version = mocker.patch(
         "octane.commands.osd_upgrade.is_same_versions_on_mon_and_osd",
         side_effect=is_same_versions_on_mon_and_osd_return_values)
     mock_up_waiter = mocker.patch(
         "octane.commands.osd_upgrade.waiting_until_ceph_up")
+    mocker_get_repos_for_upgrade = mocker.patch(
+        "octane.commands.osd_upgrade.get_repos_for_upgrade")
     allready_same, upgraded = is_same_versions_on_mon_and_osd_return_values
     if not upgraded and not allready_same and nodes:
         with pytest.raises(Exception):
@@ -166,6 +167,7 @@ def test_upgrade_osd(
     mock_auth_cntx.assert_called_once_with(mock_creds.return_value)
     env_get.assert_any_call(orig_id)
     env_get.assert_any_call(seed_id)
+    mocker_get_repos_for_upgrade.assert_called_once_with(orig_env, seed_env)
     ssh_calls = []
     if nodes and not allready_same:
         ssh_calls.append(
@@ -181,7 +183,7 @@ def test_upgrade_osd(
         mock_applied.assert_called_once_with(
             nodes,
             priority + 1,
-            mock_get_env_repos.return_value)
+            mocker_get_repos_for_upgrade.return_value)
         assert [mock.call(controller), mock.call(controller)] == \
             mock_is_same_version.call_args_list
         mock_up_waiter.assert_called_once_with(controller)
@@ -213,7 +215,7 @@ def test_upgrade_osd(
                 u'type': u'deb',
             }
         ],
-        "deb http://ubuntu/ trusty main universe multiverse\n"
+        "deb http://ubuntu/ trusty main universe multiverse\n\n"
         "deb http://ubuntu/ trusty-updates main universe multiverse"
     ),
 ])
@@ -242,17 +244,49 @@ def test_generate_source_content(repos, result):
             }
         ],
         1000,
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty,n=trusty,l=trusty\n"
-        "Pin-Priority: 1000\n"
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty-updates,n=trusty-updates,l=trusty-updates\n"
-        "Pin-Priority: 1000"
+        ""
+    ),
+    (
+        [
+            {
+                u'name': u'ubuntu',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 9999,
+                u'suite': u'trusty',
+                u'type': u'deb',
+            },
+            {
+                u'name': u'ubuntu-updates',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 99,
+                u'suite': u'trusty-updates',
+                u'type': u'deb',
+            }
+        ],
+        1000,
+        '{"priority": 1000, "name": "ubuntu-updates", '
+        '"suite": "trusty-updates", "section": "main universe multiverse", '
+        '"packages": "libcephfs1 librados2 librbd1 python-ceph python-cephfs '
+        'python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds", '
+        '"type": "deb", "uri": "http://ubuntu/"}\n\n'
+        '{"priority": 9999, "name": "ubuntu", "suite": "trusty", '
+        '"section": "main universe multiverse", '
+        '"packages": "libcephfs1 librados2 librbd1 python-ceph python-cephfs '
+        'python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds", '
+        '"type": "deb", "uri": "http://ubuntu/"}'
     ),
 ])
-def test_generate_preference_pin(repos, priority, result):
+def test_generate_preference_pin(mocker, repos, priority, result):
+
+    def foo(repo, packages):
+        repo = repo.copy()
+        repo['priority'] = max(priority, repo['priority'])
+        repo['packages'] = packages
+        return None, json.dumps(repo)
+
+    mocker.patch("octane.util.apt.create_repo_preferences", side_effect=foo)
     assert result == osd_upgrade.generate_preference_pin(repos, priority)
 
 
