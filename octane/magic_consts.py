@@ -60,12 +60,7 @@ OSD_UPGRADE_REQUIRED_PACKAGES = [
     "python-rados", "python-rbd", "ceph", "ceph-common", "ceph-fs-common",
     "ceph-mds",
 ]
-OSD_UPGRADE_SOURCE_TEMPLATE = "{type} {uri} {suite} {section}"
 
-OSD_UPGADE_PREFERENCE_TEMPLATE = \
-    "Package: {packages}\n" \
-    "Pin: release a={suite},n={suite},l={suite}\n" \
-    "Pin-Priority: {priority}"
 COBBLER_DROP_VERSION = "7.0"
 NOVA_FLAVOR_DATA_MIGRATION_VERSION = "7.0"
 
