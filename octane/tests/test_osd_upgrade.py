@@ -121,11 +121,12 @@ def test_get_repo_highest_priority(mocker, repos, result):
 @pytest.mark.parametrize(
     "is_same_versions_on_mon_and_osd_return_values",
     [(True, True), (False, True), (False, False)])
+@pytest.mark.parametrize("fuel_version", "version")
 def test_upgrade_osd(
         mocker, nodes_count, priority, user, password, orig_id, seed_id,
-        is_same_versions_on_mon_and_osd_return_values):
+        is_same_versions_on_mon_and_osd_return_values, fuel_version):
     orig_env = mock.Mock()
-    seed_env = mock.Mock()
+    seed_env = mock.Mock(data={'fuel_version': fuel_version})
     nodes = []
     hostnames = []
     restart_calls = []
@@ -155,6 +156,8 @@ def test_upgrade_osd(
         side_effect=is_same_versions_on_mon_and_osd_return_values)
     mock_up_waiter = mocker.patch(
         "octane.commands.osd_upgrade.waiting_until_ceph_up")
+    mocker_get_repos_for_upgrade = mocker.patch(
+        "octane.commands.osd_upgrade.get_repos_for_upgrade")
     allready_same, upgraded = is_same_versions_on_mon_and_osd_return_values
     if not upgraded and not allready_same and nodes:
         with pytest.raises(Exception):
@@ -181,7 +184,9 @@ def test_upgrade_osd(
         mock_applied.assert_called_once_with(
             nodes,
             priority + 1,
-            mock_get_env_repos.return_value)
+            mocker_get_repos_for_upgrade.return_value)
+        mocker_get_repos_for_upgrade.assert_called_once_with(
+            mock_get_env_repos.return_value, fuel_version)
         assert [mock.call(controller), mock.call(controller)] == \
             mock_is_same_version.call_args_list
         mock_up_waiter.assert_called_once_with(controller)

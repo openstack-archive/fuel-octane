@@ -51,6 +51,10 @@ def write_content_to_tmp_file_on_node(node, content, directory, template):
     return tmp_name
 
 
+def get_repos_for_upgrade(repos, fuel_version):
+    return [r for r in repos if r['suite'] == "mos{0}".format(fuel_version)]
+
+
 def generate_source_content(repos):
     return '\n'.join([magic_consts.OSD_UPGRADE_SOURCE_TEMPLATE.format(**repo)
                       for repo in repos])
@@ -163,6 +167,7 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
         seed_env = env_obj.Environment(seed_env_id)
         seed_repos = get_env_repos(seed_env)
         preference_priority = get_repo_highest_priority(orig_env)
+        fuel_version = seed_env.data['fuel_version']
     if not nodes:
         LOG.info("Nothing to upgrade")
         return
@@ -171,7 +176,8 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
         LOG.warn("MON and OSD have the same value, nothing to upgrade")
         return
     hostnames = [n.data['hostname'] for n in nodes]
-    with applied_repos(nodes, preference_priority + 1, seed_repos):
+    repos_for_upgrade = get_repos_for_upgrade(seed_repos, fuel_version)
+    with applied_repos(nodes, preference_priority + 1, repos_for_upgrade):
         call_node = nodes[0]
         ssh.call(["ceph", "osd", "set", "noout"], node=call_node)
         ssh.call(['ceph-deploy', 'install', '--release', 'hammer'] + hostnames,
