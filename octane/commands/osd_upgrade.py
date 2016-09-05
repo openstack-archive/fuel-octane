@@ -11,8 +11,10 @@
 # under the License.
 
 import contextlib
+import json
 import logging
 import os
+import time
 
 from cliff import command as cmd
 
@@ -105,6 +107,54 @@ def applied_repos(nodes, preference_priority, seed_repos):
             sftp.unlink(file_name_to_remove)
 
 
+def get_current_versions(controller, kind):
+    stdout = ssh.call_output(
+        ['ceph', 'tell', '{0}.*'.format(kind), 'version', '-f', 'json'],
+        node=controller)
+    results = []
+    for line in stdout.splitlines():
+        if not line:
+            continue
+        if line.startswith(kind):
+            line = line.split(":", 1)[1]
+        results.append(json.loads(line))
+    return results
+
+
+def get_current_mon_versions(controller):
+    return {v['version'] for v in get_current_versions(controller, "mon")}
+
+
+def get_current_osd_versions(controller):
+    return {v['version'] for v in get_current_versions(controller, "osd")}
+
+
+def is_same_versions_on_mon_and_osd(controller):
+    mons = get_current_mon_versions(controller)
+    osds = get_current_osd_versions(controller)
+    return osds == mons
+
+
+def is_ceph_up(controller):
+    stdout = ssh.call_output(['ceph', 'osd', 'tree', '-f', 'json'],
+                             node=controller)
+    data = json.loads(stdout.strip())
+    return all(n['status'] == 'up' for n in data['nodes']
+               if n['type'] == 'osd')
+
+
+def waiting_until_ceph_up(controller):
+    delay = 5
+    times = 30
+    for _ in range(times):
+        if is_ceph_up(controller):
+            return
+        time.sleep(delay)
+    raise Exception(
+        "After upgrade not all ceph osd nodes ar UP after {0} seconds".format(
+            delay * times))
+
+
 def upgrade_osd(orig_env_id, seed_env_id, user, password):
     with fuel_client.set_auth_context(
             backup_restore.NailgunCredentialsContext(user, password)):
@@ -116,6 +166,10 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
     if not nodes:
         LOG.info("Nothing to upgrade")
         return
+    controller = env.get_one_controller(seed_env)
+    if is_same_versions_on_mon_and_osd(controller):
+        LOG.warn("MON and OSD have the same value, nothing to upgrade")
+        return
     hostnames = [n.data['hostname'] for n in nodes]
     with applied_repos(nodes, preference_priority + 1, seed_repos):
         call_node = nodes[0]
@@ -125,6 +179,11 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
     for node in nodes:
         ssh.call(["restart", "ceph-osd-all"], node=node)
     ssh.call(["ceph", "osd", "unset", "noout"], node=call_node)
+    waiting_until_ceph_up(controller)
+    if not is_same_versions_on_mon_and_osd(controller):
+        msg = "OSD and MONS has wrong versions, fix this problem"
+        LOG.error(msg)
+        raise Exception(msg)
 
 
 class UpgradeOSDCommand(cmd.Command):

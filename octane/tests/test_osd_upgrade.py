@@ -118,13 +118,18 @@ def test_get_repo_highest_priority(mocker, repos, result):
 @pytest.mark.parametrize("password", ["password"])
 @pytest.mark.parametrize("nodes_count", [0, 10])
 @pytest.mark.parametrize("priority", [100, 500])
+@pytest.mark.parametrize(
+    "is_same_versions_on_mon_and_osd_return_values",
+    [(True, True), (False, True), (False, False)])
 def test_upgrade_osd(
-        mocker, nodes_count, priority, user, password, orig_id, seed_id):
+        mocker, nodes_count, priority, user, password, orig_id, seed_id,
+        is_same_versions_on_mon_and_osd_return_values):
     orig_env = mock.Mock()
     seed_env = mock.Mock()
     nodes = []
     hostnames = []
     restart_calls = []
+    controller = mock.Mock()
     for idx in range(nodes_count):
         hostname = "host_{0}".format(idx)
         hostnames.append(hostname)
@@ -134,6 +139,7 @@ def test_upgrade_osd(
     env_get = mocker.patch("fuelclient.objects.environment.Environment",
                            side_effect=[orig_env, seed_env])
     mocker.patch("octane.util.env.get_nodes", return_value=iter(nodes))
+    mocker.patch("octane.util.env.get_one_controller", return_value=controller)
     mock_creds = mocker.patch(
         "octane.handlers.backup_restore.NailgunCredentialsContext")
     mock_auth_cntx = mocker.patch("octane.util.fuel_client.set_auth_context")
@@ -144,15 +150,24 @@ def test_upgrade_osd(
     mock_get_env_repos = mocker.patch(
         "octane.commands.osd_upgrade.get_env_repos")
     ssh_call_mock = mocker.patch("octane.util.ssh.call")
-
-    osd_upgrade.upgrade_osd(orig_id, seed_id, user, password)
+    mock_is_same_version = mocker.patch(
+        "octane.commands.osd_upgrade.is_same_versions_on_mon_and_osd",
+        side_effect=is_same_versions_on_mon_and_osd_return_values)
+    mock_up_waiter = mocker.patch(
+        "octane.commands.osd_upgrade.waiting_until_ceph_up")
+    allready_same, upgraded = is_same_versions_on_mon_and_osd_return_values
+    if not upgraded and not allready_same and nodes:
+        with pytest.raises(Exception):
+            osd_upgrade.upgrade_osd(orig_id, seed_id, user, password)
+    else:
+        osd_upgrade.upgrade_osd(orig_id, seed_id, user, password)
 
     mock_creds.assert_called_once_with(user, password)
     mock_auth_cntx.assert_called_once_with(mock_creds.return_value)
     env_get.assert_any_call(orig_id)
     env_get.assert_any_call(seed_id)
     ssh_calls = []
-    if nodes:
+    if nodes and not allready_same:
         ssh_calls.append(
             mock.call(["ceph", "osd", "set", "noout"], node=nodes[0]))
         ssh_calls.append(
@@ -167,6 +182,14 @@ def test_upgrade_osd(
             nodes,
             priority + 1,
             mock_get_env_repos.return_value)
+        assert [mock.call(controller), mock.call(controller)] == \
+            mock_is_same_version.call_args_list
+        mock_up_waiter.assert_called_once_with(controller)
+    elif nodes and allready_same:
+        mock_is_same_version.assert_called_once_with(controller)
+    elif not nodes:
+        assert not mock_is_same_version.called
+
     assert ssh_calls == ssh_call_mock.mock_calls
 
 
@@ -306,3 +329,43 @@ def test_get_env_repos(attrs, result):
     env = mock.MagicMock()
     env.get_attributes.return_value = attrs
     assert result == osd_upgrade.get_env_repos(env)
+
+
+@pytest.mark.parametrize("tree,result", [
+    ('\n{"nodes":[{"type":"root"},{"type":"host"},'
+     '{"type":"osd","status":"up"},'
+     '{"type":"osd","status":"up"}],"stray":[]}', True),
+    ('{"nodes":[{"type":"root"},{"type":"host"},'
+     '{"type":"osd","status":"down"},{"type":"osd","status":"up"}],'
+     '"stray":[]}', False),
+])
+def test_is_ceph_up(mocker, tree, result):
+    controller = mock.Mock()
+    mock_call = mocker.patch("octane.util.ssh.call_output", return_value=tree)
+    assert result == osd_upgrade.is_ceph_up(controller)
+    mock_call.assert_called_once_with(
+        ['ceph', 'osd', 'tree', '-f', 'json'], node=controller)
+
+
+@pytest.mark.parametrize("running_times", [1, 2, 31])
+def test_waiting_until_ceph_up(mocker, running_times):
+    time_calls = []
+    is_ceph_up_calls = []
+    is_ceph_up_side_effects = []
+    controller = mock.Mock()
+    for idx in range(min(running_times, 30)):
+        is_ceph_up_calls.append(mock.call(controller))
+        is_ok = idx == (running_times - 1)
+        is_ceph_up_side_effects.append(is_ok)
+        if not is_ok:
+            time_calls.append(mock.call(5))
+    time_mock = mocker.patch("time.sleep")
+    is_ceph_up_mock = mocker.patch("octane.commands.osd_upgrade.is_ceph_up",
+                                   side_effect=is_ceph_up_side_effects)
+    if any(is_ceph_up_side_effects):
+        osd_upgrade.waiting_until_ceph_up(controller)
+    else:
+        with pytest.raises(Exception):
+            osd_upgrade.waiting_until_ceph_up(controller)
+    assert time_calls == time_mock.call_args_list
+    assert is_ceph_up_calls == is_ceph_up_mock.call_args_list
