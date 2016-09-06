@@ -14,6 +14,7 @@ import mock
 import os
 import pytest
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import base
 from octane.handlers.backup_restore import cobbler
@@ -65,6 +66,13 @@ def test_path_backup(mocker, cls, path, name):
             "/var/lib/cobbler/config/distros.d/",
             None,
             "cobbler_distros",
+        ),
+        (
+            admin_networks.AdminNetworks,
+            [],
+            "/etc/hiera/networks.yaml",
+            ["networks.yaml"],
+            "networks"
         ),
     ])
 def test_path_filter_backup(mocker, cls, banned_files, backup_directory,
