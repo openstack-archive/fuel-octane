@@ -14,6 +14,7 @@ import mock
 import os
 import pytest
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import base
 from octane.handlers.backup_restore import cobbler
@@ -246,6 +247,23 @@ def test_repos_backup(
         ],
         any_order=True)
     assert test_archive.add.call_count == len(archive_add_list)
+
+
+@pytest.mark.parametrize("cls,path,name", [
+    (
+        admin_networks.AdminNetworks,
+        "/etc/hiera/networks.yaml",
+        "networks/networks.yaml"
+    )
+])
+@pytest.mark.parametrize("is_exists", [True, False])
+def test_admin_networks_backup(mocker, cls, path, name, is_exists):
+    test_archive = mocker.Mock()
+    mock_exists = mocker.patch("os.path.exists", return_value=is_exists)
+    cls(test_archive).backup()
+    mock_exists.assert_called_once_with(path)
+    if is_exists:
+        test_archive.add.assert_called_once_with(path, name)
 
 
 @pytest.mark.parametrize("name, expected_name", [
