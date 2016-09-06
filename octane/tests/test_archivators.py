@@ -14,6 +14,7 @@ import mock
 import os
 import pytest
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import base
 from octane.handlers.backup_restore import cobbler
@@ -36,6 +37,11 @@ from octane.handlers.backup_restore import version
         "fuel_uuid/fuel-uuid"
     ),
     (ssh.SshArchivator, "/root/.ssh/", "ssh"),
+    (
+        admin_networks.AdminNetworks,
+        "/etc/hiera/networks.yaml",
+        "networks/networks.yaml"
+    )
 ])
 def test_path_backup(mocker, cls, path, name):
     test_archive = mocker.Mock()

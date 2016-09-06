@@ -12,6 +12,7 @@
 
 import os
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -45,6 +46,7 @@ ARCHIVATORS = [
     logs.LogsArchivator,
     version.VersionArchivator,
     nailgun_plugins.NailgunPluginsArchivator,
+    admin_networks.AdminNetworks,
     puppet.PuppetApplyTasks,
 ]
 
