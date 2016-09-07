@@ -33,7 +33,6 @@ class PuppetApplyTasks(base.Base):
 
     def restore(self):
         subprocess.call(["systemctl", "stop"] + self.services)
-        with auth.set_astute_password(self.context), \
-                keystone.admin_token_auth(magic_consts.KEYSTONE_PASTE,
-                                          magic_consts.KEYSTONE_PIPELINES):
+        with keystone.admin_token_auth(magic_consts.KEYSTONE_PASTE,
+                                       magic_consts.KEYSTONE_PIPELINES):
             puppet.apply_all_tasks()
