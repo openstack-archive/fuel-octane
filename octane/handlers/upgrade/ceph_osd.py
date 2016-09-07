@@ -15,7 +15,6 @@ import logging
 from octane.handlers import upgrade
 from octane.util import ceph
 from octane.util import node as node_util
-from octane.util import puppet
 from octane.util import subprocess
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +22,6 @@ LOG = logging.getLogger(__name__)
 
 class CephOsdUpgrade(upgrade.UpgradeHandler):
     env_with_set_noout = set()
-    patched_nodes = set()
 
     def preupgrade(self):
         try:
@@ -33,10 +31,6 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
 
     def prepare(self):
         self.preserve_partition()
-        # patch only on first prepare run
-        if not self.patched_nodes:
-            puppet.patch_modules()
-        self.patched_nodes.add(self.node.data['id'])
         if self.env.data['id'] not in self.env_with_set_noout:
             self.env_with_set_noout.add(self.env.data['id'])
             ceph.set_osd_noout(self.env)
@@ -46,9 +40,6 @@ class CephOsdUpgrade(upgrade.UpgradeHandler):
         if self.env.data['id'] in self.env_with_set_noout:
             ceph.unset_osd_noout(self.env)
             self.env_with_set_noout.remove(self.env.data['id'])
-        self.patched_nodes.remove(self.node.data['id'])
-        if not self.patched_nodes:
-            puppet.patch_modules(revert=True)
 
     def preserve_partition(self):
         partition = 'ceph'
