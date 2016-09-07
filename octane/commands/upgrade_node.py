@@ -83,11 +83,14 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     # [1]: https://bugs.launchpad.net/fuel/+bug/1549254
     env_util.copy_vips(env)
     call_handlers('predeploy')
-    tasks_to_skip = set(
-        itertools.chain.from_iterable(call_handlers('skip_tasks'))
-    )
-    LOG.info("Tasks to skip: {0}".format(', '.join(tasks_to_skip)))
-    env_util.deploy_nodes_without_tasks(env, nodes, tasks_to_skip)
+    if isolated:
+        tasks_to_skip = set(
+            itertools.chain.from_iterable(call_handlers('skip_tasks'))
+        )
+        LOG.info("Tasks to skip: {0}".format(', '.join(tasks_to_skip)))
+        env_util.deploy_nodes_without_tasks(env, nodes, tasks_to_skip)
+    else:
+        env_util.deploy_changes(env, nodes)
     call_handlers('postdeploy')
 
 
