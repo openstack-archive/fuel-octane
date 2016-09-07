@@ -32,7 +32,6 @@ def test_parser(mocker, octane_app):
     [(1, 1), (2, 2)]
     ])
 def test_patch_and_revert_only_once(mocker, env_node_ids):
-    patch_mock = mocker.patch("octane.util.puppet.patch_modules")
     mocker.patch("octane.util.ceph.check_cluster")
     mocker.patch("octane.util.node.preserve_partition")
     set_ceph_noout_mock = mocker.patch("octane.util.ceph.set_osd_noout")
@@ -59,7 +58,6 @@ def test_patch_and_revert_only_once(mocker, env_node_ids):
         handler.prepare()
     for handler in handlers:
         handler.postdeploy()
-    assert [mock.call(), mock.call(revert=True)] == patch_mock.call_args_list
     env_calls = [mock.call(e) for e in envs.values()]
     assert env_calls == set_ceph_noout_mock.call_args_list
     assert env_calls == unset_ceph_noout_mock.call_args_list
