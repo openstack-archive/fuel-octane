@@ -15,7 +15,7 @@ import requests
 import urlparse
 import yaml
 
-from keystoneclient.v2_0 import Client as keystoneclient
+from keystoneclient import v2_0
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts
@@ -82,7 +82,7 @@ class ReleaseArchivator(base.Base):
         return resp.json()
 
     def __request(self, method, url, user, password, data=None):
-        ksclient = keystoneclient(
+        ksclient = v2_0.Client(
             auth_url=magic_consts.KEYSTONE_API_URL,
             username=user,
             password=password,
