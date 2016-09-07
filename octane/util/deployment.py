@@ -75,7 +75,7 @@ def execute_graph_and_wait(graph_name, env_id,
     """Execute graph with fuelclient and wait until finished."""
 
     client = graph.GraphClient()
-    graph_task = client.execute(env_id, None, graph_type=graph_name)
+    graph_task = client.execute(env_id, graph_types=[graph_name])
     for i in xrange(attempts):
         status = graph_task.status
         if status == 'ready':
