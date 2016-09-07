@@ -270,3 +270,26 @@ def test_get_generated(mocker, env_id, expected_url):
     res = env_util.get_generated(env_id)
     assert res is m.get_request.return_value
     assert m.mock_calls == [mock.call.get_request(expected_url)]
+
+
+@mock.patch('time.sleep', name='sleep')
+@mock.patch('time.time', name='time', side_effect=list(range(10)))
+def test_wait_for_node_stopped(time, sleep):
+    node = mock.Mock(name='Node object')
+    get_fresh_data = mock.Mock(
+        name='get_fresh_data',
+        side_effect=[
+            {'status': 'running', 'online': True},
+            {'status': 'stopped', 'online': True},
+        ]
+    )
+    node.attach_mock(get_fresh_data, 'get_fresh_data')
+    node.configure_mock(data={'status': 'running', 'online': True, 'id': 0})
+    try:
+        env_util.wait_for_node(node, 'success')
+    except RuntimeError as e:
+        assert (
+            "Node %s fell into stopped status, while expected %s"
+            "" % (0, 'success') in e.args)
+    sleep.assert_called_once_with(60)
+    time.assert_has_calls((mock.call(), mock.call()))

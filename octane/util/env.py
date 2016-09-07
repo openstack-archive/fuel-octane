@@ -135,6 +135,10 @@ def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
         data = node.get_fresh_data()
         if data['status'] == 'error':
             raise Exception("Node %s fell into error status" % (node_id,))
+        elif data['status'] == 'stopped' != status:
+            raise RuntimeError(
+                "Node %s fell into stopped status, while expected %s"
+                "" % (node_id, status))
         if data['online'] and data['status'] == status:
             LOG.info("Node %s transitioned to status '%s'", node_id, status)
             return
