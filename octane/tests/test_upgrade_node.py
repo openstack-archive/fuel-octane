@@ -39,14 +39,12 @@ def test_parser(mocker, octane_app, cmd, env, nodes, provision, roles,
                               live_migration=live_migration)
 
 
-@pytest.mark.parametrize(
-    "node_ids,isolated,provision,roles",
-    [(['test-node-1', 'test-node-2', 'test-node-3'],
-      False, True, None), ])
-@pytest.mark.parametrize("skip_task_return_value,set_skip_tasks",
-                         [([['test'], ['test', 'test_1'], []],
-                          set(['test', 'test_1']))]
-                         )
+@pytest.mark.parametrize(("node_ids", "isolated", "provision", "roles"), [
+    (['test-node-1', 'test-node-2', 'test-node-3'], False, True, None),
+])
+@pytest.mark.parametrize(("skip_task_return_value", "set_skip_tasks"), [
+    ([['test'], ['test', 'test_1'], []], set(['test', 'test_1'])),
+])
 def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
                       skip_task_return_value, set_skip_tasks):
 
@@ -67,7 +65,6 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
     mock_env.id = test_env_id
     mock_env.data = {}
     mock_env.data['id'] = mock_env.id
-    mocker.patch("octane.util.patch.applied_patch")
     mock_node = mocker.patch("fuelclient.objects.node.Node")
     mock_node.side_effect = _create_node
     mock_get_handlers = mocker.patch(
@@ -79,6 +76,7 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
     mock_deploy_nodes = mocker.patch(
         "octane.util.env.deploy_nodes_without_tasks"
     )
+    mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     mock_check_isolation = mocker.patch(
         "octane.commands.upgrade_node.check_isolation")
     upgrade_node.upgrade_node(test_env_id, node_ids)
@@ -86,12 +84,24 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
         mock_env, mock_nodes_list, isolated)
     mock_copy_vips.assert_called_once_with(mock_env)
     mock_move_nodes.assert_called_once_with(mock_env, mock_nodes_list,
-                                            True, None)
-    assert mock_handlers.call_args_list == [
-        mock.call('preupgrade'), mock.call('prepare'), mock.call('predeploy'),
-        mock.call('skip_tasks'), mock.call('postdeploy')]
-    mock_deploy_nodes.assert_called_once_with(mock_env, mock_nodes_list,
-                                              set_skip_tasks)
+                                            provision, roles)
+    possible_steps = [
+        ('preupgrade', True),
+        ('prepare', True),
+        ('predeploy', True),
+        ('skip_tasks', isolated),
+        ('postdeploy', True),
+    ]
+    expected_steps = [
+        mock.call(name) for name, is_expected in possible_steps if is_expected]
+    assert mock_handlers.call_args_list == expected_steps
+    if isolated:
+        mock_deploy_nodes.assert_called_once_with(
+            mock_env, mock_nodes_list, set_skip_tasks)
+        not mock_deploy_changes.called
+    else:
+        mock_deploy_changes.assert_called_once_with(mock_env, mock_nodes_list)
+        not mock_deploy_nodes.called
 
 
 @pytest.mark.parametrize('node_data,expected_error', [
