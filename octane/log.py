@@ -49,9 +49,13 @@ def set_console_formatter(**formatter_kwargs):
     for handler in root_logger.handlers:
         if handler.__class__ is logging.StreamHandler:  # Skip subclasses
             console_handler = handler
+            # Skip if not a tty (default ssh, redirect, ...)
+            isatty = getattr(handler.stream, 'isatty', None)
+            if isatty is None or not isatty():
+                continue
             break
     else:
-        return  # Didn't find any StreamHandlers there
+        return  # Didn't find any suitable StreamHandlers there
     formatter = ColorFormatter(**formatter_kwargs)
     console_handler.setFormatter(formatter)
 
