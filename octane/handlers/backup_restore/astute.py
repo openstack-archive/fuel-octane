@@ -15,6 +15,8 @@ import shutil
 import yaml
 
 from octane.handlers.backup_restore import base
+from octane import magic_consts as consts
+from octane.util import auth
 from octane.util import puppet
 
 
@@ -22,7 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class AstuteArchivator(base.PathArchivator):
-    path = "/etc/fuel/astute.yaml"
+    path = consts.ASTUTE_YAML
     name = "astute/astute.yaml"
 
     keys_to_restore = [
@@ -62,6 +64,15 @@ class AstuteArchivator(base.PathArchivator):
         ]),
         ("FUEL_ACCESS", ["user", "password"]),
     ]
+
+    def backup(self):
+        super(AstuteArchivator, self).backup()
+
+        creds = self.get_backup_dict()['FUEL_ACCESS']
+        if not auth.is_creds_valid(creds['user'], creds['password']):
+            raise Exception(
+                "astute.yaml file contains invalid Fuel username or password"
+            )
 
     def get_backup_dict(self):
         return yaml.load(self.archive.extractfile(self.name))
