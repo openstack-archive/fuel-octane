@@ -15,6 +15,8 @@ import shutil
 import yaml
 
 from octane.handlers.backup_restore import base
+from octane import magic_consts as consts
+from octane.util import auth
 from octane.util import puppet
 
 
@@ -22,7 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class AstuteArchivator(base.PathArchivator):
-    path = "/etc/fuel/astute.yaml"
+    path = consts.ASTUTE_YAML
     name = "astute/astute.yaml"
 
     keys_to_restore = [
@@ -63,6 +65,15 @@ class AstuteArchivator(base.PathArchivator):
         ("FUEL_ACCESS", ["user", "password"]),
     ]
 
+    def backup(self):
+        super(AstuteArchivator, self).backup()
+
+        creds = self.get_backup_dict()['FUEL_ACCESS']
+        if not auth.is_creds_valid(creds['user'], creds['password']):
+            raise Exception(
+                "astute.yaml file contains invalid Fuel username or password"
+            )
+
     def get_backup_dict(self):
         return yaml.load(self.archive.extractfile(self.name))
 
@@ -71,12 +82,23 @@ class AstuteArchivator(base.PathArchivator):
             return yaml.load(current)
 
     def pre_restore_check(self):
-        backup_ip = self.get_backup_dict()["ADMIN_NETWORK"]["ipaddress"]
-        current_ip = self.get_current_dict()["ADMIN_NETWORK"]["ipaddress"]
+        backup = self.get_backup_dict()
+        current = self.get_current_dict()
+
+        backup_ip = backup["ADMIN_NETWORK"]["ipaddress"]
+        current_ip = current["ADMIN_NETWORK"]["ipaddress"]
+
         if backup_ip != current_ip:
             raise Exception(
                 "Restore allowed on machine with same ipaddress. "
                 "Use fuel-menu to set up ipaddress to {0}".format(backup_ip))
+
+        creds = backup.get('FUEL_ACCESS')
+        if creds and not auth.is_creds_valid(creds['user'], creds['password']):
+            raise Exception(
+                "Backup's astute.yaml file contains invalid"
+                " Fuel username or password"
+            )
 
     def restore(self):
         backup_yaml = self.get_backup_dict()
