@@ -10,25 +10,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import shutil
-import yaml
+from collections import namedtuple
+from fuelclient.client import APIClient
 
-import contextlib
-
-from octane.util import helpers
-from octane.util import tempfile
+from octane.util import fuel_client
 
 
-@contextlib.contextmanager
-def set_astute_password(auth_context):
-    tmp_file_name = tempfile.get_tempname(
-        dir="/etc/fuel", prefix=".astute.yaml.octane")
-    shutil.copy2("/etc/fuel/astute.yaml", tmp_file_name)
-    try:
-        data = helpers.get_astute_dict()
-        data["FUEL_ACCESS"]["password"] = auth_context.password
-        with open("/etc/fuel/astute.yaml", "w") as current:
-            yaml.safe_dump(data, current, default_flow_style=False)
-        yield
-    finally:
-        shutil.move(tmp_file_name, "/etc/fuel/astute.yaml")
+Context = namedtuple('Context', ('user', 'password'))
+
+
+def is_creds_valid(user, password):
+    with fuel_client.set_auth_context(Context(user, password)):
+        resp = APIClient.get_request_raw('/clusters')
+        if resp.status_code != 401:
+            resp.raise_for_status()
+            return True
+        return False
