@@ -14,6 +14,8 @@ import re
 
 import yaml
 
+from octane import magic_consts
+
 
 def merge_dicts(base_dict, update_dict):
     result = base_dict.copy()
@@ -26,7 +28,7 @@ def merge_dicts(base_dict, update_dict):
 
 
 def get_astute_dict():
-    return load_yaml("/etc/fuel/astute.yaml")
+    return load_yaml(magic_consts.ASTUTE_YAML)
 
 
 def load_yaml(filename):
