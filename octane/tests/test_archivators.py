@@ -38,6 +38,11 @@ from octane.handlers.backup_restore import version
     (ssh.SshArchivator, "/root/.ssh/", "ssh"),
 ])
 def test_path_backup(mocker, cls, path, name):
+    mocker.patch.object(
+        astute.AstuteArchivator, 'get_current_dict',
+        return_value={'FUEL_ACCESS': {'user': '1', 'password': '2'}}
+    )
+    mocker.patch('octane.util.auth.is_creds_valid', return_value=True)
     test_archive = mocker.Mock()
     cls(test_archive).backup()
     test_archive.add.assert_called_once_with(path, name)

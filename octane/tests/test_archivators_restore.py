@@ -279,8 +279,6 @@ def test_postgres_restore(mocker, cls, db, services):
 
     mock_patch = mocker.patch("octane.util.patch.applied_patch")
     mock_copyfileobj = mocker.patch("shutil.copyfileobj")
-    mock_set_astute_password = mocker.patch(
-        "octane.util.auth.set_astute_password")
     mock_apply_task = mocker.patch("octane.util.puppet.apply_task")
     mock_context = mock.Mock()
 
@@ -325,7 +323,6 @@ def test_postgres_restore(mocker, cls, db, services):
             mock.call.admin_token().__enter__(),
             mock.call.admin_token().__exit__(None, None, None),
         ]
-    mock_set_astute_password.assert_called_once_with(mock_context)
 
 
 @pytest.mark.parametrize("keys_in_dump_file,restored", [
@@ -563,8 +560,6 @@ def test_release_restore(mocker, mock_open, content, existing_releases, calls):
 def test_post_restore_puppet_apply_tasks(mocker, mock_subprocess):
     context = backup_restore.NailgunCredentialsContext(
         user="admin", password="user_pswd")
-    mock_set_astute_password = mocker.patch(
-        "octane.util.auth.set_astute_password")
     mock_apply = mocker.patch("octane.util.puppet.apply_all_tasks")
     mock_admin_token = mocker.patch("octane.util.keystone.admin_token_auth")
 
@@ -572,7 +567,6 @@ def test_post_restore_puppet_apply_tasks(mocker, mock_subprocess):
     archivator.restore()
 
     assert mock_apply.called
-    mock_set_astute_password.assert_called_once_with(context)
     expected_pipelines = [
         "pipeline:public_api",
         "pipeline:admin_api",
@@ -596,7 +590,10 @@ def test_post_restore_puppet_apply_tasks(mocker, mock_subprocess):
 def test_logs_restore(
         mocker, mock_open, mock_subprocess, nodes, is_dir, exception):
     domain_name = "test_domain"
-    mocker.patch("yaml.load", return_value={"DNS_DOMAIN": domain_name})
+    mocker.patch("yaml.load", return_value={
+        "DNS_DOMAIN": domain_name,
+        'OS_USERNAME': 'a', 'OS_PASSWORD': 'b',
+    })
     domain_names = []
     fuel_client_values = []
     is_link_exists = []
