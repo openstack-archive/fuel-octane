@@ -162,3 +162,5 @@ COMPUTE_PREUPGRADE_PACKAGES = {
         "python-concurrent.futures",
     ]
 }
+
+ASTUTE_YAML = "/etc/fuel/astute.yaml"
