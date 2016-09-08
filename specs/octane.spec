@@ -20,6 +20,7 @@ BuildArch: noarch
 Requires:    git
 Requires:    patch
 Requires:    python
+Requires:    python-devel
 Requires:    python-setuptools
 Requires:    python-paramiko
 Requires:    python-stevedore
@@ -40,15 +41,17 @@ installations to version 9.0.
 cd %{_builddir}/%{name}-%{version} && OSLO_PACKAGE_VERSION=%{version} %{__python2} setup.py egg_info && cp octane.egg-info/PKG-INFO . && %{__python2} setup.py build
 
 %install
-cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
+cd %{_builddir}/%{name}-%{version} && %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT
 cp -vr %{_builddir}/%{name}-%{version}/octane/patches ${RPM_BUILD_ROOT}/%{python2_sitelib}/octane/
 
 install -d ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code
 install -d ${RPM_BUILD_ROOT}/var/www/nailgun/octane_data
 cp -vr %{_builddir}/%{name}-%{version}/deployment/puppet ${RPM_BUILD_ROOT}/var/www/nailgun/octane_code/puppet
 
-%files -f %{_builddir}/%{name}-%{version}/INSTALLED_FILES
-%{python2_sitelib}/octane/patches/*
+%files
+%{_bindir}/octane*
+%{python2_sitelib}/octane
+%{python2_sitelib}/*.egg-info
 /var/www/nailgun/octane_code/puppet/octane_tasks/*
 %attr(750, nobody, nobody) /var/www/nailgun/octane_data
 %defattr(-,root,root)
