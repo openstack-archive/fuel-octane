@@ -15,7 +15,7 @@ import os
 import re
 import yaml
 
-from distutils.version import StrictVersion
+from distutils import version as distutils_version
 from octane import magic_consts
 
 
@@ -149,7 +149,8 @@ def get_patch_port_action(host_config, bridge):
     actions = get_actions(host_config)
     version = host_config.get('openstack_version')
     _, _, fuel_version = version.rpartition('-')
-    if StrictVersion(fuel_version) < StrictVersion('6.1'):
+    if distutils_version.StrictVersion(fuel_version) < \
+            distutils_version.StrictVersion('6.1'):
         provider = 'ovs'
     else:
         provider = get_bridge_provider(actions, bridge)

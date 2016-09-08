@@ -13,8 +13,7 @@
 import pytest
 import subprocess
 
-from mock import call
-from mock import Mock
+import mock
 from octane.tests import util as test_util
 from octane.util import network
 
@@ -60,31 +59,32 @@ def test_create_overlay_network(mocker):
                             None, None, None, None]
 
     expected_args = [
-        call(['sh', '-c',
-              'ovs-vsctl list-ports br-ex | grep -q br-ex--gre-10.10.10.2'],
-             node=node1),
-        call(['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--gre-10.10.10.2',
-              '--', 'set', 'Interface', 'br-ex--gre-10.10.10.2',
-              'type=gre',
-              'options:remote_ip=10.10.10.2',
-              'options:key=2'],
-             node=node1),
-        call(['sh', '-c',
-              'ip link show dev gre3-3'],
-             node=node1),
-        call(['ip', 'link', 'add', 'gre3-3',
-              'type', 'gretap',
-              'remote', '10.10.10.2',
-              'local', '10.10.10.1',
-              'key', '3'],
-             node=node1),
-        call(['ip', 'link', 'set', 'up', 'dev', 'gre3-3'],
-             node=node1),
-        call(['ip', 'link', 'set', 'mtu', '1450', 'dev', 'gre3-3', ],
-             node=node1),
-        call(['ip', 'link', 'set', 'up', 'dev', 'br-mgmt'], node=node1),
-        call(['brctl', 'addif', 'br-mgmt', 'gre3-3'],
-             node=node1),
+        mock.call(
+            ['sh', '-c',
+             'ovs-vsctl list-ports br-ex | grep -q br-ex--gre-10.10.10.2'],
+            node=node1),
+        mock.call(['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--gre-10.10.10.2',
+                   '--', 'set', 'Interface', 'br-ex--gre-10.10.10.2',
+                   'type=gre',
+                   'options:remote_ip=10.10.10.2',
+                   'options:key=2'],
+                  node=node1),
+        mock.call(['sh', '-c',
+                   'ip link show dev gre3-3'],
+                  node=node1),
+        mock.call(['ip', 'link', 'add', 'gre3-3',
+                   'type', 'gretap',
+                   'remote', '10.10.10.2',
+                   'local', '10.10.10.1',
+                   'key', '3'],
+                  node=node1),
+        mock.call(['ip', 'link', 'set', 'up', 'dev', 'gre3-3'],
+                  node=node1),
+        mock.call(['ip', 'link', 'set', 'mtu', '1450', 'dev', 'gre3-3', ],
+                  node=node1),
+        mock.call(['ip', 'link', 'set', 'up', 'dev', 'br-mgmt'], node=node1),
+        mock.call(['brctl', 'addif', 'br-mgmt', 'gre3-3'],
+                  node=node1),
     ]
 
     network.create_overlay_networks(node1, node2, env, deployment_info,
@@ -94,7 +94,7 @@ def test_create_overlay_network(mocker):
 
 
 def test_delete_overlay_network(mocker):
-    node = Mock()
+    node = mock.Mock()
     deployment_info = {
         'network_scheme': {
             'transformations': [{
@@ -117,10 +117,10 @@ def test_delete_overlay_network(mocker):
     mock_lnx_tun.return_value = ['gre3-3']
 
     expected_args = [
-        call(['ovs-vsctl', 'del-port', 'br-ex', 'br-ex--gre-10.10.10.2'],
-             node=node),
-        call(['brctl', 'delif', 'br-mgmt', 'gre3-3'], node=node),
-        call(['ip', 'link', 'delete', 'gre3-3'], node=node),
+        mock.call(['ovs-vsctl', 'del-port', 'br-ex', 'br-ex--gre-10.10.10.2'],
+                  node=node),
+        mock.call(['brctl', 'delif', 'br-mgmt', 'gre3-3'], node=node),
+        mock.call(['ip', 'link', 'delete', 'gre3-3'], node=node),
     ]
 
     network.delete_overlay_networks(node, deployment_info)
@@ -129,20 +129,22 @@ def test_delete_overlay_network(mocker):
 
 
 def test_delete_patch_ports(mocker):
-    node = Mock()
+    node = mock.Mock()
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
 
     expected_args = [
-        call(['ovs-vsctl', 'del-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex'],
-             node=node),
-        call(['ovs-vsctl', 'del-port', 'br-ex', 'br-ex--br-ovs-bond1'],
-             node=node),
-        call(['ovs-vsctl', 'del-port', 'br-ovs-bond2',
-              'br-ovs-bond2--br-mgmt'],
-             node=node),
-        call(['ovs-vsctl', 'del-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2'],
-             node=node),
+        mock.call(
+            ['ovs-vsctl', 'del-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex'],
+            node=node),
+        mock.call(['ovs-vsctl', 'del-port', 'br-ex', 'br-ex--br-ovs-bond1'],
+                  node=node),
+        mock.call(['ovs-vsctl', 'del-port', 'br-ovs-bond2',
+                   'br-ovs-bond2--br-mgmt'],
+                  node=node),
+        mock.call(
+            ['ovs-vsctl', 'del-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2'],
+            node=node),
     ]
 
     network.delete_patch_ports(node, DEPLOYMENT_INFO_5_1)
@@ -151,15 +153,15 @@ def test_delete_patch_ports(mocker):
 
 
 def test_delete_lnx_ports(mocker):
-    node = Mock()
+    node = mock.Mock()
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
 
     expected_args = [
-        call(['brctl', 'delif', 'br-ex', 'eth0.130'],
-             node=node),
-        call(['brctl', 'delif', 'br-mgmt', 'eth1.220'],
-             node=node),
+        mock.call(['brctl', 'delif', 'br-ex', 'eth0.130'],
+                  node=node),
+        mock.call(['brctl', 'delif', 'br-mgmt', 'eth1.220'],
+                  node=node),
     ]
 
     network.delete_patch_ports(node, DEPLOYMENT_INFO_7_0)
@@ -168,27 +170,31 @@ def test_delete_lnx_ports(mocker):
 
 
 def test_create_patch_ports_5_1(mocker):
-    node = Mock()
+    node = mock.Mock()
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
 
     expected_args = [
-        call(['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--br-ovs-bond1',
-              'trunks=[0]', '--', 'set', 'interface', 'br-ex--br-ovs-bond1',
-              'type=patch', 'options:peer=br-ovs-bond1--br-ex'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex',
-              'trunks=[0]', '--', 'set', 'interface', 'br-ovs-bond1--br-ex',
-              'type=patch', 'options:peer=br-ex--br-ovs-bond1'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2',
-              '--', 'set', 'interface', 'br-mgmt--br-ovs-bond2', 'type=patch',
-              'options:peer=br-ovs-bond2--br-mgmt'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-ovs-bond2', 'br-ovs-bond2--br-mgmt',
-              'tag=102', '--', 'set', 'interface', 'br-ovs-bond2--br-mgmt',
-              'type=patch', 'options:peer=br-mgmt--br-ovs-bond2'],
-             node=node)
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--br-ovs-bond1',
+             'trunks=[0]', '--', 'set', 'interface', 'br-ex--br-ovs-bond1',
+             'type=patch', 'options:peer=br-ovs-bond1--br-ex'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex',
+             'trunks=[0]', '--', 'set', 'interface', 'br-ovs-bond1--br-ex',
+             'type=patch', 'options:peer=br-ex--br-ovs-bond1'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2',
+             '--', 'set', 'interface', 'br-mgmt--br-ovs-bond2', 'type=patch',
+             'options:peer=br-ovs-bond2--br-mgmt'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ovs-bond2', 'br-ovs-bond2--br-mgmt',
+             'tag=102', '--', 'set', 'interface', 'br-ovs-bond2--br-mgmt',
+             'type=patch', 'options:peer=br-mgmt--br-ovs-bond2'],
+            node=node)
     ]
 
     network.create_patch_ports(node, DEPLOYMENT_INFO_5_1)
@@ -197,27 +203,31 @@ def test_create_patch_ports_5_1(mocker):
 
 
 def test_create_patch_ports_7_0(mocker):
-    node = Mock()
+    node = mock.Mock()
 
     mock_ssh = mocker.patch('octane.util.ssh.call')
 
     expected_args = [
-        call(['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--br-ovs-bond1', '--',
-              'set', 'interface', 'br-ex--br-ovs-bond1', 'type=patch',
-              'options:peer=br-ovs-bond1--br-ex'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex',
-              '--', 'set', 'interface', 'br-ovs-bond1--br-ex', 'type=patch',
-              'options:peer=br-ex--br-ovs-bond1'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2',
-              '--', 'set', 'interface', 'br-mgmt--br-ovs-bond2', 'type=patch',
-              'options:peer=br-ovs-bond2--br-mgmt'],
-             node=node),
-        call(['ovs-vsctl', 'add-port', 'br-ovs-bond2', 'br-ovs-bond2--br-mgmt',
-              'tag=102', '--', 'set', 'interface', 'br-ovs-bond2--br-mgmt',
-              'type=patch', 'options:peer=br-mgmt--br-ovs-bond2'],
-             node=node)
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ex', 'br-ex--br-ovs-bond1', '--',
+             'set', 'interface', 'br-ex--br-ovs-bond1', 'type=patch',
+             'options:peer=br-ovs-bond1--br-ex'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ovs-bond1', 'br-ovs-bond1--br-ex',
+             '--', 'set', 'interface', 'br-ovs-bond1--br-ex', 'type=patch',
+             'options:peer=br-ex--br-ovs-bond1'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-mgmt', 'br-mgmt--br-ovs-bond2',
+             '--', 'set', 'interface', 'br-mgmt--br-ovs-bond2', 'type=patch',
+             'options:peer=br-ovs-bond2--br-mgmt'],
+            node=node),
+        mock.call(
+            ['ovs-vsctl', 'add-port', 'br-ovs-bond2', 'br-ovs-bond2--br-mgmt',
+             'tag=102', '--', 'set', 'interface', 'br-ovs-bond2--br-mgmt',
+             'type=patch', 'options:peer=br-mgmt--br-ovs-bond2'],
+            node=node)
     ]
 
     network.create_patch_ports(node, DEPLOYMENT_INFO_OVS_7_0)

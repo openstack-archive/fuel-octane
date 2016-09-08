@@ -13,7 +13,7 @@
 import logging
 
 from cliff import command
-from fuelclient.client import APIClient
+from fuelclient import client
 from octane.handlers import backup_restore
 from octane import magic_consts
 from octane.util import fuel_client
@@ -24,11 +24,11 @@ LOG = logging.getLogger(__name__)
 def enable_release(release_id, context):
     release_url = "/releases/{0}".format(release_id)
     with fuel_client.set_auth_context(context):
-        data = APIClient.get_request(release_url)
+        data = client.APIClient.get_request(release_url)
         state = data.get('state')
         if state == magic_consts.RELEASE_STATUS_MANAGED:
             data['state'] = magic_consts.RELEASE_STATUS_ENABLED
-            APIClient.put_request(release_url, data)
+            client.APIClient.put_request(release_url, data)
         else:
             exc_msg = ("Cannot enable release {0}: has status {1}, not {2}"
                        .format(release_id,

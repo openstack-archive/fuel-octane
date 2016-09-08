@@ -135,6 +135,11 @@ def wait_for_node(node, status, timeout=60 * 60, check_freq=60):
         data = node.get_fresh_data()
         if data['status'] == 'error':
             raise Exception("Node %s fell into error status" % (node_id,))
+        elif data['status'] == 'stopped' != status:
+            raise Exception(
+                "Node {node_id} fell into stopped status, "
+                "while expected {status}".format(
+                    node_id=node_id, status=status))
         if data['online'] and data['status'] == status:
             LOG.info("Node %s transitioned to status '%s'", node_id, status)
             return
@@ -176,12 +181,13 @@ def move_nodes(env, nodes, provision=True, roles=None):
         cmd += ['--no-provision']
     if roles:
         cmd += ['--roles', ','.join(roles)]
+    cmd.append(str(env_id))
     for node in nodes:
         node_id = node.data['id']
-        cmd_move_node = cmd + [str(node_id), str(env_id)]
+        cmd.append(str(node_id))
         if provision and incompatible_provision_method(env):
             disk.create_configdrive_partition(node)
-        fuel2_env_call(cmd_move_node)
+    fuel2_env_call(cmd)
     if provision:
         LOG.info("Nodes provision started. Please wait...")
         wait_for_nodes(nodes, "provisioned")
