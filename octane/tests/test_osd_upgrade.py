@@ -14,6 +14,7 @@ import mock
 import pytest
 
 from octane.commands import osd_upgrade
+from octane.util import apt
 
 
 @pytest.mark.parametrize("orig_env_id", [None, 1])
@@ -148,7 +149,7 @@ def test_upgrade_osd(
         "octane.commands.osd_upgrade.get_repo_highest_priority",
         return_value=priority)
     mock_get_env_repos = mocker.patch(
-        "octane.commands.osd_upgrade.get_env_repos")
+        "octane.commands.osd_upgrade.get_repos_for_upgrade")
     ssh_call_mock = mocker.patch("octane.util.ssh.call")
     mock_is_same_version = mocker.patch(
         "octane.commands.osd_upgrade.is_same_versions_on_mon_and_osd",
@@ -218,7 +219,8 @@ def test_upgrade_osd(
     ),
 ])
 def test_generate_source_content(repos, result):
-    assert result == osd_upgrade.generate_source_content(repos)
+    assert result == osd_upgrade.generate_source_content(
+        [osd_upgrade.Repo(**r) for r in repos])
 
 
 @pytest.mark.parametrize("repos,priority,call_repos", [
@@ -421,3 +423,60 @@ def test_waiting_until_ceph_up(mocker, running_times, delay, times):
             osd_upgrade.waiting_until_ceph_up(controller)
     assert time_calls == time_mock.call_args_list
     assert is_ceph_up_calls == is_ceph_up_mock.call_args_list
+
+
+REPOS_TO_UPGRADE_LIST = [
+    {
+        u'name': u'ubuntu',
+        u'section': u'main universe multiverse',
+        u'uri': u'http://ubuntu/',
+        u'priority': None,
+        u'suite': u'trusty',
+        u'type': u'deb',
+    },
+    {
+        u'name': u'ubuntu-updates',
+        u'section': u'main universe multiverse',
+        u'uri': u'http://ubuntu/',
+        u'priority': None,
+        u'suite': u'trusty-updates',
+        u'type': u'deb',
+    }
+]
+
+
+@pytest.mark.parametrize("seed_repos,orig_repos,results", [
+    (REPOS_TO_UPGRADE_LIST, REPOS_TO_UPGRADE_LIST, []),
+    (REPOS_TO_UPGRADE_LIST,
+     [],
+     [osd_upgrade.Repo(**r) for r in REPOS_TO_UPGRADE_LIST]),
+])
+def test_get_repos_for_upgrade(mocker, seed_repos, orig_repos, results):
+    orig_env = mock.Mock(repos=orig_repos)
+    seed_env = mock.Mock(repos=seed_repos)
+    mocker.patch("octane.commands.osd_upgrade.get_env_repos",
+                 side_effect=lambda x: x.repos)
+    assert results == osd_upgrade.get_repos_for_upgrade(orig_env, seed_env)
+
+
+@pytest.mark.parametrize("repo_dict,source", [
+    (
+        {
+            u'name': u'ubuntu',
+            u'section': u'main universe multiverse',
+            u'uri': u'http://ubuntu/',
+            u'priority': None,
+            u'suite': u'trusty',
+            u'type': u'deb',
+        },
+        "deb http://ubuntu/ trusty main universe multiverse"
+    ),
+])
+def test_repo_source(mocker, repo_dict, source):
+    instance = osd_upgrade.Repo(**repo_dict)
+    mock_get_source = mocker.patch("octane.util.apt.create_repo_source",
+                                   side_effect=apt.create_repo_source)
+    assert not mock_get_source.called
+    for _ in range(2):
+        assert source == instance.source
+    mock_get_source.assert_called_once_with(instance)
