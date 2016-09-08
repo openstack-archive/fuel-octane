@@ -213,7 +213,7 @@ def test_upgrade_osd(
                 u'type': u'deb',
             }
         ],
-        "deb http://ubuntu/ trusty main universe multiverse\n"
+        "deb http://ubuntu/ trusty main universe multiverse\n\n"
         "deb http://ubuntu/ trusty-updates main universe multiverse"
     ),
 ])
@@ -221,7 +221,7 @@ def test_generate_source_content(repos, result):
     assert result == osd_upgrade.generate_source_content(repos)
 
 
-@pytest.mark.parametrize("repos,priority,result", [
+@pytest.mark.parametrize("repos,priority,call_repos", [
     (
         [
             {
@@ -242,18 +242,68 @@ def test_generate_source_content(repos, result):
             }
         ],
         1000,
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty,n=trusty,l=trusty\n"
-        "Pin-Priority: 1000\n"
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty-updates,n=trusty-updates,l=trusty-updates\n"
-        "Pin-Priority: 1000"
+        []
+    ),
+    (
+        [
+            {
+                u'name': u'ubuntu',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1001,
+                u'suite': u'trusty',
+                u'type': u'deb',
+            },
+            {
+                u'name': u'ubuntu-updates',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 99,
+                u'suite': u'trusty-updates',
+                u'type': u'deb',
+            }
+        ],
+        1000,
+        [
+            {
+                u'name': u'ubuntu-updates',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1000,
+                u'suite': u'trusty-updates',
+                u'type': u'deb',
+            },
+            {
+                u'name': u'ubuntu',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1001,
+                u'suite': u'trusty',
+                u'type': u'deb',
+            },
+        ]
     ),
 ])
-def test_generate_preference_pin(repos, priority, result):
-    assert result == osd_upgrade.generate_preference_pin(repos, priority)
+@pytest.mark.parametrize("packages", [["pack_1", "pack_2"]])
+def test_generate_preference_pin(
+        mocker, repos, priority, call_repos, packages):
+    mocker.patch("octane.magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES", packages)
+
+    mock_call_repos = []
+
+    def foo(repo, packages):
+        repo = repo.copy()
+        repo['priority'] = max(priority, repo['priority'])
+        repo['packages'] = packages
+        mock_call_repos.append(repo)
+        return None, repo["name"]
+
+    mocker.patch("octane.util.apt.create_repo_preferences", side_effect=foo)
+    result_repos = '\n\n'.join(r['name'] for r in call_repos)
+    assert result_repos == osd_upgrade.generate_preference_pin(repos, priority)
+    for repo in call_repos:
+        repo['packages'] = ' '.join(packages)
+    assert call_repos == mock_call_repos
 
 
 @pytest.mark.parametrize("content", ["content"])
