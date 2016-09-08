@@ -232,7 +232,7 @@ def test_incompatible_provision_method(mocker,
 
 
 @pytest.mark.parametrize("provision,compat", [
-    (True, True,),
+    (True, True),
     (False, True),
 ])
 def test_move_nodes(mocker, mock_subprocess, provision, compat):
@@ -242,9 +242,11 @@ def test_move_nodes(mocker, mock_subprocess, provision, compat):
     }
     nodes = [mock.Mock(), mock.Mock()]
 
-    for idx, node in enumerate(nodes):
+    for idx, node in enumerate(nodes, 1):
         node.data = {'id': str(idx)}
 
+    mock_move_nodes = mocker.patch(
+        "octane.util.env.fuel2_env_call")
     mock_create_configdrive = mocker.patch(
         "octane.util.disk.create_configdrive_partition")
     mock_wait_for = mocker.patch(
@@ -257,7 +259,11 @@ def test_move_nodes(mocker, mock_subprocess, provision, compat):
         assert mock_create_configdrive.call_args_list == \
             [mock.call(node) for node in nodes]
         mock_wait_for.assert_called_once_with(nodes, 'provisioned')
+        mock_move_nodes.assert_called_once_with(
+            ["move", "node", "test-id", "1", "2"])
     else:
+        mock_move_nodes.assert_called_once_with(
+            ["move", "node", "--no-provision", "test-id", "1", "2"])
         assert mock_create_configdrive.call_args_list == []
         assert mock_wait_for.call_args_list == []
 
