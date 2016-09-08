@@ -73,8 +73,13 @@ def create_repo_source(repo):
     content = "{type} {uri} {suite} {section}".format(**repo)
     return filename, content
 
+REPO_PREFERENCE_CONTENT_TEMPLATE = """\
+Package: {packages}
+Pin: release {release}
+Pin-Priority: {priority}"""
 
-def create_repo_preferences(repo):
+
+def create_repo_preferences(repo, packages="*"):
     filename = "/etc/apt/preferences.d/{0}.pref".format(repo['name'])
     release_params = fetch_release_parameters(repo)
     content = []
@@ -84,9 +89,6 @@ def create_repo_preferences(repo):
         release = ','.join("{0}={1}".format(key, params[name])
                            for name, key in PREFERENCES
                            if name in params)
-        content.append(
-            "Package: *\n"
-            "Pin: release {release}\n"
-            "Pin-Priority: {priority}"
-            .format(release=release, priority=repo['priority']))
+        content.append(REPO_PREFERENCE_CONTENT_TEMPLATE.format(
+            packages=packages, release=release, priority=repo['priority']))
     return filename, '\n\n'.join(content)
