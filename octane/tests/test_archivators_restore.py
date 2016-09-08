@@ -18,6 +18,7 @@ import pytest
 from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers import backup_restore
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -81,6 +82,9 @@ class TestArchive(object):
             if m.name == name:
                 m.is_extracted = True
                 return m
+
+    def getmembers(self):
+        return self.members
 
 
 @pytest.mark.parametrize("cls,path,members", [
@@ -659,3 +663,20 @@ def test_logs_restore(
         mock.call(["systemctl", "stop", "rsyslog"]),
         mock.call(["systemctl", "start", "rsyslog"]),
     ]
+
+
+@pytest.mark.parametrize("members,is_exist", [
+    ([TestMember("networks/networks.yaml", True, True)], True),
+    ([], False)
+])
+def test_admin_network_restore(mocker, members, is_exist):
+    mock_puppet = mocker.patch("octane.util.puppet.apply_task")
+    cls = admin_networks.AdminNetworks
+    archive = TestArchive(members, cls)
+    cls(archive).restore()
+    for member in members:
+        member.assert_extract()
+    if is_exist:
+        mock_puppet.assert_called_once_with('dhcp-ranges')
+    else:
+        mock_puppet.assert_not_called()
