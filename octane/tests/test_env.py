@@ -270,3 +270,31 @@ def test_get_generated(mocker, env_id, expected_url):
     res = env_util.get_generated(env_id)
     assert res is m.get_request.return_value
     assert m.mock_calls == [mock.call.get_request(expected_url)]
+
+
+def test_wait_for_node_stopped(mocker):
+    sleep = mocker.patch("time.sleep", autospec=True)
+    time = mocker.patch(
+        "time.time",
+        austospec=True,
+        side_effect=list(range(10))
+    )
+    node = mock.Mock(name='Node object')
+    get_fresh_data = mock.Mock(
+        name='get_fresh_data',
+        side_effect=[
+            {'status': 'running', 'online': True},
+            {'status': 'stopped', 'online': True},
+        ]
+    )
+    node.attach_mock(get_fresh_data, 'get_fresh_data')
+    node.configure_mock(data={'status': 'running', 'online': True, 'id': 0})
+    with pytest.raises(Exception) as excinfo:
+        env_util.wait_for_node(node, 'success')
+        assert (
+            "Node {node_id} fell into stopped status, "
+            "while expected {status}".format(
+                node_id=0, status='success'
+            ) in excinfo.args)
+    sleep.assert_called_once_with(60)
+    time.assert_has_calls((mock.call(), mock.call()))
