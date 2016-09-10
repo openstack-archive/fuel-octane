@@ -268,6 +268,18 @@ def test_move_nodes(mocker, mock_subprocess, provision, compat):
         assert mock_wait_for.call_args_list == []
 
 
+def test_deploy_nodes_without_tasks(mocker):
+    env = mock.Mock()
+    nodes = [mock.Mock(), mock.Mock()]
+    tasks_to_skip = ['task-0', 'task-1']
+    mock_wait = mocker.patch("octane.util.env.wait_for_nodes_tasks")
+    env_util.deploy_nodes_without_tasks(env, nodes, tasks_to_skip)
+    env.get_tasks.assert_called_once_with(skip=tasks_to_skip)
+    env.execute_tasks.assert_called_once_with(
+        nodes, env.get_tasks.return_value, force=False, noop_run=False)
+    mock_wait.assert_called_once_with(env, nodes)
+
+
 @pytest.mark.parametrize("env_id,expected_url", [
     (42, 'clusters/42/generated'),
 ])
