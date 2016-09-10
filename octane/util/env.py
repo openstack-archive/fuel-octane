@@ -213,7 +213,7 @@ def provision_nodes(env, nodes):
 
 def deploy_nodes_without_tasks(env, nodes, skipped_tasks):
     tasks_to_execute = env.get_tasks(skip=skipped_tasks)
-    env.execute_tasks(nodes, tasks_to_execute, False)
+    env.execute_tasks(nodes, tasks_to_execute, force=False, noop_run=False)
     LOG.info("Nodes deploy started. Please wait...")
     wait_for_nodes_tasks(env, nodes)
 
