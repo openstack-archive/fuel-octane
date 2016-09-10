@@ -10,15 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from cliff import command
 from fuelclient import client
 from octane.handlers import backup_restore
 from octane import magic_consts
 from octane.util import fuel_client
-
-LOG = logging.getLogger(__name__)
 
 
 def enable_release(release_id, context):

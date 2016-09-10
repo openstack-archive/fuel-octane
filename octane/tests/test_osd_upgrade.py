@@ -15,6 +15,7 @@ import mock
 import pytest
 
 from octane.commands import osd_upgrade
+from octane.util import apt
 from octane.util import ssh
 
 
@@ -150,7 +151,7 @@ def test_upgrade_osd(
         "octane.commands.osd_upgrade.get_repo_highest_priority",
         return_value=priority)
     mock_get_env_repos = mocker.patch(
-        "octane.commands.osd_upgrade.get_env_repos")
+        "octane.commands.osd_upgrade.get_repos_for_upgrade")
     ssh_call_mock = mocker.patch("octane.util.ssh.call")
     mock_is_same_version = mocker.patch(
         "octane.commands.osd_upgrade.is_same_versions_on_mon_and_osd",
@@ -215,15 +216,16 @@ def test_upgrade_osd(
                 u'type': u'deb',
             }
         ],
-        "deb http://ubuntu/ trusty main universe multiverse\n"
+        "deb http://ubuntu/ trusty main universe multiverse\n\n"
         "deb http://ubuntu/ trusty-updates main universe multiverse"
     ),
 ])
 def test_generate_source_content(repos, result):
-    assert result == osd_upgrade.generate_source_content(repos)
+    assert result == osd_upgrade.generate_source_content(
+        [osd_upgrade.Repo(**r) for r in repos])
 
 
-@pytest.mark.parametrize("repos,priority,result", [
+@pytest.mark.parametrize("repos,priority,call_repos", [
     (
         [
             {
@@ -244,18 +246,68 @@ def test_generate_source_content(repos, result):
             }
         ],
         1000,
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty,n=trusty,l=trusty\n"
-        "Pin-Priority: 1000\n"
-        "Package: libcephfs1 librados2 librbd1 python-ceph python-cephfs "
-        "python-rados python-rbd ceph ceph-common ceph-fs-common ceph-mds\n"
-        "Pin: release a=trusty-updates,n=trusty-updates,l=trusty-updates\n"
-        "Pin-Priority: 1000"
+        []
+    ),
+    (
+        [
+            {
+                u'name': u'ubuntu',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1001,
+                u'suite': u'trusty',
+                u'type': u'deb',
+            },
+            {
+                u'name': u'ubuntu-updates',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 99,
+                u'suite': u'trusty-updates',
+                u'type': u'deb',
+            }
+        ],
+        1000,
+        [
+            {
+                u'name': u'ubuntu-updates',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1000,
+                u'suite': u'trusty-updates',
+                u'type': u'deb',
+            },
+            {
+                u'name': u'ubuntu',
+                u'section': u'main universe multiverse',
+                u'uri': u'http://ubuntu/',
+                u'priority': 1001,
+                u'suite': u'trusty',
+                u'type': u'deb',
+            },
+        ]
     ),
 ])
-def test_generate_preference_pin(repos, priority, result):
-    assert result == osd_upgrade.generate_preference_pin(repos, priority)
+@pytest.mark.parametrize("packages", [["pack_1", "pack_2"]])
+def test_generate_preference_pin(
+        mocker, repos, priority, call_repos, packages):
+    mocker.patch("octane.magic_consts.OSD_UPGRADE_REQUIRED_PACKAGES", packages)
+
+    mock_call_repos = []
+
+    def foo(repo, packages):
+        repo = repo.copy()
+        repo['priority'] = max(priority, repo['priority'])
+        repo['packages'] = packages
+        mock_call_repos.append(repo)
+        return None, repo["name"]
+
+    mocker.patch("octane.util.apt.create_repo_preferences", side_effect=foo)
+    result_repos = '\n\n'.join(r['name'] for r in call_repos)
+    assert result_repos == osd_upgrade.generate_preference_pin(repos, priority)
+    for repo in call_repos:
+        repo['packages'] = ' '.join(packages)
+    assert call_repos == mock_call_repos
 
 
 @pytest.mark.parametrize("content", ["content"])
@@ -378,3 +430,60 @@ def test_waiting_until_ceph_up(mocker, running_times, delay, times):
             osd_upgrade.waiting_until_ceph_up(controller)
     assert time_calls == time_mock.call_args_list
     assert is_ceph_up_calls == is_ceph_up_mock.call_args_list
+
+
+REPOS_TO_UPGRADE_LIST = [
+    {
+        u'name': u'ubuntu',
+        u'section': u'main universe multiverse',
+        u'uri': u'http://ubuntu/',
+        u'priority': None,
+        u'suite': u'trusty',
+        u'type': u'deb',
+    },
+    {
+        u'name': u'ubuntu-updates',
+        u'section': u'main universe multiverse',
+        u'uri': u'http://ubuntu/',
+        u'priority': None,
+        u'suite': u'trusty-updates',
+        u'type': u'deb',
+    }
+]
+
+
+@pytest.mark.parametrize("seed_repos,orig_repos,results", [
+    (REPOS_TO_UPGRADE_LIST, REPOS_TO_UPGRADE_LIST, []),
+    (REPOS_TO_UPGRADE_LIST,
+     [],
+     [osd_upgrade.Repo(**r) for r in REPOS_TO_UPGRADE_LIST]),
+])
+def test_get_repos_for_upgrade(mocker, seed_repos, orig_repos, results):
+    orig_env = mock.Mock(repos=orig_repos)
+    seed_env = mock.Mock(repos=seed_repos)
+    mocker.patch("octane.commands.osd_upgrade.get_env_repos",
+                 side_effect=lambda x: x.repos)
+    assert results == osd_upgrade.get_repos_for_upgrade(orig_env, seed_env)
+
+
+@pytest.mark.parametrize("repo_dict,source", [
+    (
+        {
+            u'name': u'ubuntu',
+            u'section': u'main universe multiverse',
+            u'uri': u'http://ubuntu/',
+            u'priority': None,
+            u'suite': u'trusty',
+            u'type': u'deb',
+        },
+        "deb http://ubuntu/ trusty main universe multiverse"
+    ),
+])
+def test_repo_source(mocker, repo_dict, source):
+    instance = osd_upgrade.Repo(**repo_dict)
+    mock_get_source = mocker.patch("octane.util.apt.create_repo_source",
+                                   side_effect=apt.create_repo_source)
+    assert not mock_get_source.called
+    for _ in range(2):
+        assert source == instance.source
+    mock_get_source.assert_called_once_with(instance)

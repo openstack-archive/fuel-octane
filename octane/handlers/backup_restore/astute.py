@@ -10,15 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import shutil
 import yaml
 
 from octane.handlers.backup_restore import base
 from octane.util import puppet
-
-
-LOG = logging.getLogger(__name__)
 
 
 class AstuteArchivator(base.PathArchivator):

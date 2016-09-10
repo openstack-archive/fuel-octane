@@ -10,16 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from cliff import command as cmd
 from fuelclient import objects
 
 from octane.util import env as env_util
 from octane.util import node as node_util
 from octane.util import nova
-
-LOG = logging.getLogger(__name__)
 
 
 def clean_services_for_node(controller, node):
