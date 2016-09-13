@@ -43,6 +43,11 @@ def upgrade_control_plane(orig_id, seed_id):
         maintenance.start_cluster(seed_env)
         maintenance.start_corosync_services(seed_env)
         maintenance.start_upstart_services(seed_env)
+    # NOTE(akscram): Remove replaced deployment info with
+    # the isolation mode and the alternative gateway.
+    # CAUTION: This method removes replaced deployment
+    # information for all nodes in an environment.
+    seed_env.delete_facts("deployment")
 
 
 class UpgradeControlPlaneCommand(cmd.Command):
