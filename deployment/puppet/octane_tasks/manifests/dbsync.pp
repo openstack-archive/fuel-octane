@@ -12,7 +12,7 @@ class octane_tasks::dbsync (
   include ::cinder::db::sync
   include ::heat::db::sync
 
-  if $octane_tasks::params::murano_enabled {
+  if $octane_tasks::params::murano_enabled or $octane_tasks::params::murano_plugin_enabled {
     include ::murano::db::sync
   }
 
