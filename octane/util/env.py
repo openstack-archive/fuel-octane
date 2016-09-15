@@ -237,6 +237,8 @@ def deploy_changes(env, nodes):
 
 
 def prepare_net_info(info):
+    if "quantum_settings" not in info:
+        return
     quantum_settings = info["quantum_settings"]
     pred_nets = quantum_settings["predefined_networks"]
     phys_nets = quantum_settings["L2"]["phys_nets"]
