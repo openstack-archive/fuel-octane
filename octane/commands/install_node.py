@@ -30,12 +30,12 @@ LOG = logging.getLogger(__name__)
 def isolate(nodes, env):
     nodes.sort(key=lambda node: node.id, reverse=True)
     hub = nodes[0]
-    deployment_info = env.get_default_facts(
-        'deployment', nodes=[hub.data['id']])
+    deployment_info = env_util.get_node_default_facts(
+        env, nodes=[hub.data['id']])
     network.create_bridges(hub, env, deployment_info)
     for node in nodes[1:]:
-        deployment_info = env.get_default_facts(
-            'deployment', nodes=[node.data['id']])
+        deployment_info = env_util.get_node_default_facts(
+            env, nodes=[node.data['id']])
         network.setup_isolation(hub, node, env, deployment_info)
     for node in nodes:
         network.flush_arp(node)
