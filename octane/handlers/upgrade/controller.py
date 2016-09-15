@@ -31,7 +31,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.gateway = None
 
     def predeploy(self):
-        default_info = self.env.get_default_facts('deployment')
+        default_info = env_util.get_node_default_facts(self.env)
         deployment_info = []
         network_data = self.env.get_network_data()
         gw_admin = transformations.get_network_gw(network_data,
