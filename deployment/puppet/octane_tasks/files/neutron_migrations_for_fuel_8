@@ -1,0 +1,8 @@
+INSERT INTO networksecuritybindings
+SELECT id, 1
+FROM networks
+WHERE id NOT IN (SELECT network_id FROM networksecuritybindings);
+
+UPDATE ml2_network_segments
+SET network_type='flat',physical_network='physnet1'
+WHERE network_id IN (SELECT network_id FROM externalnetworks);
