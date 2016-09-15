@@ -25,9 +25,10 @@ LOG = logging.getLogger(__name__)
 
 
 def check_sanity(nodes, release):
-    if release.data['state'] != 'available':
+    if release.data['state'] not in ('available', 'manageonly'):
         raise Exception(
-            "Release with id {0} is not available.".format(release.id)
+            "Release with id {0} is not available (at least manageonly)."
+            .format(release.id)
         )
 
     env_id = nodes[0].env.id
