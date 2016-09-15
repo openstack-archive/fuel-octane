@@ -81,6 +81,7 @@ def test_preupgrade_compute(mocker, release_id, node_ids, env_id, version):
 
 @pytest.mark.parametrize("release_id,node_ids,env_ids,roles,state,err", [
     (1, [1, 2], [1, 1], ["compute", "compute"], "available", None),
+    (1, [1, 2], [1, 1], ["compute", "compute"], "manageonly", None),
     (1, [1, 3], [1, 1], ["compute", "compute"], "unavailable", Exception),
     (1, [1, 2], [1, 2], ["compute", "compute"], "available", Exception),
     (1, [1, 2], [1, 1], ["compute", "controller"], "available", Exception),
@@ -102,8 +103,8 @@ def test_check_sanity(release_id, node_ids, env_ids, roles, state, err):
         with pytest.raises(err) as exc_info:
             preupgrade_compute.check_sanity(node_list, release)
         if state != "available":
-            assert "Release with id {0} is not available.".format(release_id)\
-                   in exc_info.value.args[0]
+            assert "Release with id {0} is not available (at least " \
+                   "manageonly).".format(release_id) in exc_info.value.args[0]
         elif env_ids[0] != env_ids[1]:
             assert "Nodes have different clusters." in exc_info.value.args[0]
         else:
