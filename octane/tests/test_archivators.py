@@ -40,7 +40,7 @@ from octane.handlers.backup_restore import version
 ])
 def test_path_backup(mocker, cls, path, name):
     mocker.patch.object(
-        astute.AstuteArchivator, 'get_backup_dict',
+        astute.AstuteArchivator, 'get_current_dict',
         return_value={'FUEL_ACCESS': {'user': '1', 'password': '2'}}
     )
     mocker.patch('octane.util.auth.is_creds_valid', return_value=True)
