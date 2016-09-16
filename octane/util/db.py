@@ -107,10 +107,17 @@ def fix_neutron_migrations(node):
         "UPDATE ml2_network_segments " \
         "SET network_type='flat',physical_network='physnet1' " \
         "WHERE network_id IN (SELECT network_id FROM externalnetworks);"
-
+    insert_physnet1 = \
+        "insert into ml2_flat_allocations " \
+        "select b.* from (select 'physnet1') as b " \
+        "where not exists (" \
+        "select 1 from ml2_flat_allocations " \
+        "where physical_network = 'physnet1'" \
+        ");"
     cmd = ['sudo', '-iu', 'root', 'mysql', 'neutron']
     with ssh.popen(cmd, node=node, stdin=ssh.PIPE) as proc:
         proc.stdin.write(add_networksecuritybindings_sql)
+        proc.stdin.write(insert_physnet1)
         proc.stdin.write(update_network_segments_sql)
 
 
