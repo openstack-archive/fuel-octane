@@ -62,10 +62,10 @@ class AstuteArchivator(base.PathArchivator):
     ]
 
     def backup(self):
-        super(AstuteArchivator, self).backup()
-
-        creds = self.get_backup_dict()['FUEL_ACCESS']
-        if not auth.is_creds_valid(creds['user'], creds['password']):
+        creds = self.get_current_dict()['FUEL_ACCESS']
+        if auth.is_creds_valid(creds['user'], creds['password']):
+            super(AstuteArchivator, self).backup()
+        else:
             raise Exception(
                 "astute.yaml file contains invalid Fuel username or password"
             )
