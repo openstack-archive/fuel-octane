@@ -316,3 +316,35 @@ def test_wait_for_node_stopped(mocker):
             ) in excinfo.args)
     sleep.assert_called_once_with(60)
     time.assert_has_calls((mock.call(), mock.call()))
+
+
+@pytest.mark.parametrize("api,modified", [
+    ([], []),
+    (
+        [
+            {'uid': 'common', 'common_key': 'common_value'},
+            {'uid': 'master'},
+            {'uid': 'node-1', 'common_key': 'uncommon_value'},
+        ],
+        [
+            {'uid': 'master', 'common_key': 'common_value'},
+            {'uid': 'node-1', 'common_key': 'uncommon_value'},
+        ]
+    ),
+    (
+        [
+            {'uid': 'master', 'common_key': 'common_value'},
+            {'uid': 'node-1', 'common_key': 'uncommon_value'},
+        ],
+        [
+            {'uid': 'master', 'common_key': 'common_value'},
+            {'uid': 'node-1', 'common_key': 'uncommon_value'},
+        ]
+    ),
+])
+@pytest.mark.parametrize("nodes", [None, [1, 2, 3]])
+def test_util_env(mocker, api, modified, nodes):
+    env = mock.Mock()
+    env.get_default_facts.return_value = api
+    assert modified == env_util.get_node_default_facts(env, nodes)
+    env.get_default_facts.assert_called_once_with('deployment', nodes=nodes)

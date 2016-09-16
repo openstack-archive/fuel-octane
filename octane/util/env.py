@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 import json
 import logging
 import os.path
@@ -237,6 +238,8 @@ def deploy_changes(env, nodes):
 
 
 def prepare_net_info(info):
+    if "quantum_settings" not in info:
+        return
     quantum_settings = info["quantum_settings"]
     pred_nets = quantum_settings["predefined_networks"]
     phys_nets = quantum_settings["L2"]["phys_nets"]
@@ -259,8 +262,22 @@ def get_admin_password(env, node=None):
     return get_astute_yaml(env, node)['access']['password']
 
 
+def get_node_default_facts(env, nodes=None):
+    facts = env.get_default_facts('deployment', nodes=nodes)
+    common = None
+    node_facts = []
+    for fact in facts:
+        if fact.get("uid") == "common":
+            common = fact
+        else:
+            node_facts.append(fact)
+    if not common:
+        return node_facts
+    return [helpers.merge_dicts(copy.deepcopy(common), n) for n in node_facts]
+
+
 def update_deployment_info(env, isolated):
-    default_info = env.get_default_facts('deployment')
+    default_info = get_node_default_facts(env)
     network_data = env.get_network_data()
     gw_admin = transformations.get_network_gw(network_data,
                                               "fuelweb_admin")
