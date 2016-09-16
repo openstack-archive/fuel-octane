@@ -19,6 +19,7 @@ from fuelclient import objects
 from octane import magic_consts
 from octane.util import apt
 from octane.util import helpers
+from octane.util import node as node_utils
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -94,10 +95,27 @@ def preupgrade_compute(release_id, node_ids):
                       "is not exist".format(release_id))
         raise
 
+    orig_ids = list(set(n.data['cluster'] for n in nodes))
+
+    if len(orig_ids) != 1:
+        raise Exception('Your computes are not in same cluster')
+
+    env = objects.Environment(orig_ids[0])
+
+    release_version = release.data['fuel_version']
+    openstack_release = magic_consts.VERSIONS[release_version]
+
     for node in nodes:
         change_repositories(node, repos)
+        node_utils.evacuate_host(env, node)
         stop_compute_services(node)
+        node_utils.add_compute_upgrade_levels(node, openstack_release)
         apt.upgrade_packages(node, packages)
+        node_utils.enable_nova_compute(env, node)
+
+    for node in nodes:
+        node_utils.remove_compute_upgrade_levels(node)
+        node_utils.restart_nova_services(node)
 
 
 class PreupgradeComputeCommand(cmd.Command):

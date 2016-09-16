@@ -14,10 +14,13 @@ import functools
 import logging
 import shutil
 import socket
+import subprocess
 import sys
 import time
 
 from distutils import version
+from octane.util import env as env_util
+from octane.util import nova
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -182,3 +185,59 @@ def restart_nova_services(node):
         _, status, _, service = service_line.split()
         if status == "+" and service.startswith("nova"):
             ssh.call(["service", service, "restart"], node=node)
+
+
+def evacuate_host(env, node):
+    controller = env_util.get_one_controller(env)
+
+    enabled_computes, disabled_computes = nova.get_compute_lists(controller)
+
+    node_fqdn = get_nova_node_handle(node)
+
+    if [node_fqdn] == enabled_computes:
+        raise Exception("You try to disable last enabled nova-compute "
+                        "service on {hostname} in cluster. "
+                        "This leads to disable host evacuation. "
+                        "Fix this problem and run unpgrade-node "
+                        "command again".format(hostname=node_fqdn))
+
+    if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
+        raise Exception(
+            "There are instances in ERROR state on {hostname},"
+            "please fix this problem and start upgrade_node "
+            "command again".format(hostname=node_fqdn))
+
+    if node_fqdn in disabled_computes:
+        LOG.warn("Node {0} already disabled".format(node_fqdn))
+    else:
+        nova.run_nova_cmd(
+            ["nova", "service-disable", node_fqdn, "nova-compute"],
+            controller, False)
+    for instance_id in nova.get_active_instances(controller, node_fqdn):
+        nova.run_nova_cmd(
+            ["nova", "live-migration", instance_id], controller, False)
+        nova.waiting_for_status_completed(
+            controller, node_fqdn, "MIGRATING")
+    if nova.do_nova_instances_exist(controller, node_fqdn):
+        raise Exception(
+            "There are instances on {hostname} after host-evacuation, "
+            "please fix this problem and start upgrade_node "
+            "command again".format(hostname=node_fqdn))
+
+
+def enable_nova_compute(env, node):
+    controller = env_util.get_one_controller(env)
+    # FIXME: Add more correct handling of case
+    # when node may have not full name in services data
+    try:
+        call_host = node.data['fqdn']
+        nova.run_nova_cmd(
+            ["nova", "service-enable", call_host, "nova-compute"],
+            controller, False)
+    except subprocess.CalledProcessError as exc:
+        LOG.warn("Cannot start service 'nova-compute' on {0} "
+                 "by reason: {1}. Try again".format(node.data['fqdn'], exc))
+        call_host = node.data['fqdn'].split('.', 1)[0]
+        nova.run_nova_cmd(
+            ["nova", "service-enable", call_host, "nova-compute"],
+            controller, False)

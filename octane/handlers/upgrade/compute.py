@@ -12,7 +12,6 @@
 
 import logging
 import os.path
-import subprocess
 
 from octane.handlers import upgrade
 from octane import magic_consts
@@ -38,23 +37,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
 
     def postdeploy(self):
         self.restore_iscsi_initiator_info()
-        controller = env_util.get_one_controller(self.env)
-        # FIXME: Add more correct handling of case
-        # when node may have not full name in services data
-        try:
-            call_host = self.node.data['fqdn']
-            nova.run_nova_cmd(
-                ["nova", "service-enable", call_host, "nova-compute"],
-                controller, False)
-        except subprocess.CalledProcessError as exc:
-            LOG.warn("Cannot start service 'nova-compute' on {0} "
-                     "by reason: {1}. Try again".format(
-                         self.node.data['fqdn'], exc))
-            call_host = self.node.data['fqdn'].split('.', 1)[0]
-            nova.run_nova_cmd(
-                ["nova", "service-enable", call_host, "nova-compute"],
-                controller, False)
-
+        node_util.enable_nova_compute(self.env, self.node)
         seed_version = self.env.data["fuel_version"]
         openstack_release = magic_consts.VERSIONS[seed_version]
         node_util.add_compute_upgrade_levels(self.node, openstack_release)
@@ -62,41 +45,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         ssh.call(["service", "nova-compute", "restart"], node=self.node)
 
     def evacuate_host(self):
-        controller = env_util.get_one_controller(self.env)
-
-        enabled_computes, disabled_computes = nova.get_compute_lists(
-            controller)
-
-        node_fqdn = node_util.get_nova_node_handle(self.node)
-        if [node_fqdn] == enabled_computes:
-            raise Exception("You try to disable last enabled nova-compute "
-                            "service on {hostname} in cluster. "
-                            "This leads to disable host evacuation. "
-                            "Fix this problem and run unpgrade-node "
-                            "command again".format(hostname=node_fqdn))
-
-        if nova.do_nova_instances_exist(controller, node_fqdn, "ERROR"):
-            raise Exception(
-                "There are instances in ERROR state on {hostname},"
-                "please fix this problem and start upgrade_node "
-                "command again".format(hostname=node_fqdn))
-
-        if node_fqdn in disabled_computes:
-            LOG.warn("Node {0} already disabled".format(node_fqdn))
-        else:
-            nova.run_nova_cmd(
-                ["nova", "service-disable", node_fqdn, "nova-compute"],
-                controller, False)
-        for instance_id in nova.get_active_instances(controller, node_fqdn):
-            nova.run_nova_cmd(
-                ["nova", "live-migration", instance_id], controller, False)
-            nova.waiting_for_status_completed(
-                controller, node_fqdn, "MIGRATING")
-        if nova.do_nova_instances_exist(controller, node_fqdn):
-            raise Exception(
-                "There are instances on {hostname} after host-evacuation, "
-                "please fix this problem and start upgrade_node "
-                "command again".format(hostname=node_fqdn))
+        node_util.evacuate_host(self.env, self.node)
 
     # TODO(ogelbukh): move this action to base handler and set a list of
     # partitions to preserve as an attribute of a role.
