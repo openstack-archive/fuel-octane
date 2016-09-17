@@ -200,3 +200,43 @@ def test_restart_nova_services(mocker, node, stdout, nova_services_to_restart):
         call_mock.assert_any_call(["service", service, "restart"], node=node)
     call_output_mock.assert_called_once_with(
         ["service", "--status-all"], node=node)
+
+
+@pytest.mark.parametrize(
+    ("parameters", "parameters_to_get", "required", "ensure", "error"), [
+        ({
+            "option1": "value1",
+            "option2": "value2",
+        }, {
+            "option1": ["section1"],
+            "option2": ["section2"],
+        }, ("option1", "option2"), True, False),
+        ({}, {
+            "option1": ["section1"],
+        }, ("option1"), True, True),
+        ({}, {
+            "option1": ["section1"],
+        }, (), False, False),
+    ]
+)
+def test_get_parameters(mocker, parameters, parameters_to_get, required,
+                        ensure, error):
+    mock_node = mock.Mock()
+    filename = "fake/filename.conf"
+    mock_sftp = mocker.patch("octane.util.ssh.sftp")
+    mock_get = mocker.patch("octane.util.helpers.get_parameters")
+    mock_get.return_value = parameters
+    if ensure and error:
+        msg = ("Could not get parameters from the file fake/filename.conf: "
+               "{parameters}"
+               .format(parameters=", ".join(required)))
+        with pytest.raises(node_util.AbsentParametersError, message=msg):
+            node_util.get_parameters(mock_node, filename, parameters_to_get,
+                                     ensure=ensure)
+    else:
+        result = node_util.get_parameters(
+            mock_node, filename, parameters_to_get, ensure=ensure)
+        assert result == parameters
+    mock_get.assert_called_once_with(
+        mock_sftp.return_value.open.return_value.__enter__.return_value,
+        parameters_to_get)
