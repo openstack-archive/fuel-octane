@@ -18,6 +18,7 @@ import sys
 import time
 
 from distutils import version
+from octane.util import helpers
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -182,3 +183,25 @@ def restart_nova_services(node):
         _, status, _, service = service_line.split()
         if status == "+" and service.startswith("nova"):
             ssh.call(["service", service, "restart"], node=node)
+
+
+class AbsentParametersError(Exception):
+    msg = "Could not get parameters from the file {filename}: {parameters}"
+
+    def __init__(self, filename, parameters):
+        super(AbsentParametersError, self).__init__(self.msg.format(
+            filename=filename,
+            parameters=", ".join(parameters),
+        ))
+
+
+def get_parameters(node, filename, parameters_to_get, ensure=True):
+    with ssh.sftp(node).open(filename) as fp:
+        parameters = helpers.get_parameters(fp, parameters_to_get)
+    if ensure:
+        required_parameters = set(parameters_to_get)
+        current_parameters = set(parameters)
+        absent_parameters = required_parameters - current_parameters
+        if absent_parameters:
+            raise AbsentParametersError(filename, absent_parameters)
+    return parameters
