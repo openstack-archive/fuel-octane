@@ -73,6 +73,23 @@ FLAVOR_STATUS_RE = re.compile(
     "(?P<completed>[0-9]+) completed$")
 
 
+def does_perform_cinder_volume_update_host(env):
+    env_version = version.StrictVersion(env.data["fuel_version"])
+    return env_version == \
+        version.StrictVersion(magic_consts.CINDER_UPDATE_VOLUME_HOST_VERSION)
+
+
+def cinder_volme_update_host(orig_env, new_env):
+    new_controller = env_util.get_one_controller(new_env)
+    # TODO(akscram): Get hardcoded values from configuration files.
+    current_host = "rbd:volumes#DEFAULT"
+    new_host = "rbd:volumes@RBD-backend#RBD-backend"
+    ssh.call(["cinder-manage", "volume", "update_host",
+              "--currenthost", current_host,
+              "--newhost", new_host],
+             node=new_controller, parse_levels=True)
+
+
 def mysqldump_from_env(env, role_name, dbs, fname):
     node = env_util.get_one_node_of(env, role_name)
     cmd = [
