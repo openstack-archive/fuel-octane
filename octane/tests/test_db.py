@@ -121,3 +121,57 @@ def test_nova_migrate_flavor_data(mocker, statuses, is_error, is_timeout):
         db.nova_migrate_flavor_data(env, attempts=attempts)
 
 FLAVOR_STATUS = "{0} instances matched query, {1} completed"
+
+
+@pytest.mark.parametrize(("version", "result"), [
+    ("6.1", False),
+    ("7.0", True),
+    ("8.0", False),
+])
+def test_does_perform_cinder_volume_update_host(version, result):
+    env = mock.Mock(data={"fuel_version": version})
+    assert db.does_perform_cinder_volume_update_host(env) == result
+
+
+def test_cinder_volme_update_host(mocker):
+    mock_orig_env = mock.Mock()
+    mock_new_env = mock.Mock()
+    mock_get = mocker.patch("octane.util.env.get_one_controller")
+    mock_get_current = mocker.patch("octane.util.db.get_current_host")
+    mock_get_new = mocker.patch("octane.util.db.get_new_host")
+    mock_ssh = mocker.patch("octane.util.ssh.call")
+    db.cinder_volume_update_host(mock_orig_env, mock_new_env)
+    mock_ssh.assert_called_once_with(
+        ["cinder-manage", "volume", "update_host",
+         "--currenthost", mock_get_current.return_value,
+         "--newhost", mock_get_new.return_value],
+        node=mock_get.return_value, parse_levels=True)
+
+
+@pytest.mark.parametrize(("func", "content", "expected"), [
+    (db.get_current_host, [
+        (None, "DEFAULT", None, None),
+        (None, "DEFAULT", "host", "fakehost"),
+        (None, "DEFAULT", "volume_backend_name", "fakebackend"),
+    ], "fakehost#fakebackend"),
+    (db.get_new_host, [
+        (None, "DEFAULT", None, None),
+        (None, "DEFAULT", "host", "fakehost_default"),
+        (None, "RBD-backend", None, None),
+        (None, "RBD-backend", "volume_backend_name", "fakebackend"),
+    ], "fakehost_default@fakebackend#RBD-backend"),
+    (db.get_new_host, [
+        (None, "DEFAULT", None, None),
+        (None, "DEFAULT", "host", "fakehost_default"),
+        (None, "RBD-backend", None, None),
+        (None, "RBD-backend", "backend_host", "fakehost_specific"),
+        (None, "RBD-backend", "volume_backend_name", "fakebackend"),
+    ], "fakehost_specific@fakebackend#RBD-backend"),
+])
+def test_get_hosts_functional(mocker, func, content, expected):
+    mock_node = mock.Mock()
+    mocker.patch("octane.util.ssh.sftp")
+    mock_iter = mocker.patch("octane.util.helpers.iterate_parameters")
+    mock_iter.return_value = content
+    result = func(mock_node)
+    assert expected == result

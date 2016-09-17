@@ -19,6 +19,7 @@ from distutils import version
 
 from octane import magic_consts
 from octane.util import env as env_util
+from octane.util import node as node_util
 from octane.util import ssh
 
 
@@ -71,6 +72,49 @@ def nova_migrate_flavor_data(env, attempts=20, attempt_delay=30):
 FLAVOR_STATUS_RE = re.compile(
     r"^(?P<matched>[0-9]+) instances matched query, "
     "(?P<completed>[0-9]+) completed$")
+
+
+def does_perform_cinder_volume_update_host(env):
+    env_version = version.StrictVersion(env.data["fuel_version"])
+    return env_version == \
+        version.StrictVersion(magic_consts.CINDER_UPDATE_VOLUME_HOST_VERSION)
+
+
+def cinder_volume_update_host(orig_env, new_env):
+    old_controller = env_util.get_one_controller(orig_env)
+    new_controller = env_util.get_one_controller(new_env)
+    current_host = get_current_host(old_controller)
+    new_host = get_new_host(new_env)
+    ssh.call(["cinder-manage", "volume", "update_host",
+              "--currenthost", current_host,
+              "--newhost", new_host],
+             node=new_controller, parse_levels=True)
+
+
+def get_current_host(node):
+    parameters = node_util.get_parameters(node, magic_consts.CINDER_CONF, {
+        "host": [("DEFAULT", "host")],
+        "backend": [("DEFAULT", "volume_backend_name")],
+    })
+    # NOTE(akscram): result = "rbd:volumes#DEFAULT"
+    result = "{host}#{backend}".format(
+        host=parameters["host"],
+        backend=parameters["backend"],
+    )
+    return result
+
+
+def get_new_host(node):
+    parameters = node_util.get_parameters(node, magic_consts.CINDER_CONF, {
+        "host": [("DEFAULT", "host"), ("RBD-backend", "backend_host")],
+        "backend": [("RBD-backend", "volume_backend_name")],
+    })
+    # NOTE(akscram): result = "rbd:volumes@RBD-backend#RBD-backend"
+    result = "{host}@{backend}#RBD-backend".format(
+        host=parameters["host"],
+        backend=parameters["backend"],
+    )
+    return result
 
 
 def mysqldump_from_env(env, role_name, dbs, fname):
