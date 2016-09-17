@@ -53,6 +53,19 @@ def iterate_parameters(fp):
         yield line, section, None, None
 
 
+def get_parameters(fp, parameters_to_get):
+    parameters_map = {}
+    for key, values in parameters_to_get.items():
+        for value in values:
+            parameters_map[value] = key
+    parameters = {}
+    for _, section, parameter, value in iterate_parameters(fp):
+        parameter_name = parameters_map.get((section, parameter))
+        if parameter_name is not None and value is not None:
+            parameters[parameter_name] = value
+    return parameters
+
+
 def normalized_cliff_show_json(data):
     if isinstance(data, list):
         return {i['Field']: i['Value'] for i in data}

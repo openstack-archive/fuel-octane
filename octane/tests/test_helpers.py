@@ -9,6 +9,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+import mock
+
 import pytest
 
 from octane.util import helpers
@@ -85,3 +88,33 @@ NORMALIZED_DATA = [
 def test_normalized_cliff_show_json(data, normalized_data):
     res = helpers.normalized_cliff_show_json(data)
     assert res == normalized_data
+
+
+@pytest.mark.parametrize(("source", "parameters_to_get", "parameters"), [
+    ([
+        (None, None, "option1", "value1"),
+        (None, "section1", None, None),
+        (None, "section1", None, None),
+        (None, "section1", "option2", "value2"),
+        (None, "section1", "option3", "value31"),
+        (None, "section2", None, None),
+        (None, "section2", "option4", "value4"),
+        (None, "section2", "option3", "value32"),
+        (None, "section3", "option3", "value33"),
+    ], {
+        "opt2": [("section1", "option2")],
+        "opt3": [("section1", "option3"), ("section2", "option3")],
+        "opt4": [("section1", "option4"), ("section2", "option4")],
+    }, {
+        "opt2": "value2",
+        "opt3": "value32",
+        "opt4": "value4",
+    }),
+])
+def test_get_parameters(mocker, source, parameters_to_get, parameters):
+    mock_fp = mock.Mock()
+    mock_iter = mocker.patch("octane.util.helpers.iterate_parameters")
+    mock_iter.return_value = source
+    result = helpers.get_parameters(mock_fp, parameters_to_get)
+    mock_iter.assert_called_once_with(mock_fp)
+    assert result == parameters

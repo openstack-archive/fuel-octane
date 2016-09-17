@@ -58,6 +58,8 @@ def upgrade_db(orig_id, seed_id, db_role_name):
 
     db.mysqldump_restore_to_env(seed_env, db_role_name, fname)
     db.db_sync(seed_env)
+    if db.does_perform_cinder_volume_update_host(orig_env):
+        db.cinder_volume_update_host(orig_env, seed_env)
 
 
 def upgrade_db_with_graph(orig_id, seed_id):
