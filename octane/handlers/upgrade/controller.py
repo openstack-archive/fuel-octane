@@ -63,7 +63,7 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
 
     def postdeploy(self):
         seed_version = self.env.data["fuel_version"]
-        openstack_release = magic_consts.VERSIONS[seed_version]
+        openstack_release = magic_consts.UPGRADE_LEVELS[seed_version]
         node_util.add_compute_upgrade_levels(self.node, openstack_release)
 
         node_util.restart_nova_services(self.node)
