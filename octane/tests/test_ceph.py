@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
+
 import pytest
 
 from octane.util import ceph
@@ -35,3 +37,15 @@ def test_get_ceph_conf_filename(mocker, node, cmd_output, conf_file):
         "octane.util.ssh.call_output", return_value=cmd_output)
     assert conf_file == ceph.get_ceph_conf_filename(node)
     mock_ssh.assert_called_once_with(cmd, node=node)
+
+
+def test_restart_radowgw(mocker):
+    mock_get = mocker.patch("octane.util.env.get_one_controller")
+    mock_call = mocker.patch("octane.util.ssh.call")
+    mock_env = mock.Mock()
+
+    ceph.restart_radosgw(mock_env)
+
+    mock_get.assert_called_once_with(mock_env)
+    mock_call.assert_called_once_with(["service", "radosgw", "restart"],
+                                      node=mock_get.return_value)
