@@ -40,6 +40,7 @@ ISCSI_CONFIG_PATH = "/etc/iscsi/initiatorname.iscsi"
 # NOTE(akscram): This mapping contains environments versions and
 # suitable upgrade_levels to support N+1 upgrades for Nova services.
 UPGRADE_LEVELS = {
+    '9.1': 'liberty',
     '9.0': 'liberty',
     '8.0': 'kilo',
     '7.0': 'juno',
