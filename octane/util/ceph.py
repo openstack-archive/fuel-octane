@@ -48,3 +48,8 @@ def get_ceph_conf_filename(node):
             if value == '-c' and i < len(cmdline):
                 return cmdline[i + 1]
     return '/etc/ceph/ceph.conf'
+
+
+def restart_radosgw(env):
+    node = env_util.get_one_controller(env)
+    ssh.call(["service", "radosgw", "restart"], node=node)
