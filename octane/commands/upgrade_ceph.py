@@ -167,6 +167,7 @@ def upgrade_ceph(orig_id, seed_id):
                                 "env-{0}-ceph.conf.tar.gz".format(orig_id))
     conf_filename, db_path = extract_mon_conf_files(orig_env, tar_filename)
     ceph_set_new_mons(orig_env, seed_env, tar_filename, conf_filename, db_path)
+    ceph.restart_radosgw(seed_env)
 
 
 def upgrade_ceph_with_graph(orig_id, seed_id):
