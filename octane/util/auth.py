@@ -10,25 +10,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import yaml
+import collections
+from fuelclient import client
 
-from octane import magic_consts
-
-
-def merge_dicts(base_dict, update_dict):
-    result = base_dict.copy()
-    for key, val in update_dict.iteritems():
-        if key not in result or not isinstance(result[key], dict):
-            result[key] = val
-        else:
-            result[key] = merge_dicts(result[key], val)
-    return result
+from octane.util import fuel_client
 
 
-def get_astute_dict():
-    return load_yaml(magic_consts.ASTUTE_YAML)
+Context = collections.namedtuple('Context', ('user', 'password'))
 
 
-def load_yaml(filename):
-    with open(filename, "r") as f:
-        return yaml.load(f)
+def is_creds_valid(user, password):
+    with fuel_client.set_auth_context(Context(user, password)):
+        resp = client.APIClient.get_request_raw('/clusters')
+        if resp.status_code != 401:
+            resp.raise_for_status()
+            return True
+        return False
