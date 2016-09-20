@@ -70,3 +70,5 @@ OPENSTACK_FIXTURES = \
 COBBLER_DROP_VERSION = "7.0"
 
 MIRRORS_EXTRA_DIRS = ["ubuntu-full", "mos-ubuntu"]
+
+ASTUTE_YAML = "/etc/fuel/astute.yaml"
