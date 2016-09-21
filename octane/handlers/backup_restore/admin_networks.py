@@ -16,7 +16,7 @@ from octane.util import puppet
 
 
 class AdminNetworks(base.PathFilterArchivator):
-    backup_directory = "/etc/hiera/networks.yaml"
+    backup_directory = "/etc/hiera/"
     allowed_files = ["networks.yaml"]
     backup_name = "networks"
 

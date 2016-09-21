@@ -75,7 +75,7 @@ def test_path_backup(mocker, cls, path, name):
         (
             admin_networks.AdminNetworks,
             [],
-            "/etc/hiera/networks.yaml",
+            "/etc/hiera/",
             ["networks.yaml"],
             "networks"
         ),
