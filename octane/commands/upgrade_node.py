@@ -92,6 +92,7 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
     else:
         env_util.deploy_changes(env, nodes)
     call_handlers('postdeploy')
+    env_util.set_upgrade_levels_for_controllers(env)
 
 
 def copy_patches_folder_to_nailgun():

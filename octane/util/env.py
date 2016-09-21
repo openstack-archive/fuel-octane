@@ -30,6 +30,8 @@ from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import disk
 from octane.util import helpers
+from octane.util import node as node_util
+from octane.util import nova
 from octane.util import ssh
 from octane.util import subprocess
 
@@ -412,3 +414,11 @@ def copy_fuel_keys(source_env_id, seed_env_id):
 def get_generated(env_id):
     return environment_obj.Environment.connection.get_request(
         'clusters/{0}/generated'.format(env_id))
+
+
+def set_upgrade_levels_for_controllers(env):
+    version = env.data["fuel_version"]
+    openstack_release = nova.get_upgrade_levels(version)
+    for node in get_controllers(env):
+        node_util.add_compute_upgrade_levels(node, openstack_release)
+        node_util.restart_nova_services(node)
