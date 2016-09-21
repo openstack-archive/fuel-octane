@@ -14,7 +14,7 @@ import logging
 import time
 
 from octane import magic_consts
-from octane.util import ssh
+from octane.util import node as node_util
 
 LOG = logging.getLogger(__name__)
 
@@ -28,13 +28,6 @@ class WaiterException(Exception):
         msg = self.message.format(
             hostname=hostname, attempts=attempts, status=status)
         super(Exception, self).__init__(msg)
-
-
-def run_nova_cmd(cmd, node, output=True):
-    run_cmd = ['sh', '-c', ' '.join(['.', '/root/openrc;'] + cmd)]
-    if output:
-        return ssh.call_output(run_cmd, node=node)
-    return ssh.call(run_cmd, node=node)
 
 
 def nova_stdout_parser(cmd_stdout):
@@ -61,7 +54,7 @@ def do_nova_instances_exist(controller, node_fqdn, status=None):
     cmd = ['nova', 'list', '--host', node_fqdn, '--limit', '1', '--minimal']
     if status:
         cmd += ['--status', status]
-    result = run_nova_cmd(cmd, controller)
+    result = node_util.run_with_openrc(cmd, controller)
     return bool(nova_stdout_parser(result))
 
 
@@ -81,7 +74,7 @@ def waiting_for_status_completed(controller, node_fqdn, status,
 
 def get_compute_lists(controller):
     """return tuple of lists enabled and disabled computes"""
-    service_stdout = run_nova_cmd(
+    service_stdout = node_util.run_with_openrc(
         ["nova", "service-list", "--binary", "nova-compute"], controller)
     parsed_service_list = nova_stdout_parser(service_stdout)
     enabled_computes = []
@@ -95,7 +88,7 @@ def get_compute_lists(controller):
 
 
 def get_active_instances(controller, node_fqdn):
-    instances_stdout = run_nova_cmd([
+    instances_stdout = node_util.run_with_openrc([
         "nova", "list",
         "--host", node_fqdn,
         "--limit", "-1",

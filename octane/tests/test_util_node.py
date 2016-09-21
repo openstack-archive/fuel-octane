@@ -242,3 +242,18 @@ def test_get_parameters(mocker, parameters, parameters_to_get, required,
     mock_get.assert_called_once_with(
         mock_sftp.return_value.open.return_value.__enter__.return_value,
         parameters_to_get)
+
+
+@pytest.mark.parametrize("cmd", [["my", "cmd"]])
+@pytest.mark.parametrize("call_output", [True, False])
+def test_run_with_openrc(mocker, cmd, call_output):
+    env = mock.Mock()
+    env.get_attributes.return_value = {"editable": {}}
+    node = mock.Mock(data={"id": 1, "ip": "1.2.3.4"}, env=env)
+    if call_output:
+        ssh_call_mock = mocker.patch("octane.util.ssh.call_output")
+    else:
+        ssh_call_mock = mocker.patch("octane.util.ssh.call")
+    node_util.run_with_openrc(cmd, node, call_output)
+    ssh_call_mock.assert_called_once_with(
+        ['sh', '-c', '. /root/openrc; ' + ' '.join(cmd)], node=node)

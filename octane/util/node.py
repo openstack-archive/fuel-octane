@@ -212,3 +212,10 @@ def get_parameters(node, filename, parameters_to_get, ensure=True):
             raise AbsentParametersError(
                 node.data["id"], filename, flat_parameters)
     return parameters
+
+
+def run_with_openrc(cmd, node, output=True):
+    run_cmd = ['sh', '-c', ' '.join(['.', '/root/openrc;'] + cmd)]
+    if output:
+        return ssh.call_output(run_cmd, node=node)
+    return ssh.call(run_cmd, node=node)

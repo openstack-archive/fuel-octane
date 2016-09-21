@@ -19,12 +19,12 @@ from octane.util import nova
 
 
 def clean_services_for_node(controller, node):
-    services_stdout = nova.run_nova_cmd(
+    services_stdout = node_util.run_with_openrc(
         ["nova", "service-list", "--host", node.data['hostname']],
         controller)
     services = nova.nova_stdout_parser(services_stdout)
     for service in services:
-        nova.run_nova_cmd(
+        node_util.run_with_openrc(
             ["nova", "service-delete", service['Id']], controller,
             output=False)
 

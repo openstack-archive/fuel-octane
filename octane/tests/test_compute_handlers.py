@@ -38,7 +38,7 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
     mock_get_one_controller = mocker.patch(
         "octane.util.env.get_one_controller", return_value=controller)
 
-    run_nova_cmd = mocker.patch("octane.util.nova.run_nova_cmd")
+    run_with_openrc = mocker.patch("octane.util.node.run_with_openrc")
     get_node_fqdn_mock = mocker.patch("octane.util.node.get_nova_node_handle",
                                       return_value=node_fqdn)
     mock_is_nova_state = mocker.patch(
@@ -72,11 +72,11 @@ def test_evacuate_host(mocker, enabled, disabled, node_fqdn,
         nova_calls.append(mock.call(
             ["nova", "live-migration", instance], controller, False))
     if error:
-        assert not run_nova_cmd.called
+        assert not run_with_openrc.called
         assert not mock_waiting.called
         assert not get_instances_mock.called
     else:
-        assert run_nova_cmd.call_args_list == nova_calls
+        assert run_with_openrc.call_args_list == nova_calls
         get_instances_mock.assert_called_once_with(controller, node_fqdn)
         waiting_calls = [mock.call(controller, node_fqdn, "MIGRATING")
                          for i in instances]
@@ -129,7 +129,7 @@ def test_shutoff_vms(
     mock_get_node_fqdn = mocker.patch(
         "octane.util.node.get_nova_node_handle", return_value=node_fqdn)
     mock_nova_run = mocker.patch(
-        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+        "octane.util.node.run_with_openrc", return_value=cmd_output)
     mock_waiting = mocker.patch(
         "octane.util.nova.waiting_for_status_completed")
     mock_is_nova_state = mocker.patch(

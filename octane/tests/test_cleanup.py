@@ -60,7 +60,7 @@ def test_clean_services_for_node(mocker, hostname, stdout, deleted_services):
     node = mock.MagicMock(data={"hostname": hostname})
     controller = mock.Mock()
     nova_run_mock = mocker.patch(
-        "octane.util.nova.run_nova_cmd", return_value=stdout)
+        "octane.util.node.run_with_openrc", return_value=stdout)
     cleanup.clean_services_for_node(controller, node)
     for service_id in deleted_services:
         nova_run_mock.assert_any_call(

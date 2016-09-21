@@ -16,21 +16,6 @@ import pytest
 from octane.util import nova
 
 
-@pytest.mark.parametrize("cmd", [["my", "cmd"]])
-@pytest.mark.parametrize("call_output", [True, False])
-def test_nova_runner_call(mocker, cmd, call_output):
-    env = mock.Mock()
-    env.get_attributes.return_value = {"editable": {}}
-    node = mock.Mock(data={"id": 1, "ip": "1.2.3.4"}, env=env)
-    if call_output:
-        ssh_call_mock = mocker.patch("octane.util.ssh.call_output")
-    else:
-        ssh_call_mock = mocker.patch("octane.util.ssh.call")
-    nova.run_nova_cmd(cmd, node, call_output)
-    ssh_call_mock.assert_called_once_with(
-        ['sh', '-c', '. /root/openrc; ' + ' '.join(cmd)], node=node)
-
-
 @pytest.mark.parametrize("node_fqdn", ["fqdn"])
 @pytest.mark.parametrize("state", ["ACTIVE", "MIGRATING", None])
 @pytest.mark.parametrize("cmd_output,exists", [
@@ -73,7 +58,7 @@ def test_is_there_nova_instances_exists_in_status(
         mocker, node_fqdn, state, cmd_output, exists):
     controller = mock.Mock()
     nova_run_mock = mocker.patch(
-        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+        "octane.util.node.run_with_openrc", return_value=cmd_output)
     assert exists == nova.do_nova_instances_exist(controller, node_fqdn, state)
     if state:
         nova_run_mock.assert_called_once_with([
@@ -183,11 +168,11 @@ def test_waiting_for_status_completed(
 ])
 def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
     controller = mock.Mock()
-    run_nova_cmd = mocker.patch(
-        "octane.util.nova.run_nova_cmd", return_value=cmd_output)
+    run_with_openrc = mocker.patch(
+        "octane.util.node.run_with_openrc", return_value=cmd_output)
 
     assert (enabled, disabled) == nova.get_compute_lists(controller)
-    run_nova_cmd.assert_called_once_with(
+    run_with_openrc.assert_called_once_with(
         ["nova", "service-list", "--binary", "nova-compute"], controller)
 
 
@@ -209,7 +194,7 @@ def test_get_compute_lists(mocker, cmd_output, enabled, disabled):
 def test_get_active_instances(mocker, cmd_out, result, node_fqdn):
     controller = mock.Mock()
     nova_mock = mocker.patch(
-        "octane.util.nova.run_nova_cmd", return_value=cmd_out)
+        "octane.util.node.run_with_openrc", return_value=cmd_out)
     assert result == nova.get_active_instances(controller, node_fqdn)
     nova_mock.assert_called_once_with([
         "nova", "list",

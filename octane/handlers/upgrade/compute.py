@@ -43,7 +43,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         # when node may have not full name in services data
         try:
             call_host = self.node.data['fqdn']
-            nova.run_nova_cmd(
+            node_util.run_with_openrc(
                 ["nova", "service-enable", call_host, "nova-compute"],
                 controller, False)
         except subprocess.CalledProcessError as exc:
@@ -51,7 +51,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                      "by reason: {1}. Try again".format(
                          self.node.data['fqdn'], exc))
             call_host = self.node.data['fqdn'].split('.', 1)[0]
-            nova.run_nova_cmd(
+            node_util.run_with_openrc(
                 ["nova", "service-enable", call_host, "nova-compute"],
                 controller, False)
 
@@ -78,11 +78,11 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
         if node_fqdn in disabled_computes:
             LOG.warn("Node {0} already disabled".format(node_fqdn))
         else:
-            nova.run_nova_cmd(
+            node_util.run_with_openrc(
                 ["nova", "service-disable", node_fqdn, "nova-compute"],
                 controller, False)
         for instance_id in nova.get_active_instances(controller, node_fqdn):
-            nova.run_nova_cmd(
+            node_util.run_with_openrc(
                 ["nova", "live-migration", instance_id], controller, False)
             nova.waiting_for_status_completed(
                 controller, node_fqdn, "MIGRATING")
@@ -109,7 +109,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 "command again".format(hostname=node_fqdn))
 
         for instance_id in nova.get_active_instances(controller, node_fqdn):
-            nova.run_nova_cmd(
+            node_util.run_with_openrc(
                 ["nova", "stop", instance_id], controller, output=False)
         nova.waiting_for_status_completed(controller, node_fqdn, "ACTIVE")
 
