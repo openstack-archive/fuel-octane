@@ -17,7 +17,6 @@ from octane.handlers import upgrade
 from octane.helpers import transformations
 from octane import magic_consts
 from octane.util import env as env_util
-from octane.util import node as node_util
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -62,12 +61,6 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         return magic_consts.SKIP_CONTROLLER_TASKS
 
     def postdeploy(self):
-        seed_version = self.env.data["fuel_version"]
-        openstack_release = magic_consts.UPGRADE_LEVELS[seed_version]
-        node_util.add_compute_upgrade_levels(self.node, openstack_release)
-
-        node_util.restart_nova_services(self.node)
-
         if self.isolated and self.gateway:
             # From restore_default_gateway
             LOG.info("Deleting default route at node %s",
