@@ -38,12 +38,13 @@ def test_preupgrade_compute(mocker, release_id, node_ids, env_id, version):
     def _create_node(node_id):
         node = mock.Mock()
         node.id = node_id
-        node.env.id = env_id
+        node.env = env
         node.data = {}
         node.data['roles'] = 'compute'
         mock_nodes_list.append(node)
         return node
 
+    env = mock.Mock(id=env_id, data={"fuel_version": "9.1"})
     mock_nodes_list = []
     mock_node = mocker.patch("fuelclient.objects.node.Node")
     mock_node.side_effect = _create_node
@@ -56,12 +57,16 @@ def test_preupgrade_compute(mocker, release_id, node_ids, env_id, version):
     mock_get_repos = mocker.patch(
         "octane.commands.preupgrade_compute.get_repos"
     )
+    mock_get_levels = mocker.patch("octane.util.nova.get_upgrade_levels")
+    mock_get_levels.return_value = "liberty"
     mock_change_repos = mocker.patch(
         "octane.commands.preupgrade_compute.change_repositories"
     )
     mock_stop_services = mocker.patch(
         "octane.commands.preupgrade_compute.stop_compute_services"
     )
+    mock_add_level = mocker.patch(
+        "octane.util.node.add_compute_upgrade_levels")
     mock_upgrade_packages = mocker.patch("octane.util.apt.upgrade_packages")
 
     preupgrade_compute.preupgrade_compute(release_id, node_ids)
@@ -77,6 +82,11 @@ def test_preupgrade_compute(mocker, release_id, node_ids, env_id, version):
     assert mock_upgrade_packages.call_args_list == [
         mock.call(node, magic_consts.COMPUTE_PREUPGRADE_PACKAGES.get(version))
         for node in mock_nodes_list]
+    mock_get_levels.assert_called_once_with("9.1")
+    assert mock_add_level.call_args_list == [
+        mock.call(node, "liberty")
+        for node in mock_nodes_list
+    ]
 
 
 @pytest.mark.parametrize("release_id,node_ids,env_ids,roles,state,err", [

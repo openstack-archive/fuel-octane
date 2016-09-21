@@ -50,6 +50,13 @@ UPGRADE_LEVELS = {
     '5.1.1': 'havana',
     '5.1': 'havana',
 }
+# NOTE(akscram): This mapping contains upgrade levels for N+2 cases to
+# support pre-upgrade of computes to N+1.
+PREUPGRADE_LEVELS = {
+    '7.0': 'liberty',
+    '6.1': 'kilo',
+    '6.0': 'kilo',
+}
 
 NAILGUN_URL = "http://127.0.0.1:8000"
 KEYSTONE_API_URL = "http://127.0.0.1:5000/v2.0"

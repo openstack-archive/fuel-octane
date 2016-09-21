@@ -106,12 +106,20 @@ def get_active_instances(controller, node_fqdn):
     return [i["ID"] for i in instances]
 
 
-def get_upgrade_levels(version):
+def get_levels(versions_mapping, version):
     try:
-        release = magic_consts.UPGRADE_LEVELS[version]
+        release = versions_mapping[version]
     except KeyError:
         LOG.error("Could not find suitable upgrade_levels for the "
                   "{version} release.".format(version=version))
         raise
     else:
         return release
+
+
+def get_upgrade_levels(version):
+    return get_levels(magic_consts.UPGRADE_LEVELS, version)
+
+
+def get_preupgrade_levels(version):
+    return get_levels(magic_consts.PREUPGRADE_LEVELS, version)
