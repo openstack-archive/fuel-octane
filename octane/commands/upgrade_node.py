@@ -91,8 +91,10 @@ def upgrade_node(env_id, node_ids, isolated=False, provision=True, roles=None,
         env_util.deploy_nodes_without_tasks(env, nodes, tasks_to_skip)
     else:
         env_util.deploy_changes(env, nodes)
+    # TODO(akscram): The upgrade_levels parameters have to be handled by the
+    # advanced configuration feature for OpenStack services (openstack-config).
+    env_util.set_upgrade_levels(env)
     call_handlers('postdeploy')
-    env_util.set_upgrade_levels_for_controllers(env)
 
 
 def copy_patches_folder_to_nailgun():
