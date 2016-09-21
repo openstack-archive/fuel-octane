@@ -350,19 +350,20 @@ def test_util_env(mocker, api, modified, nodes):
     env.get_default_facts.assert_called_once_with('deployment', nodes=nodes)
 
 
-def test_set_upgrade_levels_for_controllers(mocker):
+def test_set_upgrade_levels(mocker):
     env = mock.Mock(data={"fuel_version": "9.1"})
     node = mock.Mock()
 
     mock_get_levels = mocker.patch("octane.util.nova.get_upgrade_levels")
     mock_get_levels.return_value = "liberty"
-    mock_get_conts = mocker.patch("octane.util.env.get_controllers")
-    mock_get_conts.return_value = [node]
+    mock_get_nodes = mocker.patch("octane.util.env.get_nodes")
+    mock_get_nodes.return_value = [node]
     mock_add = mocker.patch("octane.util.node.add_compute_upgrade_levels")
     mock_restart = mocker.patch("octane.util.node.restart_nova_services")
 
-    env_util.set_upgrade_levels_for_controllers(env)
+    env_util.set_upgrade_levels(env)
 
     mock_get_levels.assert_called_once_with("9.1")
     mock_add.assert_called_once_with(node, "liberty")
     mock_restart.assert_called_once_with(node)
+    mock_get_nodes.assert_called_once_with(env, ["controller", "compute"])

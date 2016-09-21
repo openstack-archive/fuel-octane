@@ -416,9 +416,9 @@ def get_generated(env_id):
         'clusters/{0}/generated'.format(env_id))
 
 
-def set_upgrade_levels_for_controllers(env):
+def set_upgrade_levels(env):
     version = env.data["fuel_version"]
     openstack_release = nova.get_upgrade_levels(version)
-    for node in get_controllers(env):
+    for node in get_nodes(env, ["controller", "compute"]):
         node_util.add_compute_upgrade_levels(node, openstack_release)
         node_util.restart_nova_services(node)

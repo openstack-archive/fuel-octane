@@ -76,8 +76,7 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
     mock_deploy_nodes = mocker.patch(
         "octane.util.env.deploy_nodes_without_tasks"
     )
-    mock_upgrade_levels = mocker.patch(
-        "octane.util.env.set_upgrade_levels_for_controllers")
+    mock_upgrade_levels = mocker.patch("octane.util.env.set_upgrade_levels")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     mock_check_isolation = mocker.patch(
         "octane.commands.upgrade_node.check_isolation")
