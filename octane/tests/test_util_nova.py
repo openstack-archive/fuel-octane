@@ -218,3 +218,19 @@ def test_get_active_instances(mocker, cmd_out, result, node_fqdn):
         "--status", "ACTIVE",
         "--minimal"],
         controller)
+
+
+@pytest.mark.parametrize(("levels", "version", "result", "error"), [
+    ({"9.1": "liberty"}, "9.1", "liberty", False),
+    ({"9.1": "liberty", "8.0": "kilo"}, "8.0", "kilo", False),
+    ({}, "9.1", None, True),
+])
+def test_get_upgrade_levels(mocker, levels, version, result, error):
+    mocker.patch.dict("octane.magic_consts.UPGRADE_LEVELS", levels, clear=True)
+    if error:
+        msg = ("Could not find suitable upgrade_levels for the "
+               "{version} release.".format(version=version))
+        with pytest.raises(KeyError, message=msg):
+            nova.get_upgrade_levels(version)
+    else:
+        assert nova.get_upgrade_levels(version) == result

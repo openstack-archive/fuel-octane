@@ -76,6 +76,8 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
     mock_deploy_nodes = mocker.patch(
         "octane.util.env.deploy_nodes_without_tasks"
     )
+    mock_upgrade_levels = mocker.patch(
+        "octane.util.env.set_upgrade_levels_for_controllers")
     mock_deploy_changes = mocker.patch("octane.util.env.deploy_changes")
     mock_check_isolation = mocker.patch(
         "octane.commands.upgrade_node.check_isolation")
@@ -102,6 +104,7 @@ def test_upgrade_node(mocker, node_ids, isolated, provision, roles,
     else:
         mock_deploy_changes.assert_called_once_with(mock_env, mock_nodes_list)
         not mock_deploy_nodes.called
+    mock_upgrade_levels.assert_called_once_with(mock_env)
 
 
 @pytest.mark.parametrize('node_data,expected_error', [

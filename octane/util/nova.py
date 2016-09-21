@@ -13,6 +13,7 @@
 import logging
 import time
 
+from octane import magic_consts
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -103,3 +104,14 @@ def get_active_instances(controller, node_fqdn):
         controller)
     instances = nova_stdout_parser(instances_stdout)
     return [i["ID"] for i in instances]
+
+
+def get_upgrade_levels(version):
+    try:
+        release = magic_consts.UPGRADE_LEVELS[version]
+    except KeyError:
+        LOG.error("Could not find suitable upgrade_levels for the "
+                  "{version} release.".format(version=version))
+        raise
+    else:
+        return release
