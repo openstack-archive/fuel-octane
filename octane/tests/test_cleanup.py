@@ -34,6 +34,8 @@ def test_cleanup_env(mocker, env_id, node_count):
         "octane.util.node.remove_compute_upgrade_levels")
     restart_service_mock = mocker.patch(
         "octane.util.node.restart_nova_services")
+    remove_cinder_mock = mocker.patch(
+        "octane.util.cinder.remove_legacy_services")
     cleanup.cleanup_environment(env_id)
     for node in nodes:
         remove_compute_mock.assert_any_call(node)
@@ -43,6 +45,7 @@ def test_cleanup_env(mocker, env_id, node_count):
     get_nodes_mock.assert_called_once_with(env, ["controller", "compute"])
     get_env_mock.assert_called_once_with(env_id)
     get_controller.assert_called_once_with(env)
+    remove_cinder_mock.assert_called_once_with(controller)
 
 
 @pytest.mark.parametrize("hostname", ["test_hostname"])

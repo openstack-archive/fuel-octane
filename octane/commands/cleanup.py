@@ -13,6 +13,7 @@
 from cliff import command as cmd
 from fuelclient import objects
 
+from octane.util import cinder
 from octane.util import env as env_util
 from octane.util import helpers
 from octane.util import node as node_util
@@ -38,6 +39,7 @@ def cleanup_environment(env_id):
         node_util.remove_compute_upgrade_levels(node)
         node_util.restart_nova_services(node)
         clean_services_for_node(controller, node)
+    cinder.remove_legacy_services(controller)
 
 
 class CleanupCommand(cmd.Command):
