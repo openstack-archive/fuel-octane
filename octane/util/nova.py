@@ -14,6 +14,7 @@ import logging
 import time
 
 from octane import magic_consts
+from octane.util import helpers
 from octane.util import node as node_util
 
 LOG = logging.getLogger(__name__)
@@ -30,32 +31,12 @@ class WaiterException(Exception):
         super(Exception, self).__init__(msg)
 
 
-def nova_stdout_parser(cmd_stdout):
-    """Parse nova cmd stdout
-
-    Return list of dicts ther keys are the header of the cmd out table.
-    """
-    results = []
-    headers = None
-    for line in cmd_stdout.splitlines():
-        line = line.strip()
-        if not line or line[0] == '+':
-            continue
-        cols = line.strip("|").split("|")
-        cols = [c.strip() for c in cols]
-        if headers is None:
-            headers = cols
-        else:
-            results.append(dict(zip(headers, cols)))
-    return results
-
-
 def do_nova_instances_exist(controller, node_fqdn, status=None):
     cmd = ['nova', 'list', '--host', node_fqdn, '--limit', '1', '--minimal']
     if status:
         cmd += ['--status', status]
     result = node_util.run_with_openrc(cmd, controller)
-    return bool(nova_stdout_parser(result))
+    return bool(helpers.parse_table_output(result))
 
 
 def waiting_for_status_completed(controller, node_fqdn, status,
@@ -76,7 +57,7 @@ def get_compute_lists(controller):
     """return tuple of lists enabled and disabled computes"""
     service_stdout = node_util.run_with_openrc(
         ["nova", "service-list", "--binary", "nova-compute"], controller)
-    parsed_service_list = nova_stdout_parser(service_stdout)
+    parsed_service_list = helpers.parse_table_output(service_stdout)
     enabled_computes = []
     disabled_computes = []
     for service in parsed_service_list:
@@ -95,7 +76,7 @@ def get_active_instances(controller, node_fqdn):
         "--status", "ACTIVE",
         "--minimal"],
         controller)
-    instances = nova_stdout_parser(instances_stdout)
+    instances = helpers.parse_table_output(instances_stdout)
     return [i["ID"] for i in instances]
 
 

@@ -14,15 +14,15 @@ from cliff import command as cmd
 from fuelclient import objects
 
 from octane.util import env as env_util
+from octane.util import helpers
 from octane.util import node as node_util
-from octane.util import nova
 
 
 def clean_services_for_node(controller, node):
     services_stdout = node_util.run_with_openrc(
         ["nova", "service-list", "--host", node.data['hostname']],
         controller)
-    services = nova.nova_stdout_parser(services_stdout)
+    services = helpers.parse_table_output(services_stdout)
     for service in services:
         node_util.run_with_openrc(
             ["nova", "service-delete", service['Id']], controller,

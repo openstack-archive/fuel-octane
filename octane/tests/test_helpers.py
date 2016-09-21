@@ -118,3 +118,49 @@ def test_get_parameters(mocker, source, parameters_to_get, parameters):
     result = helpers.get_parameters(mock_fp, parameters_to_get)
     mock_iter.assert_called_once_with(mock_fp)
     assert result == parameters
+
+
+@pytest.mark.parametrize("cmd_output, expected_result", [
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        | 85cfb077-3397-405e-ae61-dfce35d3073a | test_boot_volume_2 |
+        +--------------------------------------+--------------------+""",
+        [
+            {
+                "ID": "85cfb077-3397-405e-ae61-dfce35d3073a",
+                "Name": "test_boot_volume_2",
+            }
+        ]
+    ),
+    (
+        """
+        +------+-------------+
+        | ID   | Name        |
+        +------+-------------+
+        | id_1 | test_name_1 |
+        | id_2 | test_name_2 |
+        +------+-------------+
+        """,
+        [
+            {
+                "ID": "id_1",
+                "Name": "test_name_1",
+            },
+            {
+                "ID": "id_2",
+                "Name": "test_name_2",
+            }
+        ]
+    ),
+    (
+        """+--------------------------------------+--------------------+
+        | ID                                   | Name               |
+        +--------------------------------------+--------------------+
+        +--------------------------------------+--------------------+""",
+        []
+    ),
+])
+def test_parse_table_output(cmd_output, expected_result):
+    assert expected_result == helpers.parse_table_output(cmd_output)

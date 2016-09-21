@@ -70,3 +70,20 @@ def normalized_cliff_show_json(data):
     if isinstance(data, list):
         return {i['Field']: i['Value'] for i in data}
     return data
+
+
+def parse_table_output(output):
+    """Parse table-like outputs of commands."""
+    results = []
+    headers = None
+    for line in output.splitlines():
+        line = line.strip()
+        if not line or line[0] == '+':
+            continue
+        cols = line.strip("|").split("|")
+        cols = [c.strip() for c in cols]
+        if headers is None:
+            headers = cols
+        else:
+            results.append(dict(zip(headers, cols)))
+    return results
