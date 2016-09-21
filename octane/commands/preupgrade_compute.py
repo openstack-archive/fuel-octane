@@ -19,6 +19,8 @@ from fuelclient import objects
 from octane import magic_consts
 from octane.util import apt
 from octane.util import helpers
+from octane.util import node as node_util
+from octane.util import nova
 from octane.util import ssh
 
 LOG = logging.getLogger(__name__)
@@ -95,9 +97,12 @@ def preupgrade_compute(release_id, node_ids):
                       "is not exist".format(release_id))
         raise
 
+    version = nodes[0].env.data["fuel_version"]
+    openstack_release = nova.get_upgrade_levels(version)
     for node in nodes:
         change_repositories(node, repos)
         stop_compute_services(node)
+        node_util.add_compute_upgrade_levels(node, openstack_release)
         apt.upgrade_packages(node, packages)
 
 
