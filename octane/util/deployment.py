@@ -70,12 +70,12 @@ def upload_graph_file_to_env(graph_file_path, env_id):
              graph_name, env_id)
 
 
-def execute_graph_and_wait(graph_name, env_id,
+def execute_graph_and_wait(graph_name, env_id, nodes=None,
                            attempts=120, attempt_delay=30):
     """Execute graph with fuelclient and wait until finished."""
 
     client = graph.GraphClient()
-    graph_task = client.execute(env_id, graph_types=[graph_name])
+    graph_task = client.execute(env_id, graph_types=[graph_name], nodes=nodes)
     for i in xrange(attempts):
         status = graph_task.status
         if status == 'ready':
