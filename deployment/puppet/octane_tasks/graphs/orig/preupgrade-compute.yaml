@@ -1,0 +1,109 @@
+# GROUPS
+- id: compute
+  type: group
+  role: [compute]
+  fault_tolerance: 0
+
+# TASKS
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  groups: [compute]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_code/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
+- id: override_repos_in_hiera
+  type: upload_file
+  version: 2.1.0
+  groups: [compute]
+  requires: []
+  required_for: []
+  parameters:
+    path: /etc/hiera/override/common.yaml
+    data:
+      yaql_exp: >
+        ({"repo_setup" => {"repos" => $.repo_setup.preupgrade_compute},
+          "preupgrade_packages" => $.preupgrade_packages}.toYaml())
+
+- id: cleanup_existing_repos
+  type: shell
+  version: 2.1.0
+  groups: [compute]
+  requires: []
+  required_for: []
+  parameters:
+    cmd: >
+      tar zcf /root/sources.list.d-backup.tar.gz /etc/apt/sources.list.d
+      rm /etc/apt/sources.list.d/*.list || true
+    timeout: 60
+
+- id: rsync_latest_puppet
+  type: sync
+  version: 2.1.0
+  groups: [compute]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/puppet/modules/
+    dst: /etc/fuel/octane/latest_modules
+    timeout: 180
+
+- id: setup_new_repositories
+  type: puppet
+  version: 2.1.0
+  groups: [compute]
+  requires: [cleanup_existing_repos, rsync_latest_puppet, override_repos_in_hiera]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/latest_modules/osnailyfacter/modular/fuel_pkgs/setup_repositories.pp
+    puppet_modules: /etc/fuel/octane/latest_modules
+    timeout: 600
+
+- id: stop_compute_services
+  type: puppet
+  version: 2.1.0
+  groups: [compute]
+  requires: []
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/stop_compute_services.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
+
+- id: preupgrade_compute
+  type: puppet
+  version: 2.1.0
+  groups: [compute]
+  requires: [stop_compute_services, rsync_octane, setup_new_repositories]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/preupgrade_compute.pp
+    puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
+    timeout: 360
+
+- id: remove_hiera_override
+  type: shell
+  version: 2.1.0
+  groups: [compute]
+  requires: [preupgrade_compute]
+  required_for: []
+  parameters:
+    cmd: rm /etc/hiera/override/common.yaml || true
+    timeout: 60
+
+- id: restore_repos
+  type: shell
+  version: 2.1.0
+  groups: [compute]
+  requires: [preupgrade_compute]
+  required_for: []
+  parameters:
+    cmd: >
+      rm /etc/apt/sources.list.d/*.list || true
+      tar xf /root/sources.list.d-backup.tar.gz -C /
+      apt-get update
+    timeout: 120
