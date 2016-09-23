@@ -110,7 +110,7 @@ def test_execute_graph_and_wait(mocker, statuses, graph_name, env_id, is_error,
     else:
         execute_graph()
     mock_graph.return_value.execute.assert_called_once_with(
-        env_id, graph_types=[graph_name])
+        env_id, graph_types=[graph_name], nodes=None)
     assert mock_status.call_count == attempts
 
 
