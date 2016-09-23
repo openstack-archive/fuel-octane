@@ -38,6 +38,12 @@ maintainers:
   - name:   Viacheslav Valyavskiy
     email:  vvalyavskiy@mirantis.com
     IRC:    vvalyavskiy
+  - name:   Alexey Stepanov
+    email:  astepanov@mirantis.com
+    IRC:    penguionolog
+  - name:   Vladimir Khlyunev
+    email:  vkhlyunev@mirantis.com
+    IRC:    vkhlyunev
 
 - specs/: &MOS_packaging_team
   - name:   Mikhail Ivanov
