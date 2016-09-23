@@ -18,6 +18,7 @@ from fuelclient import objects
 
 from octane import magic_consts
 from octane.util import apt
+from octane.util import deployment as deploy
 from octane.util import helpers
 from octane.util import ssh
 
@@ -80,6 +81,18 @@ def get_repos(release, master_ip=''):
     return repos
 
 
+def add_upgrade_attrs_to_settings(env, repos, release):
+    version = release.data['version']
+    packages = magic_consts.COMPUTE_PREUPGRADE_PACKAGES[version]
+
+    attrs = env.get_settings_data()
+    attrs['editable']['repo_setup']['preupgrade_compute'] = {'value': repos,
+                                                             'type': 'hidden'}
+    attrs['editable']['common']['preupgrade_packages'] = {'value': packages,
+                                                          'type': 'hidden'}
+    env.set_settings_data(attrs)
+
+
 def preupgrade_compute(release_id, node_ids):
     nodes = [objects.node.Node(node_id) for node_id in node_ids]
     release = objects.Release(release_id)
@@ -101,6 +114,25 @@ def preupgrade_compute(release_id, node_ids):
         apt.upgrade_packages(node, packages)
 
 
+def preupgrade_compute_with_graph(release_id, node_ids):
+    nodes = [objects.node.Node(node_id) for node_id in node_ids]
+    release = objects.Release(release_id)
+    check_sanity(nodes, release)
+    master_ip = helpers.get_astute_dict()["ADMIN_NETWORK"]['ipaddress']
+
+    repos = get_repos(release, master_ip)
+    env_id = nodes[0].env.id
+    env = objects.environment.Environment(env_id)
+
+    # Add following data to cluster attributes:
+    # - new repositories
+    # - list of packages to be updated
+    add_upgrade_attrs_to_settings(env, repos, release)
+
+    deploy.upload_graph(env_id, "orig")
+    deploy.execute_graph_and_wait('preupgrade-compute', env_id, node_ids)
+
+
 class PreupgradeComputeCommand(cmd.Command):
     """Preupgrade compute"""
 
@@ -118,7 +150,15 @@ class PreupgradeComputeCommand(cmd.Command):
             metavar='NODE_ID',
             help="IDs of compute nodes to be preupgraded",
             nargs="+")
+        parser.add_argument(
+            '--with-graph', action='store_true',
+            help='EXPERIMENTAL: Use Fuel deployment graphs'
+                 ' instead of python-based commands.')
         return parser
 
     def take_action(self, parsed_args):
-        preupgrade_compute(parsed_args.release_id, parsed_args.node_ids)
+        if parsed_args.with_graph:
+            preupgrade_compute_with_graph(parsed_args.release_id,
+                                          parsed_args.node_ids)
+        else:
+            preupgrade_compute(parsed_args.release_id, parsed_args.node_ids)
