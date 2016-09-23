@@ -1,0 +1,9 @@
+Code-Review+1: Dmitriy Stremkovskiy <dstremkouski@mirantis.com>
+Code-Review+2: Ilya Kharin <akscram@gmail.com>
+Workflow+1: Ilya Kharin <akscram@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 23 Sep 2016 22:20:40 +0000
+Reviewed-on: https://review.openstack.org/371071
+Project: openstack/fuel-octane
+Branch: refs/heads/master
