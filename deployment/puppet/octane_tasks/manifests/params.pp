@@ -5,6 +5,7 @@
 class octane_tasks::params (
 ) {
   $nova_hash            = hiera_hash('nova')
+  $upgrade_hash         = hiera_hash('upgrade')
   $ceilometer_hash      = hiera_hash('ceilometer', {'enabled' => false})
   $sahara_hash          = hiera_hash('sahara', {'enabled' => false})
   $murano_hash          = hiera_hash('murano', {'enabled' => false})
@@ -20,6 +21,9 @@ class octane_tasks::params (
   $murano_plugin_enabled  = $murano_plugin_hash['metadata']['enabled']
   $ironic_enabled         = $ironic_hash['enabled']
   $cinder_vol_on_ctrl     = $storage_hash['volumes_ceph']
+
+  $orig_version = $upgrade_hash['relation_info']['orig_cluster_version']
+  $seed_version = $upgrade_hash['relation_info']['seed_cluster_version']
 
   # Nova
   $nova_services_list = [
