@@ -19,9 +19,11 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
 
     def get_parser(self, prog_name):
         parser = super(EnvMoveNode, self).get_parser(prog_name)
-        parser.add_argument('node_id',
+        parser.add_argument('nodes_ids',
                             type=int,
-                            help='ID of the node to upgrade.')
+                            metavar='node-id',
+                            nargs='+',
+                            help='IDs of the nodes to upgrade.')
         parser.add_argument('env_id',
                             type=str,
                             help='ID of the environment.')
@@ -34,12 +36,12 @@ class EnvMoveNode(env_commands.EnvMixIn, base.BaseCommand):
         self.client._entity_wrapper.connection.post_request(
             "clusters/{0}/upgrade/assign".format(parsed_args.env_id),
             {
-                'node_id': parsed_args.node_id,
+                'nodes_ids': parsed_args.nodes_ids,
             }
         )
-        msg = ('Node {node_id} successfully relocated to the environment'
+        msg = ('Node {nodes_ids} successfully relocated to the environment'
                ' {env_id}.\n'.format(
-                   node_id=parsed_args.node_id,
+                   nodes_ids=parsed_args.nodes_ids,
                    env_id=parsed_args.env_id,
                ))
         self.app.stdout.write(msg)
