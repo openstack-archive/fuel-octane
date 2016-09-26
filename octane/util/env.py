@@ -207,13 +207,14 @@ def wait_for_nodes(nodes, status, timeout=60 * 60, check_freq=60):
 
 def move_nodes(env, nodes):
     env_id = env.data['id']
+    node_ids = []
     for node in nodes:
         node_id = node.data['id']
+        node_ids.append(str(node_id))
         if incompatible_provision_method(env):
             disk.create_configdrive_partition(node)
             disk.update_node_partition_info(node_id)
-        subprocess.call(
-            ["fuel2", "env", "move", "node", str(node_id), str(env_id)])
+    subprocess.call(["fuel2", "env", "move", "node", str(env_id)] + node_ids)
     LOG.info("Nodes provision started. Please wait...")
     wait_for_nodes(nodes, "provisioned")
 
