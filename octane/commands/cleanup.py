@@ -39,6 +39,8 @@ def cleanup_environment(env_id):
         node_util.restart_nova_services(node)
         clean_services_for_node(controller, node)
 
+    env_util.cleanup(env_id)
+
 
 class CleanupCommand(cmd.Command):
     """Cleanup upgraded environment"""
