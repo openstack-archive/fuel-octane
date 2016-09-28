@@ -14,6 +14,7 @@ import mock
 import os
 import pytest
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -263,3 +264,47 @@ def test_repos_backup(
         ],
         any_order=True)
     assert test_archive.add.call_count == len(archive_add_list)
+
+
+@pytest.mark.parametrize(
+    "cls,banned_files,backup_directory,allowed_files,backup_name", [
+        (
+            admin_networks.AdminNetworks,
+            [],
+            "/etc/hiera/",
+            ["networks.yaml"],
+            "networks"
+        ),
+    ])
+def test_path_filter_backup(mocker, cls, banned_files, backup_directory,
+                            allowed_files, backup_name):
+    def foo(path, path_in_archive):
+        assert path.startswith(backup_directory)
+        assert path_in_archive.startswith(backup_name)
+        filename = path[len(backup_directory):].lstrip(os.path.sep)
+        filename_in_archive = \
+            path_in_archive[len(backup_name):].lstrip(os.path.sep)
+        assert filename == filename_in_archive
+        backuped_files.add(filename)
+
+    filenames = banned_files + (allowed_files or []) + ["tmp1", "tmp2"]
+    files_to_archive = filenames
+    if allowed_files:
+        files_to_archive = [d for d in files_to_archive if d in allowed_files]
+    files_to_archive = [d for d in files_to_archive if d not in banned_files]
+    backuped_files = set()
+
+    test_archive = mocker.Mock()
+    test_archive.add.side_effect = foo
+
+    mock_os_walk = mocker.patch("os.walk")
+    mock_os_walk.return_value = [(backup_directory, (), filenames)]
+
+    cls(test_archive).backup()
+
+    mock_os_walk.assert_called_once_with(backup_directory)
+
+    for filename in files_to_archive:
+        assert filename in backuped_files
+    for filename in set(filenames) - set(files_to_archive):
+        assert filename not in backuped_files
