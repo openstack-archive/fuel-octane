@@ -17,6 +17,8 @@ import yaml
 from keystoneclient.v2_0 import Client as keystoneclient
 
 from octane.handlers import backup_restore
+
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -647,3 +649,15 @@ def test_create_links_on_remote_logs(
     assert [mock.call("rsyslog", ["service", "rsyslog", "stop"]),
             mock.call("rsyslog", ["service", "rsyslog", "start"])] == \
         run_in_container_mock.call_args_list
+
+
+@pytest.mark.parametrize("members,is_exist", [
+    ([TestMember("networks/networks.yaml", True, True)], True),
+    ([], False)
+])
+def test_admin_network_restore(mocker, members, is_exist):
+    cls = admin_networks.AdminNetworks
+    archive = TestArchive(members, cls)
+    cls(archive).restore()
+    for member in members:
+        member.assert_extract()

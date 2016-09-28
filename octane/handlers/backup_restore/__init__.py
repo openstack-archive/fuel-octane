@@ -12,6 +12,7 @@
 
 import os
 
+from octane.handlers.backup_restore import admin_networks
 from octane.handlers.backup_restore import astute
 from octane.handlers.backup_restore import cobbler
 from octane.handlers.backup_restore import fuel_keys
@@ -25,6 +26,7 @@ from octane.handlers.backup_restore import version
 
 
 ARCHIVATORS = [
+    admin_networks.AdminNetworks,
     astute.AstuteArchivator,
     # SSH restore must go before Cobbler restore so it updates
     # /etc/cobbler/authorized_keys file automatically
