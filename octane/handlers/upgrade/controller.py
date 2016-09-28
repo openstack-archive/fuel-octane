@@ -29,12 +29,24 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
         self.service_tenant_id = None
         self.gateway = None
 
+    def get_fw_admin_default_gw(self):
+        networks = self.env.get_network_data()['networks']
+        default_gw_admin = None
+        gw_admin = None
+        node_group_id = self.node.data['group_id']
+        for network in networks:
+            if network['name'] != 'fuelweb_admin':
+                continue
+            if node_group_id == network['group_id']:
+                gw_admin = network.get('gateway')
+            if network['group_id'] is None:
+                default_gw_admin = network.get('gateway')
+        return gw_admin or default_gw_admin
+
     def predeploy(self):
         default_info = env_util.get_node_default_facts(self.env)
         deployment_info = []
-        network_data = self.env.get_network_data()
-        gw_admin = transformations.get_network_gw(network_data,
-                                                  "fuelweb_admin")
+        gw_admin = self.get_fw_admin_default_gw()
         if self.isolated:
             facts = [info for info
                      in default_info if info['uid'] == str(self.node.id)]
