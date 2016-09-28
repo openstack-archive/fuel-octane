@@ -34,6 +34,8 @@ def test_cleanup_env(mocker, env_id, node_count):
         "octane.util.node.remove_compute_upgrade_levels")
     restart_service_mock = mocker.patch(
         "octane.util.node.restart_nova_services")
+    cleanup_mock = mocker.patch("octane.util.env.cleanup")
+
     cleanup.cleanup_environment(env_id)
     for node in nodes:
         remove_compute_mock.assert_any_call(node)
