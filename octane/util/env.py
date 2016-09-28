@@ -422,3 +422,9 @@ def set_upgrade_levels(env):
     for node in get_nodes(env, ["controller", "compute"]):
         node_util.add_compute_upgrade_levels(node, openstack_release)
         node_util.restart_nova_services(node)
+
+
+def clenup(seed_env):
+    environment_obj.Environment.connection.post_request(
+        'clusters/{cluster_id}/upgrade/cleanup'.format(cluster_id=seed_env)
+    )
