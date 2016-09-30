@@ -37,12 +37,15 @@ def upload_graphs(orig_id, seed_id):
     """
 
     # Upload command graphs to original environment
-    orig_graph_dir = os.path.join(magic_consts.DEPLOYMENT_GRAPH_DIR, "orig")
-    upload_graphs_to_env(orig_graph_dir, orig_id)
+    upload_graph(orig_id, "orig")
 
     # Upload command graphs to seed environment
-    seed_graph_dir = os.path.join(magic_consts.DEPLOYMENT_GRAPH_DIR, "seed")
-    upload_graphs_to_env(seed_graph_dir, seed_id)
+    upload_graph(seed_id, "seed")
+
+
+def upload_graph(env_id, subdirectory):
+    graph_path = os.path.join(magic_consts.DEPLOYMENT_GRAPH_DIR, subdirectory)
+    upload_graphs_to_env(graph_path, env_id)
 
 
 def upload_graphs_to_env(directory, env_id):
@@ -70,12 +73,12 @@ def upload_graph_file_to_env(graph_file_path, env_id):
              graph_name, env_id)
 
 
-def execute_graph_and_wait(graph_name, env_id,
+def execute_graph_and_wait(graph_name, env_id, nodes=None,
                            attempts=120, attempt_delay=30):
     """Execute graph with fuelclient and wait until finished."""
 
     client = graph.GraphClient()
-    graph_task = client.execute(env_id, graph_types=[graph_name])
+    graph_task = client.execute(env_id, graph_types=[graph_name], nodes=nodes)
     for i in xrange(attempts):
         status = graph_task.status
         if status == 'ready':
