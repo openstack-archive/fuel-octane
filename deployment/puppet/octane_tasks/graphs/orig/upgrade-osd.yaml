@@ -1,0 +1,138 @@
+# GROUPS
+- id: ceph-osd
+  type: group
+  role: [ceph-osd]
+  fault_tolerance: 0
+
+# TASKS
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_code/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
+- id: remove_hiera_section_repo_setup
+  type: shell
+  version: 2.1.0
+  groups: [compute]
+  requires: [rsync_octane]
+  required_for: []
+  parameters:
+    cmd: python /etc/fuel/octane/puppet/octane_tasks/files/delete_section.py /etc/astute.yaml repo_setup repos
+    timeout: 60
+
+- id: override_repos_in_hiera
+  type: upload_file
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: []
+  required_for: []
+  parameters:
+    path: /etc/hiera/override/common.yaml
+    data:
+      yaql_exp: >
+        ({"repo_setup" => {"repos" => $.repo_setup.upgrade_osd},
+          "ceph_upgrade_release" => $.ceph_upgrade_release}.toYaml())
+
+- id: cleanup_existing_repos
+  type: shell
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: []
+  required_for: []
+  parameters:
+    cmd: >
+      tar zcf /root/sources.list.d-backup-$(date +%F-%H%M).tar.gz /etc/apt/sources.list.d;
+      rm /etc/apt/sources.list.d/*.list || true
+    timeout: 60
+
+- id: rsync_latest_puppet
+  type: sync
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/puppet/modules/
+    dst: /etc/fuel/octane/latest_modules
+    timeout: 180
+
+- id: setup_new_repositories
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [cleanup_existing_repos, rsync_latest_puppet, override_repos_in_hiera, remove_hiera_section_repo_setup]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/latest_modules/osnailyfacter/modular/fuel_pkgs/setup_repositories.pp
+    puppet_modules: /etc/fuel/octane/latest_modules
+    timeout: 600
+
+- id: set_noout
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [rsync_octane, setup_new_repositories]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/set_noout.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: upgrade_ceph_packages
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [set_noout]
+  cross-depends:
+    - name: set_noout
+      role: ceph-osd
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/upgrade_ceph_packages.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: restart_ceph_osd
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [upgrade_ceph_packages]
+  cross-depends:
+    - name: upgrade_ceph_packages
+      role: ceph-osd
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/restart_ceph_osd.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: unset_noout
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [restart_ceph_osd]
+  cross-depends:
+    - name: restart_ceph_osd
+      role: ceph-osd
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/unset_noout.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: remove_hiera_override
+  type: shell
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [unset_noout]
+  required_for: []
+  parameters:
+    cmd: rm /etc/hiera/override/common.yaml || true
+    timeout: 60
+
