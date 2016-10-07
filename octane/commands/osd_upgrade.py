@@ -183,6 +183,15 @@ def get_repos_for_upgrade(orig_env, seed_env):
     return results
 
 
+def add_upgrade_attrs_to_settings(env, repos, ceph_rel):
+    attrs = env.get_settings_data()
+    attrs['editable']['repo_setup']['upgrade_osd'] = {'value': repos,
+                                                      'type': 'hidden'}
+    attrs['editable']['common']['ceph_upgrade_release'] = {'value': ceph_rel,
+                                                           'type': 'hidden'}
+    env.set_settings_data(attrs)
+
+
 def upgrade_osd(orig_env_id, seed_env_id, user, password):
     with fuel_client.set_auth_context(
             backup_restore.NailgunCredentialsContext(user, password)):
@@ -214,6 +223,18 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
         raise Exception(msg)
 
 
+def upgrade_osd_with_graph(orig_env_id, seed_env_id):
+    orig_env = env_obj.Environment(orig_env_id)
+    seed_env = env_obj.Environment(seed_env_id)
+    seed_repos = get_repos_for_upgrade(orig_env, seed_env)
+    ceph_rel = 'hammer'
+
+    add_upgrade_attrs_to_settings(orig_env, seed_repos, ceph_rel)
+
+    deploy.upload_graph(orig_id, 'orig')
+    deploy.execute_graph_and_wait('upgrade-ceph', orig_id)
+
+
 class UpgradeOSDCommand(cmd.Command):
     """Upgrade osd servers"""
 
@@ -236,11 +257,20 @@ class UpgradeOSDCommand(cmd.Command):
             dest="admin_password",
             required=True,
             help="Fuel admin password")
+        parser.add_argument(
+            '--with-graph', action='store_true',
+            help='EXPERIMENTAL: Use Fuel deployment graphs'
+                 ' instead of python-based commands.')
         return parser
 
     def take_action(self, parsed_args):
-        upgrade_osd(
-            parsed_args.orig_env_id,
-            parsed_args.seed_env_id,
-            'admin',
-            parsed_args.admin_password)
+        if parsed_args.with_graph:
+            upgrade_osd_with_graph(
+                parsed_args.orig_env_id,
+                parsed_args.seed_env_id)
+        else:
+            upgrade_osd(
+                parsed_args.orig_env_id,
+                parsed_args.seed_env_id,
+                'admin',
+                parsed_args.admin_password)
