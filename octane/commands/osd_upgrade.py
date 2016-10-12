@@ -162,7 +162,7 @@ def is_ceph_up(controller):
 
 
 def waiting_until_ceph_up(controller, delay=5, times=30):
-    for _ in xrange(times):
+    for _ in range(times):
         if is_ceph_up(controller):
             return
         time.sleep(delay)

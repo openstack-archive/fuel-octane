@@ -208,7 +208,7 @@ def _wait_for_start_container(container, attempts, delay):
     unit_state_cmd = ['systemctl',
                       '-p', 'ActiveState',
                       'show', 'start-container.service']
-    for i in xrange(attempts):
+    for i in range(attempts):
         output, _ = run_in_container(container, unit_state_cmd,
                                      stdout=subprocess.PIPE)
         lines = output.splitlines()
@@ -229,7 +229,7 @@ def _wait_for_start_container(container, attempts, delay):
 
 
 def _wait_for_puppet_in_container(container, attempts, delay):
-    for i in xrange(attempts):
+    for i in range(attempts):
         try:
             run_in_container(container, ["pgrep", "puppet"])
         except subprocess.CalledProcessError:

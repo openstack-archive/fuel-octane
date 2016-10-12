@@ -76,7 +76,7 @@ def execute_graph_and_wait(graph_name, env_id,
 
     client = graph.GraphClient()
     graph_task = client.execute(env_id, graph_types=[graph_name])
-    for i in xrange(attempts):
+    for i in range(attempts):
         status = graph_task.status
         if status == 'ready':
             LOG.info("Graph %s for environment %s finished successfully.",

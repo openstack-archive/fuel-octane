@@ -48,7 +48,7 @@ def does_perform_flavor_data_migration(env):
 
 def nova_migrate_flavor_data(env, attempts=20, attempt_delay=30):
     node = env_util.get_one_controller(env)
-    for i in xrange(attempts):
+    for i in range(attempts):
         output = ssh.call_output(['nova-manage', 'db', 'migrate_flavor_data'],
                                  node=node, parse_levels=True)
         match = FLAVOR_STATUS_RE.match(output)

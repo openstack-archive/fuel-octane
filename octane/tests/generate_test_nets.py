@@ -113,7 +113,7 @@ class TestResourcesGenerator(object):
         needed_ips = networks_count*vms_per_net - len(
             self.neutron.list_floatingips()['floatingips'])
         if needed_ips > 0:
-            for i in xrange(needed_ips):
+            for i in range(needed_ips):
                 self.neutron.create_floatingip(
                     {
                         'floatingip': {
@@ -123,13 +123,13 @@ class TestResourcesGenerator(object):
                 )
         floatingip_list = self.neutron.list_floatingips()['floatingips']
 
-        for net in xrange(networks_count):
+        for net in range(networks_count):
             name = random.randint(0x000000, 0xffffff)
             router = self._create_router("testrouter{0}".format(name))
             network = self._create_network("testnet{0}".format(name))
             subnet = self._create_subnet(network, "12.0.{0}.0/24".format(net))
             self._uplink_subnet_to_router(router, subnet)
-            for vm in xrange(vms_per_net):
+            for vm in range(vms_per_net):
                 server = self._create_server("testserver{0}-{1}".format(name,
                                                                        vm),
                                              image_id,

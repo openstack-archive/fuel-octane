@@ -67,7 +67,7 @@ def do_nova_instances_exist(controller, node_fqdn, status=None):
 
 def waiting_for_status_completed(controller, node_fqdn, status,
                                  attempts=180, attempt_delay=10):
-    for iteration in xrange(attempts):
+    for iteration in range(attempts):
         LOG.info(
             "Waiting until instances on {hostname} hostname "
             "exists in {status} (iteration {iteration})".format(
