@@ -212,3 +212,21 @@ def get_parameters(node, filename, parameters_to_get, ensure=True):
             raise AbsentParametersError(
                 node.data["id"], filename, flat_parameters)
     return parameters
+
+
+def restart_mcollective(node):
+    node_id = node.data["id"]
+    if not node.data["online"]:
+        LOG.warning("Not possible to restart mcollective on the offline "
+                    "node %s", node_id)
+        return None
+    try:
+        ssh.call(["service", "mcollective", "restart"], node=node)
+    except Exception as exc:
+        LOG.warning("Failed to restart mcollective on the node %s: %s",
+                    node_id, exc)
+        return False
+    else:
+        LOG.info("The mcollective service was successfully restarted on "
+                 "the node %s", node_id)
+        return True
