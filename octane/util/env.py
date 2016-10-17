@@ -75,10 +75,17 @@ def change_env_settings(env_id, master_ip=''):
     env = environment_obj.Environment(env_id)
 
     attrs = env.get_attributes()
-    attrs['editable']['public_ssl']['horizon']['value'] = False
-    attrs['editable']['public_ssl']['services']['value'] = False
-    attrs['editable']['external_ntp']['ntp_list']['value'] = master_ip
-    attrs['editable']['external_dns']['dns_list']['value'] = master_ip
+    editable = attrs['editable']
+    if editable.get('public_ssl', {}).get('horizon', {}).get("value") is None:
+        attrs['editable']['public_ssl']['horizon']['value'] = False
+    if editable.get('public_ssl', {}).get('services', {}).get("value") is None:
+        attrs['editable']['public_ssl']['services']['value'] = False
+    if editable.get('external_ntp', {}).get(
+            'ntp_list', {}).get("value") is None:
+        editable['external_ntp']['ntp_list']['value'] = master_ip
+    if editable.get('external_dns', {}).get(
+            'dns_list', {}).get('value') is None:
+        editable['external_dns']['dns_list']['value'] = master_ip
     if get_env_provision_method(env) != 'image':
         attrs['editable']['provision']['method']['value'] = 'image'
     env.update_attributes(attrs)
