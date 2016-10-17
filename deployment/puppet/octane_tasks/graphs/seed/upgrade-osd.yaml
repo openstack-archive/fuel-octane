@@ -1,0 +1,39 @@
+# GROUPS
+- id: primary-controller
+  type: group
+  role: [primary-controller]
+  fault_tolerance: 0
+
+# TASKS
+- id: rsync_octane
+  type: sync
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: []
+  required_for: []
+  parameters:
+    src: rsync://{MASTER_IP}:/octane_code/puppet
+    dst: /etc/fuel/octane/
+    timeout: 180
+
+- id: set_noout
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [rsync_octane]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/set_noout.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: upgrade_ceph_packages
+  type: puppet
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [set_noout]
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/upgrade_ceph_packages.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
