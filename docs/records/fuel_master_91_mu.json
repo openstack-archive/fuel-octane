@@ -1,0 +1,2690 @@
+{
+  "version": 1,
+  "width": 130,
+  "height": 30,
+  "duration": 143.440583,
+  "command": "/bin/zsh",
+  "title": "Apply 9.1MU for the 9.0 Fuel Master Node",
+  "env": {
+    "TERM": "xterm-256color",
+    "SHELL": "/bin/zsh"
+  },
+  "stdout": [
+    [
+      1.858597,
+      "\r\n"
+    ],
+    [
+      0.288296,
+      "Last login: Wed Oct  5 22:26:59 2016 from 10.109.0.1\r\r\n"
+    ],
+    [
+      0.377686,
+      "\u001b]0;root@nailgun:~\u0007\u001b[?1034h[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "#The Fuel Master node have to be updated to 9.1 before to continue"
+    ],
+    [
+      0.524072,
+      "\r\n\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "y"
+    ],
+    [
+      0.165142,
+      "u"
+    ],
+    [
+      0.198160,
+      "m"
+    ],
+    [
+      0.184470,
+      " "
+    ],
+    [
+      0.430946,
+      "i"
+    ],
+    [
+      0.071876,
+      "n"
+    ],
+    [
+      0.101900,
+      "s"
+    ],
+    [
+      0.060591,
+      "t"
+    ],
+    [
+      0.143734,
+      "a"
+    ],
+    [
+      0.115686,
+      "l"
+    ],
+    [
+      0.142349,
+      "l"
+    ],
+    [
+      0.118434,
+      " "
+    ],
+    [
+      0.348925,
+      "p"
+    ],
+    [
+      0.175898,
+      "y"
+    ],
+    [
+      0.156371,
+      "t"
+    ],
+    [
+      0.040170,
+      "h"
+    ],
+    [
+      0.142047,
+      "o"
+    ],
+    [
+      0.086231,
+      "n"
+    ],
+    [
+      0.262554,
+      "-"
+    ],
+    [
+      0.497453,
+      "c"
+    ],
+    [
+      0.216493,
+      "e"
+    ],
+    [
+      0.173030,
+      "d"
+    ],
+    [
+      0.133868,
+      "u"
+    ],
+    [
+      0.642283,
+      "\u0008\u001b[K"
+    ],
+    [
+      0.209273,
+      "\u0008\u001b[K"
+    ],
+    [
+      0.478878,
+      "\u0008\u001b[K"
+    ],
+    [
+      1.838325,
+      "^C\r\n\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      0.691749,
+      "y"
+    ],
+    [
+      0.157294,
+      "u"
+    ],
+    [
+      0.214617,
+      "m"
+    ],
+    [
+      0.109325,
+      " "
+    ],
+    [
+      0.179332,
+      "i"
+    ],
+    [
+      0.089017,
+      "n"
+    ],
+    [
+      0.130586,
+      "s"
+    ],
+    [
+      0.072619,
+      "t"
+    ],
+    [
+      0.117468,
+      "a"
+    ],
+    [
+      0.127549,
+      "l"
+    ],
+    [
+      0.172078,
+      "l"
+    ],
+    [
+      0.093999,
+      " "
+    ],
+    [
+      0.226825,
+      "p"
+    ],
+    [
+      0.164723,
+      "y"
+    ],
+    [
+      0.143519,
+      "t"
+    ],
+    [
+      0.068862,
+      "h"
+    ],
+    [
+      0.152191,
+      "o"
+    ],
+    [
+      0.122245,
+      "n"
+    ],
+    [
+      0.370807,
+      "-"
+    ],
+    [
+      1.060664,
+      "c"
+    ],
+    [
+      0.127592,
+      "u"
+    ],
+    [
+      0.122118,
+      "d"
+    ],
+    [
+      0.151683,
+      "e"
+    ],
+    [
+      0.166726,
+      "t"
+    ],
+    [
+      0.699271,
+      "\r\n"
+    ],
+    [
+      0.627008,
+      "Loaded plugins: fastestmirror, priorities"
+    ],
+    [
+      0.000024,
+      "\r\n"
+    ],
+    [
+      0.037123,
+      "Loading mirror speeds from cached hostfile"
+    ],
+    [
+      0.000214,
+      "\r\n"
+    ],
+    [
+      0.058447,
+      " * mos9.0-security: mirror.seed-cz1.fuel-infra.org\r\n * mos9.0-updates: mirror.seed-cz1.fuel-infra.org\r\n"
+    ],
+    [
+      0.513220,
+      "Resolving Dependencies\r\n"
+    ],
+    [
+      0.000011,
+      "--\u003e Running transaction check\r\n---\u003e Package python-cudet.noarch 0:0.1.6-2.el7~mos1 will be installed\r\n"
+    ],
+    [
+      1.335914,
+      "--\u003e Finished Dependency Resolution\r\n"
+    ],
+    [
+      0.652908,
+      "\r\n"
+    ],
+    [
+      0.000060,
+      "Dependencies Resolved\r\n"
+    ],
+    [
+      0.002636,
+      "\r\n"
+    ],
+    [
+      0.000331,
+      "=================================================================================================================================="
+    ],
+    [
+      0.095591,
+      "\r\n Package                       Arch                    Version                              Repository                       Size\r\n==================================================================================================================================\r\nInstalling:\r\n python-cudet                  noarch                  0.1.6-2.el7~mos1                     mos-proposed-1                  363 k\r\n\r\nTransaction Summary\r\n==================================================================================================================================\r\nInstall  1 Package\r\n\r\nTotal download size: 363 k\r\n"
+    ],
+    [
+      0.000342,
+      "Installed size: 363 k\r\nIs this ok [y/d/N]: "
+    ],
+    [
+      1.182631,
+      "y"
+    ],
+    [
+      0.287079,
+      "\r\nDownloading packages:\r\n"
+    ],
+    [
+      0.136933,
+      "\rpython-cudet-0.1.6-2.el7~mos1.noarch.rpm                                                                   | 363 kB  00:00:00     "
+    ],
+    [
+      0.000143,
+      "\r\n"
+    ],
+    [
+      0.026204,
+      "Running transaction check\r\n"
+    ],
+    [
+      0.006880,
+      "Running transaction test"
+    ],
+    [
+      0.059908,
+      "\r\n"
+    ],
+    [
+      0.812854,
+      "Transaction test succeeded\r\n"
+    ],
+    [
+      0.000772,
+      "Running transaction\r\n"
+    ],
+    [
+      0.211778,
+      "\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [                                                                       ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#                                                                      ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##                                                                     ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###                                                                    ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [####                                                                   ] 1/1"
+    ],
+    [
+      0.101654,
+      "\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#######                                                                ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [########                                                               ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#########                                                              ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##########                                                             ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [############                                                           ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##############                                                         ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###############                                                        ] 1/1"
+    ],
+    [
+      0.000031,
+      "\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [################                                                       ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##################                                                     ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###################                                                    ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#####################                                                  ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#######################                                                ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [########################                                               ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##########################                                             ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###########################                                            ] 1/1"
+    ],
+    [
+      0.091460,
+      "\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#############################                                          ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###############################                                        ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [################################                                       ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##################################                                     ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [####################################                                   ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#####################################                                  ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#######################################                                ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#########################################                              ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##########################################                             ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [############################################                           ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##############################################                         ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [################################################                       ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#################################################                      ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###################################################                    ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#####################################################                  ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [######################################################                 ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#######################################################                ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [########################################################               ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##########################################################             ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###########################################################            ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#############################################################          ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###############################################################        ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [################################################################       ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [##################################################################     ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###################################################################    ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [####################################################################   ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [#####################################################################  ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch [###################################################################### ] 1/1\r  Installing : python-cudet-0.1.6-2.el7~mos1.noarch                                                                           1/1 \r\n\r  Verifying  : python-cudet-0.1.6-2.el7~mos1.noarch                                                                           1/1 \r\n"
+    ],
+    [
+      0.138369,
+      "\r\nInstalled:\r\n  python-cudet.noarch 0:0.1.6-2.el7~mos1                                                                                          \r\n\r\n"
+    ],
+    [
+      0.000202,
+      "Complete!\r\n"
+    ],
+    [
+      0.044250,
+      "\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "u"
+    ],
+    [
+      0.063409,
+      "p"
+    ],
+    [
+      0.145128,
+      "d"
+    ],
+    [
+      0.101456,
+      "a"
+    ],
+    [
+      0.159934,
+      "t"
+    ],
+    [
+      0.095593,
+      "e"
+    ],
+    [
+      0.798743,
+      "-"
+    ],
+    [
+      0.367205,
+      "p"
+    ],
+    [
+      0.330336,
+      "r"
+    ],
+    [
+      0.070703,
+      "e"
+    ],
+    [
+      0.357846,
+      "p"
+    ],
+    [
+      0.619332,
+      "a"
+    ],
+    [
+      0.260800,
+      "r"
+    ],
+    [
+      0.124384,
+      "e"
+    ],
+    [
+      0.725248,
+      " "
+    ],
+    [
+      0.276010,
+      "p"
+    ],
+    [
+      0.238054,
+      "r"
+    ],
+    [
+      0.082461,
+      "e"
+    ],
+    [
+      0.214323,
+      "p"
+    ],
+    [
+      0.869369,
+      "a"
+    ],
+    [
+      0.319647,
+      "r"
+    ],
+    [
+      0.121717,
+      "e"
+    ],
+    [
+      0.147483,
+      " "
+    ],
+    [
+      1.293181,
+      "m"
+    ],
+    [
+      0.059807,
+      "a"
+    ],
+    [
+      0.120285,
+      "s"
+    ],
+    [
+      0.149172,
+      "t"
+    ],
+    [
+      0.172862,
+      "e"
+    ],
+    [
+      0.131559,
+      "r"
+    ],
+    [
+      0.719075,
+      "\r\n"
+    ],
+    [
+      2.000000,
+      "Deployment tasks synchronized for release Mitaka on Ubuntu 14.04 of version mitaka-9.0\r\n"
+    ],
+    [
+      0.579856,
+      "Deployment tasks synchronized for release Mitaka on Ubuntu+UCA 14.04 of version mitaka-9.0\r\n"
+    ],
+    [
+      0.515254,
+      "Deployment tasks synchronized for release Mitaka on CentOS 6.5 of version mitaka-9.0\r\n"
+    ],
+    [
+      0.363349,
+      "Deployment tasks synchronized for release Liberty on Ubuntu 14.04 of version liberty-8.0"
+    ],
+    [
+      0.000433,
+      "\r\n"
+    ],
+    [
+      0.559575,
+      "Deployment tasks synchronized for release Liberty on CentOS 6.5 of version liberty-8.0\r\n"
+    ],
+    [
+      0.223058,
+      "Deployment tasks synchronized for release Kilo on Ubuntu 14.04 of version 2015.1.0-7.0"
+    ],
+    [
+      0.000324,
+      "\r\n"
+    ],
+    [
+      0.385822,
+      "Deployment tasks synchronized for release Kilo on CentOS 6.5 of version 2015.1.0-7.0\r\n"
+    ],
+    [
+      1.389419,
+      "Loaded plugins: fastestmirror, priorities"
+    ],
+    [
+      0.000260,
+      "\r\n"
+    ],
+    [
+      0.033144,
+      "Loading mirror speeds from cached hostfile\r\n"
+    ],
+    [
+      0.001190,
+      " * mos9.0-security: mirror.seed-cz1.fuel-infra.org"
+    ],
+    [
+      0.048589,
+      "\r\n * mos9.0-updates: mirror.seed-cz1.fuel-infra.org\r\n"
+    ],
+    [
+      0.575354,
+      "Resolving Dependencies\r\n--\u003e Running transaction check\r\n"
+    ],
+    [
+      0.000026,
+      "---\u003e Package fuel-nailgun.noarch 0:9.0.0-1.mos8743 will be updated\r\n"
+    ],
+    [
+      0.081945,
+      "---\u003e Package fuel-nailgun.noarch 0:9.0.0-1.mos8861 will be an update\r\n--\u003e Processing Dependency: python-uwsgidecorators \u003e= 2.0.12 for package: fuel-nailgun-9.0.0-1.mos8861.noarch\r\n---\u003e Package fuel-utils.noarch 0:9.0.0-1.mos8460 will be updated\r\n---\u003e Package fuel-utils.noarch 0:9.0.0-1.mos8606 will be an update\r\n---\u003e Package python-fuelclient.noarch 0:9.0.0-1.mos325 will be updated\r\n---\u003e Package python-fuelclient.noarch 0:9.0.0-1.mos356 will be an update\r\n---\u003e Package rubygem-astute.noarch 0:9.0.0-1.mos750 will be updated\r\n---\u003e Package rubygem-astute.noarch 0:9.0.0-1.mos774 will be an update\r\n--\u003e Processing Dependency: python-timmy for package: rubygem-astute-9.0.0-1.mos774.noarch\r\n--\u003e Running transaction check\r\n---\u003e Package python-timmy.noarch 0:1.20.3-1.el7~mos1 will be installed\r\n"
+    ],
+    [
+      0.000141,
+      "---\u003e Package python-uwsgidecorators.x86_64 0:2.0.12-2.el7~mos4 will be installed\r\n"
+    ],
+    [
+      0.327346,
+      "--\u003e Finished Dependency Resolution\r\n"
+    ],
+    [
+      0.205059,
+      "\r\nDependencies Resolved\r\n"
+    ],
+    [
+      0.000078,
+      "\r\n==================================================================================================================================\r\n Package                               Arch                  Version                          Repository                     Size\r\n==================================================================================================================================\r\nUpdating:\r\n fuel-nailgun                          noarch                9.0.0-1.mos8861                  mos-proposed-1                1.9 M\r\n fuel-utils                            noarch                9.0.0-1.mos8606                  mos-proposed-1                7.2 k\r\n python-fuelclient                     noarch                9.0.0-1.mos356                   mos-proposed-1                382 k\r\n rubygem-astute                        noarch                9.0.0-1.mos774                   mos-proposed-1                745 k\r\nInstalling for dependencies:\r\n python-timmy                          noarch                1.20.3-1.el7~mos1                mos-proposed-1                 73 k\r\n python-uwsgidecorators                x86_64                2.0.12-2.el7~mos4                mos                            22 k\r\n\r\nTransaction Summary\r\n==================================================================================================================================\r\nInstall             ( 2 Dependent packages)\r\nUpgrade  4 Packages\r\n\r\nTotal download size: 3.1 M\r\nDownloading packages:\r\nNo Presto metadata available for mos-proposed-1\r\n"
+    ],
+    [
+      0.072366,
+      "\r(1/5): fuel-utils-9.0.0-1.mos8606.noarch.rpm                                                               | 7.2 kB  00:00:00     "
+    ],
+    [
+      0.012643,
+      "\r\n"
+    ],
+    [
+      0.015599,
+      "\r(2/5): python-fuelclient-9.0.0-1.mos356.noarch.rpm                                                         | 382 kB  00:00:00     \r\n"
+    ],
+    [
+      0.009876,
+      "\r(3/5): python-timmy-1.20.3-1.el7~mos1.noarch.rpm                                                           |  73 kB  00:00:00     \r\n"
+    ],
+    [
+      0.029238,
+      "\r(4/5): fuel-nailgun-9.0.0-1.mos8861.noarch.rpm                                                             | 1.9 MB  00:00:00     \r\n"
+    ],
+    [
+      0.017007,
+      "\r(5/5): rubygem-astute-9.0.0-1.mos774.noarch.rpm                                                            | 745 kB  00:00:00     \r\n"
+    ],
+    [
+      0.010807,
+      "----------------------------------------------------------------------------------------------------------------------------------\r\nTotal                                                                                              13 MB/s | 3.1 MB  00:00:00     \r\n"
+    ],
+    [
+      0.018480,
+      "Running transaction check\r\n"
+    ],
+    [
+      0.047136,
+      "Running transaction test\r\n"
+    ],
+    [
+      0.510118,
+      "Transaction test succeeded\r\nRunning transaction\r\n"
+    ],
+    [
+      0.159931,
+      "\r  Installing : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64 [                                                          ]  1/10"
+    ],
+    [
+      0.000825,
+      "\r  Installing : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64 [################                                          ]  1/10"
+    ],
+    [
+      0.002159,
+      "\r  Installing : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64 [#################                                         ]  1/10"
+    ],
+    [
+      0.000577,
+      "\r  Installing : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64 [######################################################### ]  1/10"
+    ],
+    [
+      0.002098,
+      "\r  Installing : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64                                                               1/10"
+    ],
+    [
+      0.000353,
+      " \r\n"
+    ],
+    [
+      0.020232,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [                                                                    ]  2/10"
+    ],
+    [
+      0.063449,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [##                                                                  ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [########                                                            ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [##########                                                          ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [############                                                        ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [############################                                        ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [################################                                    ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [#################################                                   ]  2/10"
+    ],
+    [
+      0.000314,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [##################################                                  ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [###################################                                 ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [####################################                                ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [#####################################                               ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [######################################                              ]  2/10"
+    ],
+    [
+      0.018459,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [#######################################                             ]  2/10"
+    ],
+    [
+      0.012323,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [########################################                            ]  2/10"
+    ],
+    [
+      0.014319,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [#########################################                           ]  2/10"
+    ],
+    [
+      0.009004,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [##########################################                          ]  2/10"
+    ],
+    [
+      0.015592,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [###########################################                         ]  2/10"
+    ],
+    [
+      0.019295,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [################################################                    ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [#################################################                   ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [##################################################                  ]  2/10\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [###############################################################     ]  2/10"
+    ],
+    [
+      0.004419,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch [################################################################### ]  2/10"
+    ],
+    [
+      0.015155,
+      "\r  Installing : python-timmy-1.20.3-1.el7~mos1.noarch                                                                         2/10 \r\n"
+    ],
+    [
+      0.015863,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [                                                                     ]  3/10"
+    ],
+    [
+      0.019424,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#                                                                    ]  3/10"
+    ],
+    [
+      0.003128,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##                                                                   ]  3/10"
+    ],
+    [
+      0.015287,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [####                                                                 ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [######                                                               ]  3/10"
+    ],
+    [
+      0.071478,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#######                                                              ]  3/10"
+    ],
+    [
+      0.041767,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [########                                                             ]  3/10"
+    ],
+    [
+      0.098192,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#########                                                            ]  3/10"
+    ],
+    [
+      0.051331,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##########                                                           ]  3/10"
+    ],
+    [
+      0.045964,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###########                                                          ]  3/10"
+    ],
+    [
+      0.100930,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [############                                                         ]  3/10"
+    ],
+    [
+      0.037975,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#############                                                        ]  3/10"
+    ],
+    [
+      0.098669,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##############                                                       ]  3/10"
+    ],
+    [
+      0.046659,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###############                                                      ]  3/10"
+    ],
+    [
+      0.097166,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [################                                                     ]  3/10"
+    ],
+    [
+      0.047967,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#################                                                    ]  3/10"
+    ],
+    [
+      0.033356,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##################                                                   ]  3/10"
+    ],
+    [
+      0.044281,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###################                                                  ]  3/10"
+    ],
+    [
+      0.054680,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [####################                                                 ]  3/10"
+    ],
+    [
+      0.086314,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#####################                                                ]  3/10"
+    ],
+    [
+      0.041194,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [######################                                               ]  3/10"
+    ],
+    [
+      0.072021,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#######################                                              ]  3/10"
+    ],
+    [
+      0.002968,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [########################                                             ]  3/10"
+    ],
+    [
+      0.016198,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#########################                                            ]  3/10"
+    ],
+    [
+      0.011529,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##########################                                           ]  3/10"
+    ],
+    [
+      0.002661,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###########################                                          ]  3/10"
+    ],
+    [
+      0.003691,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [############################                                         ]  3/10"
+    ],
+    [
+      0.011193,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#############################                                        ]  3/10"
+    ],
+    [
+      0.050808,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##############################                                       ]  3/10"
+    ],
+    [
+      0.005724,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###############################                                      ]  3/10"
+    ],
+    [
+      0.011281,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [################################                                     ]  3/10"
+    ],
+    [
+      0.012042,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#################################                                    ]  3/10"
+    ],
+    [
+      0.020518,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##################################                                   ]  3/10"
+    ],
+    [
+      0.008288,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###################################                                  ]  3/10"
+    ],
+    [
+      0.007066,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [####################################                                 ]  3/10"
+    ],
+    [
+      0.003110,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#####################################                                ]  3/10"
+    ],
+    [
+      0.016563,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#######################################                              ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [########################################                             ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#########################################                            ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##########################################                           ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [############################################                         ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##############################################                       ]  3/10"
+    ],
+    [
+      0.005037,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [################################################                     ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##################################################                   ]  3/10"
+    ],
+    [
+      0.012178,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###################################################                  ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#####################################################                ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#######################################################              ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [########################################################             ]  3/10"
+    ],
+    [
+      0.012489,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#########################################################            ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##########################################################           ]  3/10"
+    ],
+    [
+      0.020191,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###########################################################          ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [############################################################         ]  3/10"
+    ],
+    [
+      0.008310,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##############################################################       ]  3/10"
+    ],
+    [
+      0.007748,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###############################################################      ]  3/10\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [################################################################     ]  3/10"
+    ],
+    [
+      0.014543,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#################################################################    ]  3/10"
+    ],
+    [
+      0.004458,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [##################################################################   ]  3/10"
+    ],
+    [
+      0.004565,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [###################################################################  ]  3/10"
+    ],
+    [
+      0.001900,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch [#################################################################### ]  3/10"
+    ],
+    [
+      0.057784,
+      "\r  Updating   : rubygem-astute-9.0.0-1.mos774.noarch                                                                          3/10 "
+    ],
+    [
+      0.000025,
+      "\r\n"
+    ],
+    [
+      0.292353,
+      "warning: user naily does not exist - using root\r\nwarning: group naily does not exist - using root\r\nwarning: user naily does not exist - using root\r\nwarning: group naily does not exist - using root\r\n"
+    ],
+    [
+      0.031559,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [                                                                      ]  4/10"
+    ],
+    [
+      0.038208,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#                                                                     ]  4/10"
+    ],
+    [
+      0.020059,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##                                                                    ]  4/10"
+    ],
+    [
+      0.038129,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###                                                                   ]  4/10"
+    ],
+    [
+      0.020021,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [####                                                                  ]  4/10"
+    ],
+    [
+      0.025590,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#####                                                                 ]  4/10"
+    ],
+    [
+      0.035652,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [######                                                                ]  4/10"
+    ],
+    [
+      0.041227,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#######                                                               ]  4/10"
+    ],
+    [
+      0.011847,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [########                                                              ]  4/10"
+    ],
+    [
+      0.018931,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#########                                                             ]  4/10"
+    ],
+    [
+      0.022503,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##########                                                            ]  4/10"
+    ],
+    [
+      0.010839,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###########                                                           ]  4/10"
+    ],
+    [
+      0.031978,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [############                                                          ]  4/10"
+    ],
+    [
+      0.017758,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#############                                                         ]  4/10"
+    ],
+    [
+      0.006971,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##############                                                        ]  4/10"
+    ],
+    [
+      0.028446,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###############                                                       ]  4/10"
+    ],
+    [
+      0.011356,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [################                                                      ]  4/10"
+    ],
+    [
+      0.021029,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#################                                                     ]  4/10"
+    ],
+    [
+      0.003013,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##################                                                    ]  4/10"
+    ],
+    [
+      0.019036,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###################                                                   ]  4/10"
+    ],
+    [
+      0.013958,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [####################                                                  ]  4/10"
+    ],
+    [
+      0.007351,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#####################                                                 ]  4/10"
+    ],
+    [
+      0.012839,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [######################                                                ]  4/10"
+    ],
+    [
+      0.003061,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#######################                                               ]  4/10"
+    ],
+    [
+      0.010676,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [########################                                              ]  4/10"
+    ],
+    [
+      0.005015,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#########################                                             ]  4/10"
+    ],
+    [
+      0.024322,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##########################                                            ]  4/10"
+    ],
+    [
+      0.002395,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###########################                                           ]  4/10"
+    ],
+    [
+      0.044523,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [############################                                          ]  4/10"
+    ],
+    [
+      0.042910,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#############################                                         ]  4/10"
+    ],
+    [
+      0.016101,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##############################                                        ]  4/10"
+    ],
+    [
+      0.018873,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###############################                                       ]  4/10"
+    ],
+    [
+      0.011001,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [################################                                      ]  4/10"
+    ],
+    [
+      0.021032,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#################################                                     ]  4/10"
+    ],
+    [
+      0.004011,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##################################                                    ]  4/10"
+    ],
+    [
+      0.012872,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###################################                                   ]  4/10"
+    ],
+    [
+      0.020399,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [####################################                                  ]  4/10"
+    ],
+    [
+      0.015513,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#####################################                                 ]  4/10"
+    ],
+    [
+      0.057982,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [######################################                                ]  4/10"
+    ],
+    [
+      0.023362,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#######################################                               ]  4/10"
+    ],
+    [
+      0.074729,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [########################################                              ]  4/10"
+    ],
+    [
+      0.039665,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#########################################                             ]  4/10"
+    ],
+    [
+      0.010959,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##########################################                            ]  4/10"
+    ],
+    [
+      0.091339,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###########################################                           ]  4/10"
+    ],
+    [
+      0.036538,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [############################################                          ]  4/10"
+    ],
+    [
+      0.046992,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#############################################                         ]  4/10"
+    ],
+    [
+      0.018955,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##############################################                        ]  4/10"
+    ],
+    [
+      0.067163,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###############################################                       ]  4/10"
+    ],
+    [
+      0.011005,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [################################################                      ]  4/10"
+    ],
+    [
+      0.016058,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#################################################                     ]  4/10"
+    ],
+    [
+      0.061056,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##################################################                    ]  4/10"
+    ],
+    [
+      0.017276,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###################################################                   ]  4/10"
+    ],
+    [
+      0.024103,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [####################################################                  ]  4/10"
+    ],
+    [
+      0.014809,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#####################################################                 ]  4/10"
+    ],
+    [
+      0.033018,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [######################################################                ]  4/10"
+    ],
+    [
+      0.015146,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#######################################################               ]  4/10"
+    ],
+    [
+      0.012273,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [########################################################              ]  4/10"
+    ],
+    [
+      0.017920,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#########################################################             ]  4/10"
+    ],
+    [
+      0.011215,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##########################################################            ]  4/10"
+    ],
+    [
+      0.032608,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###########################################################           ]  4/10"
+    ],
+    [
+      0.011723,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [############################################################          ]  4/10"
+    ],
+    [
+      0.064230,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#############################################################         ]  4/10"
+    ],
+    [
+      0.025583,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##############################################################        ]  4/10"
+    ],
+    [
+      0.021121,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###############################################################       ]  4/10"
+    ],
+    [
+      0.032444,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [################################################################      ]  4/10"
+    ],
+    [
+      0.012562,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [#################################################################     ]  4/10"
+    ],
+    [
+      0.029971,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##################################################################    ]  4/10"
+    ],
+    [
+      0.017261,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [###################################################################   ]  4/10"
+    ],
+    [
+      0.046457,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [####################################################################  ]  4/10"
+    ],
+    [
+      0.029213,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch [##################################################################### ]  4/10"
+    ],
+    [
+      0.034585,
+      "\r  Updating   : fuel-nailgun-9.0.0-1.mos8861.noarch                                                                           4/10"
+    ],
+    [
+      0.000158,
+      " \r\n"
+    ],
+    [
+      0.073016,
+      "warning: /etc/nailgun/settings.yaml created as /etc/nailgun/settings.yaml.rpmnew\r\n"
+    ],
+    [
+      0.007119,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [                                                                        ]  5/10"
+    ],
+    [
+      0.001081,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [########                                                                ]  5/10"
+    ],
+    [
+      0.001044,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [###################                                                     ]  5/10"
+    ],
+    [
+      0.001286,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [###############################                                         ]  5/10"
+    ],
+    [
+      0.001690,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [#############################################################           ]  5/10"
+    ],
+    [
+      0.000941,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch [######################################################################  ]  5/10"
+    ],
+    [
+      0.012685,
+      "\r  Updating   : fuel-utils-9.0.0-1.mos8606.noarch                                                                             5/10 \r\n"
+    ],
+    [
+      0.010672,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [                                                                  ]  6/10"
+    ],
+    [
+      0.017551,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#                                                                 ]  6/10"
+    ],
+    [
+      0.045644,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##                                                                ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###                                                               ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [####                                                              ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#####                                                             ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#######                                                           ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [########                                                          ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#########                                                         ]  6/10"
+    ],
+    [
+      0.000041,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##########                                                        ]  6/10"
+    ],
+    [
+      0.005219,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###########                                                       ]  6/10"
+    ],
+    [
+      0.006692,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [############                                                      ]  6/10"
+    ],
+    [
+      0.002125,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#############                                                     ]  6/10"
+    ],
+    [
+      0.014341,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##############                                                    ]  6/10"
+    ],
+    [
+      0.007122,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###############                                                   ]  6/10"
+    ],
+    [
+      0.007860,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [################                                                  ]  6/10"
+    ],
+    [
+      0.004778,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#################                                                 ]  6/10"
+    ],
+    [
+      0.012162,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##################                                                ]  6/10"
+    ],
+    [
+      0.003764,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###################                                               ]  6/10"
+    ],
+    [
+      0.036918,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [####################                                              ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#####################                                             ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [######################                                            ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#######################                                           ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [########################                                          ]  6/10\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#########################                                         ]  6/10"
+    ],
+    [
+      0.004297,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##########################                                        ]  6/10"
+    ],
+    [
+      0.003026,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###########################                                       ]  6/10"
+    ],
+    [
+      0.013135,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [############################                                      ]  6/10"
+    ],
+    [
+      0.008715,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#############################                                     ]  6/10"
+    ],
+    [
+      0.017681,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##############################                                    ]  6/10"
+    ],
+    [
+      0.003359,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###############################                                   ]  6/10"
+    ],
+    [
+      0.022807,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [################################                                  ]  6/10"
+    ],
+    [
+      0.007316,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#################################                                 ]  6/10"
+    ],
+    [
+      0.010913,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##################################                                ]  6/10"
+    ],
+    [
+      0.011886,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###################################                               ]  6/10"
+    ],
+    [
+      0.015159,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [####################################                              ]  6/10"
+    ],
+    [
+      0.006689,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#####################################                             ]  6/10"
+    ],
+    [
+      0.003695,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [######################################                            ]  6/10"
+    ],
+    [
+      0.009761,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#######################################                           ]  6/10"
+    ],
+    [
+      0.002706,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [########################################                          ]  6/10"
+    ],
+    [
+      0.008777,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#########################################                         ]  6/10"
+    ],
+    [
+      0.003290,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##########################################                        ]  6/10"
+    ],
+    [
+      0.013726,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###########################################                       ]  6/10"
+    ],
+    [
+      0.012487,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [############################################                      ]  6/10"
+    ],
+    [
+      0.006324,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#############################################                     ]  6/10"
+    ],
+    [
+      0.008627,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##############################################                    ]  6/10"
+    ],
+    [
+      0.014956,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###############################################                   ]  6/10"
+    ],
+    [
+      0.010873,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [################################################                  ]  6/10"
+    ],
+    [
+      0.016893,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#################################################                 ]  6/10"
+    ],
+    [
+      0.008930,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##################################################                ]  6/10"
+    ],
+    [
+      0.012510,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###################################################               ]  6/10"
+    ],
+    [
+      0.006210,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [####################################################              ]  6/10"
+    ],
+    [
+      0.012495,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#####################################################             ]  6/10"
+    ],
+    [
+      0.003491,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [######################################################            ]  6/10"
+    ],
+    [
+      0.020288,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#######################################################           ]  6/10"
+    ],
+    [
+      0.001164,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [########################################################          ]  6/10"
+    ],
+    [
+      0.016530,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##########################################################        ]  6/10"
+    ],
+    [
+      0.017709,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###########################################################       ]  6/10"
+    ],
+    [
+      0.003544,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [############################################################      ]  6/10"
+    ],
+    [
+      0.010150,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [#############################################################     ]  6/10"
+    ],
+    [
+      0.005115,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [##############################################################    ]  6/10"
+    ],
+    [
+      0.032747,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [###############################################################   ]  6/10"
+    ],
+    [
+      0.011438,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [################################################################  ]  6/10"
+    ],
+    [
+      0.016192,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch [################################################################# ]  6/10"
+    ],
+    [
+      0.012401,
+      "\r  Updating   : python-fuelclient-9.0.0-1.mos356.noarch                                                                       6/10 \r\n"
+    ],
+    [
+      1.405013,
+      "\r  Cleanup    : fuel-utils-9.0.0-1.mos8460.noarch                                                                             7/10 \r\n\r  Cleanup    : fuel-nailgun-9.0.0-1.mos8743.noarch                                                                           8/10 \r\n"
+    ],
+    [
+      0.006624,
+      "\r  Cleanup    : python-fuelclient-9.0.0-1.mos325.noarch                                                                       9/10 \r\n"
+    ],
+    [
+      0.038885,
+      "\r  Cleanup    : rubygem-astute-9.0.0-1.mos750.noarch                                                                         10/10 \r\n"
+    ],
+    [
+      1.009880,
+      "\r  Verifying  : rubygem-astute-9.0.0-1.mos774.noarch                                                                          1/10 \r\n"
+    ],
+    [
+      0.017527,
+      "\r  Verifying  : python-fuelclient-9.0.0-1.mos356.noarch                                                                       2/10 \r\n"
+    ],
+    [
+      0.006616,
+      "\r  Verifying  : fuel-nailgun-9.0.0-1.mos8861.noarch                                                                           3/10 "
+    ],
+    [
+      0.000256,
+      "\r\n"
+    ],
+    [
+      0.012059,
+      "\r  Verifying  : fuel-utils-9.0.0-1.mos8606.noarch                                                                             4/10 "
+    ],
+    [
+      0.000388,
+      "\r\n"
+    ],
+    [
+      0.010601,
+      "\r  Verifying  : python-timmy-1.20.3-1.el7~mos1.noarch                                                                         5/10 \r\n"
+    ],
+    [
+      0.007529,
+      "\r  Verifying  : python-uwsgidecorators-2.0.12-2.el7~mos4.x86_64                                                               6/10"
+    ],
+    [
+      0.026781,
+      " \r\n\r  Verifying  : fuel-nailgun-9.0.0-1.mos8743.noarch                                                                           7/10 \r\n\r  Verifying  : python-fuelclient-9.0.0-1.mos325.noarch                                                                       8/10 \r\n"
+    ],
+    [
+      0.000184,
+      "\r  Verifying  : fuel-utils-9.0.0-1.mos8460.noarch                                                                             9/10"
+    ],
+    [
+      0.000373,
+      " \r\n"
+    ],
+    [
+      0.000628,
+      "\r  Verifying  : rubygem-astute-9.0.0-1.mos750.noarch                                                                         10/10 \r\n"
+    ],
+    [
+      0.165679,
+      "\r\nDependency Installed:\r\n  python-timmy.noarch 0:1.20.3-1.el7~mos1                    python-uwsgidecorators.x86_64 0:2.0.12-2.el7~mos4                   \r\n\r\nUpdated:\r\n  fuel-nailgun.noarch 0:9.0.0-1.mos8861      fuel-utils.noarch 0:9.0.0-1.mos8606     python-fuelclient.noarch 0:9.0.0-1.mos356    \r\n  rubygem-astute.noarch 0:9.0.0-1.mos774    \r\n\r\nComplete!\r\n"
+    ],
+    [
+      2.000000,
+      "2016-10-05 23:05:30.806 DEBUG [7fcb8ac66740] (settings) Looking for settings.yaml package config using old style __file__\r\n2016-10-05 23:05:30.808 DEBUG [7fcb8ac66740] (settings) Trying to read config file /usr/lib/python2.7/site-packages/nailgun/settings.yaml\r\n"
+    ],
+    [
+      0.306709,
+      "2016-10-05 23:05:31.114 DEBUG [7fcb8ac66740] (settings) Trying to read config file /etc/nailgun/settings.yaml\r\n"
+    ],
+    [
+      0.618770,
+      "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\r\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\r\nINFO  [alembic.runtime.migration] Running upgrade 675105097a69 -\u003e f2314e5d63c9, Fuel 9.1\r\n"
+    ],
+    [
+      0.960976,
+      "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl."
+    ],
+    [
+      0.000327,
+      "\r\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\r\nINFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\r\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\r\n"
+    ],
+    [
+      0.263597,
+      "Loaded plugins: fastestmirror, priorities\r\nLoading mirror speeds from cached hostfile\r\n"
+    ],
+    [
+      0.000015,
+      " * mos9.0-security: mirror.seed-cz1.fuel-infra.org\r\n"
+    ],
+    [
+      0.000150,
+      " * mos9.0-updates: mirror.seed-cz1.fuel-infra.org\r\n"
+    ],
+    [
+      0.306787,
+      "Resolving Dependencies\r\n"
+    ],
+    [
+      0.000040,
+      "--\u003e Running transaction check\r\n---\u003e Package fuel-release.noarch 0:9.0.0-1.mos6349 will be updated\r\n---\u003e Package fuel-release.noarch 0:9.0.0-1.mos6357 will be an update"
+    ],
+    [
+      0.000218,
+      "\r\n"
+    ],
+    [
+      0.336143,
+      "--\u003e Finished Dependency Resolution\r\n"
+    ],
+    [
+      0.220127,
+      "\r\nDependencies Resolved\r\n"
+    ],
+    [
+      0.000510,
+      "\r\n==================================================================================================================================\r\n Package                        Arch                     Version                           Repository                        Size\r\n==================================================================================================================================\r\nUpdating:\r\n fuel-release                   noarch                   9.0.0-1.mos6357                   mos-proposed-1                   6.0 k\r\n\r\nTransaction Summary\r\n==================================================================================================================================\r\nUpgrade  1 Package\r\n"
+    ],
+    [
+      0.000023,
+      "\r\n"
+    ],
+    [
+      0.000471,
+      "Total download size: 6.0 k\r\nDownloading packages:\r\n"
+    ],
+    [
+      0.000008,
+      "No Presto metadata available for mos-proposed-1\r\n"
+    ],
+    [
+      0.083591,
+      "\rfuel-release-9.0.0-1.mos6357.noarch.rpm                                                                    | 6.0 kB  00:00:00     "
+    ],
+    [
+      0.000222,
+      "\r\n"
+    ],
+    [
+      0.011989,
+      "Running transaction check"
+    ],
+    [
+      0.000288,
+      "\r\n"
+    ],
+    [
+      0.002673,
+      "Running transaction test"
+    ],
+    [
+      0.000256,
+      "\r\n"
+    ],
+    [
+      0.002404,
+      "Transaction test succeeded"
+    ],
+    [
+      0.001111,
+      "\r\n"
+    ],
+    [
+      0.001522,
+      "Running transaction"
+    ],
+    [
+      0.000317,
+      "\r\n"
+    ],
+    [
+      0.069948,
+      "\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [                                                                        ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [##                                                                      ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [####                                                                    ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [#######################################                                 ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [#########################################                               ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [#########################################################               ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [##################################################################      ] 1/2"
+    ],
+    [
+      0.000413,
+      "\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch [#####################################################################   ] 1/2\r  Updating   : fuel-release-9.0.0-1.mos6357.noarch                                                                            1/2 \r\n"
+    ],
+    [
+      0.009656,
+      "\r  Cleanup    : fuel-release-9.0.0-1.mos6349.noarch                                                                            2/2 \r\n"
+    ],
+    [
+      0.009837,
+      "\r  Verifying  : fuel-release-9.0.0-1.mos6357.noarch                                                                            1/2 \r\n"
+    ],
+    [
+      0.009582,
+      "\r  Verifying  : fuel-release-9.0.0-1.mos6349.noarch                                                                            2/2 \r\n"
+    ],
+    [
+      0.160015,
+      "\r\nUpdated:\r\n  fuel-release.noarch 0:9.0.0-1.mos6357                                                                                           \r\n\r\nComplete!\r\n"
+    ],
+    [
+      0.439145,
+      "\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "#Apply a workaround for the bug https://bugs.launchpad.net/fuel/+bug/1629267"
+    ],
+    [
+      0.517039,
+      "\r\n\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "systemctl restart assassind nailgun oswl_flavor_collectord oswl_image_collectord oswl_keystone_user_collec"
+    ],
+    [
+      0.000189,
+      "tord "
+    ],
+    [
+      0.000043,
+      "o \rswl_te"
+    ],
+    [
+      0.000242,
+      "nant_collectord oswl_vm_collectord oswl_vol"
+    ],
+    [
+      0.101636,
+      "ume_collectord receiverd statsenderd"
+    ],
+    [
+      0.614663,
+      "\r\n"
+    ],
+    [
+      1.232308,
+      "\u001b]0;root@nailgun:~\u0007[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "u"
+    ],
+    [
+      0.048630,
+      "p"
+    ],
+    [
+      0.156618,
+      "d"
+    ],
+    [
+      0.137158,
+      "a"
+    ],
+    [
+      0.126425,
+      "t"
+    ],
+    [
+      0.049588,
+      "e"
+    ],
+    [
+      0.332554,
+      "-"
+    ],
+    [
+      0.408574,
+      "p"
+    ],
+    [
+      0.144219,
+      "r"
+    ],
+    [
+      0.069030,
+      "e"
+    ],
+    [
+      0.272239,
+      "p"
+    ],
+    [
+      0.107598,
+      "a"
+    ],
+    [
+      0.182010,
+      "r"
+    ],
+    [
+      0.147311,
+      "e"
+    ],
+    [
+      0.325226,
+      " "
+    ],
+    [
+      0.274183,
+      "up"
+    ],
+    [
+      0.106399,
+      "d"
+    ],
+    [
+      0.058820,
+      "a"
+    ],
+    [
+      0.125607,
+      "t"
+    ],
+    [
+      0.074948,
+      "e"
+    ],
+    [
+      0.514920,
+      " "
+    ],
+    [
+      0.323995,
+      "m"
+    ],
+    [
+      0.131188,
+      "a"
+    ],
+    [
+      0.089174,
+      "s"
+    ],
+    [
+      0.150942,
+      "t"
+    ],
+    [
+      0.185216,
+      "e"
+    ],
+    [
+      0.116971,
+      "r"
+    ],
+    [
+      1.105340,
+      "\r\n"
+    ],
+    [
+      0.046044,
+      "+ set -o pipefail\r\n+ '[' -d /var/log/puppet ']'\r\n"
+    ],
+    [
+      0.001155,
+      "+ LOGFILE=/var/log/puppet/update_master_node.log\r\n+ exec\r\n"
+    ],
+    [
+      0.000325,
+      "+ exec"
+    ],
+    [
+      0.020698,
+      "\r\n"
+    ],
+    [
+      0.000110,
+      "++ tee -i /var/log/puppet/update_master_node.log\r\n"
+    ],
+    [
+      0.039635,
+      "+ echo 'Master node update is \u003cin progress\u003e (log: /var/log/puppet/update_master_node.log )'\r\nMaster node update is \u003cin progress\u003e (log: /var/log/puppet/update_master_node.log )\r\n+ echo '\u003cSTAGE\u003e: Packages...'\r\n\u003cSTAGE\u003e: Packages...\r\n+ yum clean all\r\n"
+    ],
+    [
+      1.429402,
+      "Loaded plugins: fastestmirror, priorities\r\n"
+    ],
+    [
+      0.204545,
+      "Cleaning repos: 9.0_auxiliary mos mos-holdback-4 mos-os-0 mos-proposed-1\r\n              : mos-security-3 mos-updates-2 mos9.0-security mos9.0-updates\r\n              : nailgun\r\nCleaning up everything\r\n"
+    ],
+    [
+      0.205072,
+      "Cleaning up list of fastest mirrors\r\n"
+    ],
+    [
+      0.022505,
+      "+ yum update -y\r\n"
+    ],
+    [
+      1.206217,
+      "Loaded plugins: fastestmirror, priorities\r\n"
+    ],
+    [
+      2.000000,
+      "Determining fastest mirrors\r\n"
+    ],
+    [
+      0.080784,
+      " * mos9.0-security: mirror.seed-cz1.fuel-infra.org\r\n * mos9.0-updates: mirror.seed-cz1.fuel-infra.org\r\n"
+    ],
+    [
+      1.045942,
+      "Resolving Dependencies\r\n--\u003e Running transaction check\r\n---\u003e Package cobbler.noarch 0:2.6.9-1.el7~mos10 will be updated\r\n"
+    ],
+    [
+      0.033085,
+      "---\u003e Package cobbler.noarch 0:2.6.9-1.el7~mos11 will be an update\r\n"
+    ],
+    [
+      0.012920,
+      "---\u003e Package cobbler-web.noarch 0:2.6.9-1.el7~mos10 will be updated\r\n"
+    ],
+    [
+      0.000571,
+      "---\u003e Package cobbler-web.noarch 0:2.6.9-1.el7~mos11 will be an update\r\n"
+    ],
+    [
+      0.006751,
+      "---\u003e Package fuel.noarch 0:9.0.0-1.mos6349 will be updated\r\n"
+    ],
+    [
+      0.000892,
+      "---\u003e Package fuel.noarch 0:9.0.0-1.mos6357 will be an update\r\n"
+    ],
+    [
+      0.006784,
+      "---\u003e Package fuel-agent.noarch 0:9.0.0-1.mos285 will be updated\r\n"
+    ],
+    [
+      0.001391,
+      "---\u003e Package fuel-agent.noarch 0:9.0.0-1.mos291 will be an update\r\n"
+    ],
+    [
+      0.022424,
+      "---\u003e Package fuel-bootstrap-cli.noarch 0:9.0.0-1.mos285 will be updated\r\n"
+    ],
+    [
+      0.000216,
+      "---\u003e Package fuel-bootstrap-cli.noarch 0:9.0.0-1.mos291 will be an update\r\n"
+    ],
+    [
+      0.001492,
+      "---\u003e Package fuel-library9.0.noarch 0:9.0.0-1.mos8460 will be updated\r\n"
+    ],
+    [
+      0.000701,
+      "---\u003e Package fuel-library9.0.noarch 0:9.0.0-1.mos8606 will be an update\r\n"
+    ],
+    [
+      0.000868,
+      "---\u003e Package fuel-migrate.noarch 0:9.0.0-1.mos8460 will be updated\r\n"
+    ],
+    [
+      0.000376,
+      "---\u003e Package fuel-migrate.noarch 0:9.0.0-1.mos8606 will be an update\r\n"
+    ],
+    [
+      0.029978,
+      "---\u003e Package fuel-mirror.noarch 0:9.0.0-1.mos140 will be updated\r\n"
+    ],
+    [
+      0.013932,
+      "---\u003e Package fuel-mirror.noarch 0:9.0.0-1.mos154 will be an update\r\n---\u003e Package fuel-misc.noarch 0:9.0.0-1.mos8460 will be updated\r\n---\u003e Package fuel-misc.noarch 0:9.0.0-1.mos8606 will be an update\r\n---\u003e Package fuel-notify.noarch 0:9.0.0-1.mos8460 will be updated\r\n---\u003e Package fuel-notify.noarch 0:9.0.0-1.mos8606 will be an update\r\n---\u003e Package fuel-openstack-metadata.noarch 0:9.0.0-1.mos8743 will be updated\r\n---\u003e Package fuel-openstack-metadata.noarch 0:9.0.0-1.mos8861 will be an update\r\n---\u003e Package fuel-ostf.noarch 0:9.0.0-1.mos936 will be updated\r\n---\u003e Package fuel-ostf.noarch 0:9.0.0-1.mos946 will be an update\r\n---\u003e Package fuel-provisioning-scripts.noarch 0:9.0.0-1.mos8743 will be updated\r\n---\u003e Package fuel-provisioning-scripts.noarch 0:9.0.0-1.mos8861 will be an update\r\n"
+    ],
+    [
+      0.000224,
+      "---\u003e Package fuel-setup.noarch 0:9.0.0-1.mos6349 will be updated\r\n---\u003e Package fuel-setup.noarch 0:9.0.0-1.mos6357 will be an update\r\n"
+    ],
+    [
+      0.000088,
+      "---\u003e Package fuel-ui.noarch 0:9.0.0-1.mos2717 will be updated\r\n---\u003e Package fuel-ui.noarch 0:9.0.0-1.mos2814 will be an update\r\n---\u003e Package fuelmenu.noarch 0:9.0.0-1.mos274 will be updated\r\n---\u003e Package fuelmenu.noarch 0:9.0.0-1.mos275 will be an update\r\n---\u003e Package ironic-fa-bootstrap-configs.noarch 0:9.0.0-1.mos285 will be updated\r\n---\u003e Package ironic-fa-bootstrap-configs.noarch 0:9.0.0-1.mos291 will be an update\r\n---\u003e Package nailgun-mcagents.noarch 0:9.0.0-1.mos750 will be updated\r\n---\u003e Package nailgun-mcagents.noarch 0:9.0.0-1.mos774 will be an update\r\n---\u003e Package network-checker.x86_64 0:9.0.0-1.mos74 will be updated\r\n---\u003e Package network-checker.x86_64 0:9.0.0-1.mos77 will be an update\r\n---\u003e Package nginx.x86_64 1:1.6.3-6.el7~mos1 will be updated\r\n---\u003e Package nginx.x86_64 1:1.11.1-1.el7~mos0 will be an update\r\n"
+    ],
+    [
+      0.007290,
+      "---\u003e Package openstack-keystone.noarch 1:9.0.2-1.el7~mos3 will be updated\r\n"
+    ],
+    [
+      0.001352,
+      "---\u003e Package openstack-keystone.noarch 1:9.0.2-1.el7~mos6 will be an update\r\n"
+    ],
+    [
+      0.002073,
+      "---\u003e Package python-cinderclient.noarch 0:1.6.0-1.el7~mos3 will be updated\r\n"
+    ],
+    [
+      0.002357,
+      "---\u003e Package python-cinderclient.noarch 0:1.6.0-1.el7~mos4 will be an update\r\n"
+    ],
+    [
+      0.000290,
+      "---\u003e Package python-keystone.noarch 1:9.0.2-1.el7~mos3 will be updated\r\n"
+    ],
+    [
+      0.001251,
+      "---\u003e Package python-keystone.noarch 1:9.0.2-1.el7~mos6 will be an update\r\n"
+    ],
+    [
+      0.023544,
+      "---\u003e Package python-muranoclient.noarch 0:0.8.4-2.el7~mos11 will be updated\r\n---\u003e Package python-muranoclient.noarch 0:0.8.6-1.el7~mos6 will be an update\r\n---\u003e Package python-neutronclient.noarch 0:4.1.2-2.el7~mos7 will be updated\r\n---\u003e Package python-neutronclient.noarch 0:4.1.2-2.el7~mos13 will be an update\r\n---\u003e Package python-novaclient.noarch 1:3.3.1-2.el7~mos1 will be updated\r\n---\u003e Package python-novaclient.noarch 1:3.3.1-2.el7~mos3 will be an update\r\n---\u003e Package python-openstackclient.noarch 1:2.2.0-1.el7~mos1 will be updated\r\n---\u003e Package python-openstackclient.noarch 1:2.2.0-1.el7~mos2 will be an update\r\n"
+    ],
+    [
+      0.001347,
+      "---\u003e Package python-oslo-concurrency.noarch 0:3.7.0-1.el7~mos2 will be updated\r\n"
+    ],
+    [
+      0.000250,
+      "---\u003e Package python-oslo-concurrency.noarch 0:3.7.1-1.el7~mos0 will be an update\r\n"
+    ],
+    [
+      0.002169,
+      "---\u003e Package python-oslo-db.noarch 0:4.7.0-1.el7~mos2 will be updated\r\n"
+    ],
+    [
+      0.001652,
+      "---\u003e Package python-oslo-db.noarch 0:4.7.0-1.el7~mos4 will be an update\r\n"
+    ],
+    [
+      0.000154,
+      "---\u003e Package python-oslo-log.noarch 0:3.3.0-1.el7~mos4 will be updated\r\n"
+    ],
+    [
+      0.001820,
+      "---\u003e Package python-oslo-log.noarch 0:3.3.0-1.el7~mos5 will be an update\r\n"
+    ],
+    [
+      0.001644,
+      "---\u003e Package python-oslo-messaging.noarch 0:4.6.1-2.el7~mos7 will be updated\r\n"
+    ],
+    [
+      0.000255,
+      "---\u003e Package python-oslo-messaging.noarch 0:4.6.1-2.el7~mos9 will be an update\r\n"
+    ],
+    [
+      0.229092,
+      "---\u003e Package python-oslo-service.noarch 0:1.8.0-2.el7~mos2 will be updated\r\n---\u003e Package python-oslo-service.noarch 0:1.8.0-2.el7~mos3 will be an update\r\n---\u003e Package python-packetary.noarch 0:9.0.0-1.mos140 will be updated\r\n---\u003e Package python-packetary.noarch 0:9.0.0-1.mos154 will be an update\r\n---\u003e Package python-pycadf.noarch 0:1.1.0-1.el7~mos1 will be updated\r\n---\u003e Package python-pycadf.noarch 0:1.1.0-1.el7~mos2 will be an update\r\n---\u003e Package python-saharaclient.noarch 0:0.14.0-2.el7~mos2 will be updated\r\n---\u003e Package python-saharaclient.noarch 0:0.14.1-2.el7~mos0 will be an update\r\n---\u003e Package rabbitmq-server.noarch 0:3.6.1-6.el7~mos1 will be updated\r\n---\u003e Package rabbitmq-server.noarch 0:3.6.5-1.el7~mos1 will be an update\r\n---\u003e Package rsync.x86_64 0:3.0.9-17.el7 will be updated\r\n---\u003e Package rsync.x86_64 0:3.1.0-6.el7~mos0 will be an update\r\n"
+    ],
+    [
+      1.741258,
+      "--\u003e Finished Dependency Resolution\r\n\r\nDependencies Resolved\r\n"
+    ],
+    [
+      0.000444,
+      "\r\n================================================================================\r\n Package                     Arch   Version                Repository      Size\r\n================================================================================\r\nUpdating:\r\n cobbler                     noarch 2.6.9-1.el7~mos11      mos-proposed-1 585 k\r\n cobbler-web                 noarch 2.6.9-1.el7~mos11      mos-proposed-1 286 k\r\n fuel                        noarch 9.0.0-1.mos6357        mos-proposed-1 3.0 k\r\n fuel-agent                  noarch 9.0.0-1.mos291         mos-proposed-1 300 k\r\n fuel-bootstrap-cli          noarch 9.0.0-1.mos291         mos-proposed-1  43 k\r\n fuel-library9.0             noarch 9.0.0-1.mos8606        mos-proposed-1 2.2 M\r\n fuel-migrate                noarch 9.0.0-1.mos8606        mos-proposed-1  10 k\r\n fuel-mirror                 noarch 9.0.0-1.mos154         mos-proposed-1  40 k\r\n fuel-misc                   noarch 9.0.0-1.mos8606        mos-proposed-1 6.2 k\r\n fuel-notify                 noarch 9.0.0-1.mos8606        mos-proposed-1 5.3 k\r\n fuel-openstack-metadata     noarch 9.0.0-1.mos8861        mos-proposed-1  17 k\r\n fuel-ostf                   noarch 9.0.0-1.mos946         mos-proposed-1 309 k\r\n fuel-provisioning-scripts   noarch 9.0.0-1.mos8861        mos-proposed-1 4.6 k\r\n fuel-setup                  noarch 9.0.0-1.mos6357        mos-proposed-1  10 k\r\n fuel-ui                     noarch 9.0.0-1.mos2814        mos-proposed-1 4.6 M\r\n fuelmenu                    noarch 9.0.0-1.mos275         mos-proposed-1 114 k\r\n ironic-fa-bootstrap-configs noarch 9.0.0-1.mos291         mos-proposed-1 7.2 k\r\n nailgun-mcagents            noarch 9.0.0-1.mos774         mos-proposed-1  16 k\r\n network-checker             x86_64 9.0.0-1.mos77          mos-proposed-1  62 k\r\n nginx                       x86_64 1:1.11.1-1.el7~mos0    mos-proposed-1 644 k\r\n openstack-keystone          noarch 1:9.0.2-1.el7~mos6     mos-proposed-1  50 k\r\n python-cinderclient         noarch 1.6.0-1.el7~mos4       mos-proposed-1 195 k\r\n python-keystone             noarch 1:9.0.2-1.el7~mos6     mos-proposed-1 907 k\r\n python-muranoclient         noarch 0.8.6-1.el7~mos6       mos-proposed-1 280 k\r\n python-neutronclient        noarch 4.1.2-2.el7~mos13      mos-proposed-1 208 k\r\n python-novaclient           noarch 1:3.3.1-2.el7~mos3     mos-proposed-1 243 k\r\n python-openstackclient      noarch 1:2.2.0-1.el7~mos2     mos-proposed-1 523 k\r\n python-oslo-concurrency     noarch 3.7.1-1.el7~mos0       mos-proposed-1  68 k\r\n python-oslo-db              noarch 4.7.0-1.el7~mos4       mos-proposed-1 244 k\r\n python-oslo-log             noarch 3.3.0-1.el7~mos5       mos-proposed-1  80 k\r\n python-oslo-messaging       noarch 4.6.1-2.el7~mos9       mos-proposed-1 418 k\r\n python-oslo-service         noarch 1.8.0-2.el7~mos3       mos-proposed-1 201 k\r\n python-packetary            noarch 9.0.0-1.mos154         mos-proposed-1 106 k\r\n python-pycadf               noarch 1.1.0-1.el7~mos2       mos-proposed-1  43 k\r\n python-saharaclient         noarch 0.14.1-2.el7~mos0      mos-proposed-1 231 k\r\n rabbitmq-server             noarch 3.6.5-1.el7~mos1       mos-proposed-1 5.2 M\r\n rsync                       x86_64 3.1.0-6.el7~mos0       mos-proposed-1 398 k\r\n\r\nTransaction Summary\r\n================================================================================\r\nUpgrade  37 Packages\r\n\r\n"
+    ],
+    [
+      0.000084,
+      "Total download size: 18 M\r\nDownloading packages:\r\nNo Presto metadata available for mos-proposed-1\r\n"
+    ],
+    [
+      0.538873,
+      "--------------------------------------------------------------------------------\r\nTotal                                               32 MB/s |  18 MB  00:00     \r\n"
+    ],
+    [
+      0.066422,
+      "Running transaction check\r\n"
+    ],
+    [
+      0.212903,
+      "Running transaction test\r\n"
+    ],
+    [
+      0.675532,
+      "Transaction test succeeded\r\n"
+    ],
+    [
+      0.000625,
+      "Running transaction\r\n"
+    ],
+    [
+      0.347830,
+      "  Updating   : python-oslo-log-3.3.0-1.el7~mos5.noarch                     1/74"
+    ],
+    [
+      0.307233,
+      " \r\n  Updating   : network-checker-9.0.0-1.mos77.x86_64                        2/74"
+    ],
+    [
+      0.204735,
+      " \r\n  Updating   : 1:python-novaclient-3.3.1-2.el7~mos3.noarch                 3/74 \r\n  Updating   : python-oslo-concurrency-3.7.1-1.el7~mos0.noarch             4/74"
+    ],
+    [
+      0.139090,
+      " \r\n  Updating   : python-oslo-service-1.8.0-2.el7~mos3.noarch                 5/74"
+    ],
+    [
+      0.376782,
+      " \r\n  Updating   : python-oslo-messaging-4.6.1-2.el7~mos9.noarch               6/74"
+    ],
+    [
+      0.164634,
+      " \r\n  Updating   : python-cinderclient-1.6.0-1.el7~mos4.noarch                 7/74"
+    ],
+    [
+      0.626014,
+      " \r\n  Updating   : 1:python-openstackclient-2.2.0-1.el7~mos2.noarch            8/74"
+    ],
+    [
+      0.331819,
+      " \r\n  Updating   : python-saharaclient-0.14.1-2.el7~mos0.noarch                9/74"
+    ],
+    [
+      0.204904,
+      " \r\n  Updating   : python-muranoclient-0.8.6-1.el7~mos6.noarch                10/74 \r\n  Updating   : python-pycadf-1.1.0-1.el7~mos2.noarch                      11/74"
+    ],
+    [
+      0.083062,
+      " \r\n  Updating   : fuelmenu-9.0.0-1.mos275.noarch                             12/74"
+    ],
+    [
+      0.128800,
+      " \r\n  Updating   : python-packetary-9.0.0-1.mos154.noarch                     13/74"
+    ],
+    [
+      0.062493,
+      " \r\n  Updating   : fuel-mirror-9.0.0-1.mos154.noarch                          14/74"
+    ],
+    [
+      0.279688,
+      " \r\n  Updating   : fuel-agent-9.0.0-1.mos291.noarch                           15/74"
+    ],
+    [
+      0.068582,
+      " \r\n  Updating   : rsync-3.1.0-6.el7~mos0.x86_64                              16/74"
+    ],
+    [
+      0.503692,
+      " \r\n  Updating   : cobbler-2.6.9-1.el7~mos11.noarch                           17/74"
+    ],
+    [
+      0.140000,
+      " \r\n  Updating   : python-oslo-db-4.7.0-1.el7~mos4.noarch                     18/74"
+    ],
+    [
+      0.781773,
+      " \r\n  Updating   : 1:python-keystone-9.0.2-1.el7~mos6.noarch                  19/74"
+    ],
+    [
+      0.226535,
+      " \r\n  Updating   : python-neutronclient-4.1.2-2.el7~mos13.noarch              20/74"
+    ],
+    [
+      0.021112,
+      " \r\n  Updating   : fuel-misc-9.0.0-1.mos8606.noarch                           21/74"
+    ],
+    [
+      2.000000,
+      " \r\n  Updating   : fuel-library9.0-9.0.0-1.mos8606.noarch                     22/74"
+    ],
+    [
+      2.000000,
+      " \r\nDeployment tasks synchronized for release Mitaka on Ubuntu 14.04 of version mitaka-9.0\r\nDeployment tasks synchronized for release Mitaka on Ubuntu+UCA 14.04 of version mitaka-9.0\r\nDeployment tasks synchronized for release Mitaka on CentOS 6.5 of version mitaka-9.0\r\nNo tasks were synchronized for release Liberty on Ubuntu 14.04 of version liberty-8.0.(Hint: nothing matched /etc/puppet/mitaka-9.0/liberty-8.0/*tasks.yaml)\r\nNo tasks were synchronized for release Liberty on CentOS 6.5 of version liberty-8.0.(Hint: nothing matched /etc/puppet/mitaka-9.0/liberty-8.0/*tasks.yaml)\r\nNo tasks were synchronized for release Kilo on Ubuntu 14.04 of version 2015.1.0-7.0.(Hint: nothing matched /etc/puppet/mitaka-9.0/2015.1.0-7.0/*tasks.yaml)\r\nNo tasks were synchronized for release Kilo on CentOS 6.5 of version 2015.1.0-7.0.(Hint: nothing matched /etc/puppet/mitaka-9.0/2015.1.0-7.0/*tasks.yaml)\r\n  Updating   : fuel-provisioning-scripts-9.0.0-1.mos8861.noarch           23/74 \r\n  Updating   : fuel-9.0.0-1.mos6357.noarch                                24/74"
+    ],
+    [
+      0.299612,
+      " \r\n  Updating   : fuel-ostf-9.0.0-1.mos946.noarch                            25/74"
+    ],
+    [
+      0.082381,
+      " \r\n  Updating   : 1:openstack-keystone-9.0.2-1.el7~mos6.noarch               26/74"
+    ],
+    [
+      0.232358,
+      " \r\n  Updating   : cobbler-web-2.6.9-1.el7~mos11.noarch                       27/74"
+    ],
+    [
+      0.205431,
+      " \r\n  Updating   : fuel-bootstrap-cli-9.0.0-1.mos291.noarch                   28/74 \r\nwarning: /etc/fuel-bootstrap-cli/fuel_bootstrap_cli.yaml saved as /etc/fuel-bootstrap-cli/fuel_bootstrap_cli.yaml.rpmsave\r\n  Updating   : nailgun-mcagents-9.0.0-1.mos774.noarch                     29/74"
+    ],
+    [
+      1.486559,
+      " \r\nRedirecting to /bin/systemctl stop  rabbitmq-server.service\r\n"
+    ],
+    [
+      0.531857,
+      "  Updating   : rabbitmq-server-3.6.5-1.el7~mos1.noarch                    30/74"
+    ],
+    [
+      0.336132,
+      " \r\n  Updating   : fuel-openstack-metadata-9.0.0-1.mos8861.noarch             31/74"
+    ],
+    [
+      0.027963,
+      " \r\n  Updating   : 1:nginx-1.11.1-1.el7~mos0.x86_64                           32/74"
+    ],
+    [
+      0.054161,
+      " \r\nwarning: /etc/nginx/nginx.conf created as /etc/nginx/nginx.conf.rpmnew\r\n"
+    ],
+    [
+      0.019095,
+      "  Updating   : ironic-fa-bootstrap-configs-9.0.0-1.mos291.noarch          33/74"
+    ],
+    [
+      0.005661,
+      " \r\n  Updating   : fuel-setup-9.0.0-1.mos6357.noarch                          34/74"
+    ],
+    [
+      0.008950,
+      " \r\n  Updating   : fuel-migrate-9.0.0-1.mos8606.noarch                        35/74"
+    ],
+    [
+      0.010829,
+      " \r\n  Updating   : fuel-notify-9.0.0-1.mos8606.noarch                         36/74"
+    ],
+    [
+      1.298637,
+      " \r\n  Updating   : fuel-ui-9.0.0-1.mos2814.noarch                             37/74 \r\n  Cleanup    : fuel-9.0.0-1.mos6349.noarch                                38/74 \r\n  Cleanup    : fuel-ostf-9.0.0-1.mos936.noarch                            39/74"
+    ],
+    [
+      0.520670,
+      " \r\n  Cleanup    : python-muranoclient-0.8.4-2.el7~mos11.noarch               40/74 \r\n  Cleanup    : python-saharaclient-0.14.0-2.el7~mos2.noarch               41/74 \r\n  Cleanup    : 1:python-openstackclient-2.2.0-1.el7~mos1.noarch           42/74"
+    ],
+    [
+      0.021345,
+      " \r\n  Cleanup    : fuel-library9.0-9.0.0-1.mos8460.noarch                     43/74"
+    ],
+    [
+      0.072222,
+      " \r\n  Cleanup    : fuelmenu-9.0.0-1.mos274.noarch                             44/74"
+    ],
+    [
+      0.014918,
+      " \r\n  Cleanup    : fuel-mirror-9.0.0-1.mos140.noarch                          45/74"
+    ],
+    [
+      0.018338,
+      " \r\n  Cleanup    : fuel-bootstrap-cli-9.0.0-1.mos285.noarch                   46/74"
+    ],
+    [
+      0.011967,
+      " \r\n  Cleanup    : nailgun-mcagents-9.0.0-1.mos750.noarch                     47/74"
+    ],
+    [
+      0.028858,
+      " \r\n  Cleanup    : cobbler-web-2.6.9-1.el7~mos10.noarch                       48/74"
+    ],
+    [
+      0.089263,
+      " \r\n  Cleanup    : cobbler-2.6.9-1.el7~mos10.noarch                           49/74"
+    ],
+    [
+      0.309475,
+      " \r\n  Cleanup    : 1:openstack-keystone-9.0.2-1.el7~mos3.noarch               50/74"
+    ],
+    [
+      2.000000,
+      " \r\n  Cleanup    : 1:python-keystone-9.0.2-1.el7~mos3.noarch                  51/74"
+    ],
+    [
+      0.038265,
+      " \r\n  Cleanup    : python-pycadf-1.1.0-1.el7~mos1.noarch                      52/74"
+    ],
+    [
+      0.025464,
+      " \r\n  Cleanup    : python-oslo-messaging-4.6.1-2.el7~mos7.noarch              53/74"
+    ],
+    [
+      0.027418,
+      " \r\n  Cleanup    : python-oslo-service-1.8.0-2.el7~mos2.noarch                54/74"
+    ],
+    [
+      0.018937,
+      " \r\n  Cleanup    : python-oslo-concurrency-3.7.0-1.el7~mos2.noarch            55/74"
+    ],
+    [
+      0.022071,
+      " \r\n  Cleanup    : python-oslo-log-3.3.0-1.el7~mos4.noarch                    56/74"
+    ],
+    [
+      0.007242,
+      " \r\n  Cleanup    : python-oslo-db-4.7.0-1.el7~mos2.noarch                     57/74"
+    ],
+    [
+      0.015408,
+      " \r\n  Cleanup    : network-checker-9.0.0-1.mos74.x86_64                       58/74"
+    ],
+    [
+      0.017941,
+      " \r\n  Cleanup    : fuel-agent-9.0.0-1.mos285.noarch                           59/74"
+    ],
+    [
+      0.017839,
+      " \r\n  Cleanup    : python-packetary-9.0.0-1.mos140.noarch                     60/74"
+    ],
+    [
+      0.010514,
+      " \r\n  Cleanup    : fuel-misc-9.0.0-1.mos8460.noarch                           61/74"
+    ],
+    [
+      0.023234,
+      " \r\n  Cleanup    : python-cinderclient-1.6.0-1.el7~mos3.noarch                62/74"
+    ],
+    [
+      0.011293,
+      " \r\n  Cleanup    : 1:python-novaclient-3.3.1-2.el7~mos1.noarch                63/74"
+    ],
+    [
+      0.018447,
+      " \r\n  Cleanup    : python-neutronclient-4.1.2-2.el7~mos7.noarch               64/74"
+    ],
+    [
+      0.013061,
+      " \r\n  Cleanup    : fuel-provisioning-scripts-9.0.0-1.mos8743.noarch           65/74"
+    ],
+    [
+      0.043262,
+      " \r\n  Cleanup    : rabbitmq-server-3.6.1-6.el7~mos1.noarch                    66/74"
+    ],
+    [
+      0.142712,
+      " \r\n  Cleanup    : fuel-openstack-metadata-9.0.0-1.mos8743.noarch             67/74"
+    ],
+    [
+      0.010979,
+      " \r\n  Cleanup    : ironic-fa-bootstrap-configs-9.0.0-1.mos285.noarch          68/74"
+    ],
+    [
+      0.006184,
+      " \r\n  Cleanup    : fuel-setup-9.0.0-1.mos6349.noarch                          69/74"
+    ],
+    [
+      0.015771,
+      " \r\n  Cleanup    : fuel-migrate-9.0.0-1.mos8460.noarch                        70/74"
+    ],
+    [
+      0.010430,
+      " \r\n  Cleanup    : fuel-notify-9.0.0-1.mos8460.noarch                         71/74"
+    ],
+    [
+      0.014039,
+      " \r\n  Cleanup    : fuel-ui-9.0.0-1.mos2717.noarch                             72/74"
+    ],
+    [
+      0.017868,
+      " \r\n  Cleanup    : rsync-3.0.9-17.el7.x86_64                                  73/74"
+    ],
+    [
+      0.544779,
+      " \r\n  Cleanup    : 1:nginx-1.6.3-6.el7~mos1.x86_64                            74/74"
+    ],
+    [
+      0.255531,
+      " \r\n  Verifying  : 1:openstack-keystone-9.0.2-1.el7~mos6.noarch                1/74"
+    ],
+    [
+      0.000167,
+      " \r\n  Verifying  : fuel-provisioning-scripts-9.0.0-1.mos8861.noarch            2/74 \r\n  Verifying  : python-oslo-service-1.8.0-2.el7~mos3.noarch                 3/74"
+    ],
+    [
+      0.001373,
+      " \r\n  Verifying  : fuel-ui-9.0.0-1.mos2814.noarch                              4/74"
+    ],
+    [
+      0.011753,
+      " \r\n  Verifying  : fuel-library9.0-9.0.0-1.mos8606.noarch                      5/74"
+    ],
+    [
+      0.012060,
+      " \r\n  Verifying  : fuel-misc-9.0.0-1.mos8606.noarch                            6/74"
+    ],
+    [
+      0.020989,
+      " \r\n  Verifying  : fuel-notify-9.0.0-1.mos8606.noarch                          7/74"
+    ],
+    [
+      0.015596,
+      " \r\n  Verifying  : python-cinderclient-1.6.0-1.el7~mos4.noarch                 8/74"
+    ],
+    [
+      0.039339,
+      " \r\n  Verifying  : fuel-migrate-9.0.0-1.mos8606.noarch                         9/74"
+    ],
+    [
+      0.018475,
+      " \r\n  Verifying  : cobbler-web-2.6.9-1.el7~mos11.noarch                       10/74"
+    ],
+    [
+      0.007713,
+      " \r\n  Verifying  : fuel-setup-9.0.0-1.mos6357.noarch                          11/74"
+    ],
+    [
+      0.018514,
+      " \r\n  Verifying  : python-oslo-concurrency-3.7.1-1.el7~mos0.noarch            12/74"
+    ],
+    [
+      0.009868,
+      " \r\n  Verifying  : python-saharaclient-0.14.1-2.el7~mos0.noarch               13/74"
+    ],
+    [
+      0.030155,
+      " \r\n  Verifying  : 1:python-keystone-9.0.2-1.el7~mos6.noarch                  14/74"
+    ],
+    [
+      0.013062,
+      " \r\n  Verifying  : 1:python-novaclient-3.3.1-2.el7~mos3.noarch                15/74"
+    ],
+    [
+      0.008546,
+      " \r\n  Verifying  : python-neutronclient-4.1.2-2.el7~mos13.noarch              16/74"
+    ],
+    [
+      0.010305,
+      " \r\n  Verifying  : python-pycadf-1.1.0-1.el7~mos2.noarch                      17/74"
+    ],
+    [
+      0.005648,
+      " \r\n  Verifying  : 1:python-openstackclient-2.2.0-1.el7~mos2.noarch           18/74"
+    ],
+    [
+      0.014417,
+      " \r\n  Verifying  : nailgun-mcagents-9.0.0-1.mos774.noarch                     19/74"
+    ],
+    [
+      0.028800,
+      " \r\n  Verifying  : ironic-fa-bootstrap-configs-9.0.0-1.mos291.noarch          20/74"
+    ],
+    [
+      0.021734,
+      " \r\n  Verifying  : fuel-bootstrap-cli-9.0.0-1.mos291.noarch                   21/74"
+    ],
+    [
+      0.008553,
+      " \r\n  Verifying  : network-checker-9.0.0-1.mos77.x86_64                       22/74"
+    ],
+    [
+      0.019806,
+      " \r\n  Verifying  : python-oslo-messaging-4.6.1-2.el7~mos9.noarch              23/74"
+    ],
+    [
+      0.006327,
+      " \r\n  Verifying  : fuel-ostf-9.0.0-1.mos946.noarch                            24/74"
+    ],
+    [
+      0.012124,
+      " \r\n  Verifying  : python-muranoclient-0.8.6-1.el7~mos6.noarch                25/74"
+    ],
+    [
+      0.021448,
+      " \r\n  Verifying  : fuel-mirror-9.0.0-1.mos154.noarch                          26/74"
+    ],
+    [
+      0.004294,
+      " \r\n  Verifying  : python-oslo-log-3.3.0-1.el7~mos5.noarch                    27/74"
+    ],
+    [
+      0.008283,
+      " \r\n  Verifying  : python-oslo-db-4.7.0-1.el7~mos4.noarch                     28/74"
+    ],
+    [
+      0.012040,
+      " \r\n  Verifying  : 1:nginx-1.11.1-1.el7~mos0.x86_64                           29/74"
+    ],
+    [
+      0.014549,
+      " \r\n  Verifying  : fuel-9.0.0-1.mos6357.noarch                                30/74"
+    ],
+    [
+      0.017863,
+      " \r\n  Verifying  : fuelmenu-9.0.0-1.mos275.noarch                             31/74"
+    ],
+    [
+      0.011389,
+      " \r\n  Verifying  : cobbler-2.6.9-1.el7~mos11.noarch                           32/74"
+    ],
+    [
+      0.014282,
+      " \r\n  Verifying  : rsync-3.1.0-6.el7~mos0.x86_64                              33/74"
+    ],
+    [
+      0.020045,
+      " \r\n  Verifying  : fuel-openstack-metadata-9.0.0-1.mos8861.noarch             34/74"
+    ],
+    [
+      0.008357,
+      " \r\n  Verifying  : rabbitmq-server-3.6.5-1.el7~mos1.noarch                    35/74"
+    ],
+    [
+      0.004468,
+      " \r\n  Verifying  : fuel-agent-9.0.0-1.mos291.noarch                           36/74"
+    ],
+    [
+      0.020395,
+      " \r\n  Verifying  : python-packetary-9.0.0-1.mos154.noarch                     37/74"
+    ],
+    [
+      0.006086,
+      " \r\n  Verifying  : 1:python-keystone-9.0.2-1.el7~mos3.noarch                  38/74"
+    ],
+    [
+      0.001966,
+      " \r\n  Verifying  : fuel-agent-9.0.0-1.mos285.noarch                           39/74"
+    ],
+    [
+      0.001320,
+      " \r\n  Verifying  : fuel-misc-9.0.0-1.mos8460.noarch                           40/74"
+    ],
+    [
+      0.000961,
+      " \r\n  Verifying  : python-muranoclient-0.8.4-2.el7~mos11.noarch               41/74"
+    ],
+    [
+      0.001372,
+      " \r\n  Verifying  : 1:python-openstackclient-2.2.0-1.el7~mos1.noarch           42/74"
+    ],
+    [
+      0.001614,
+      " \r\n  Verifying  : python-saharaclient-0.14.0-2.el7~mos2.noarch               43/74"
+    ],
+    [
+      0.005072,
+      " \r\n  Verifying  : fuel-9.0.0-1.mos6349.noarch                                44/74"
+    ],
+    [
+      0.008015,
+      " \r\n  Verifying  : fuel-migrate-9.0.0-1.mos8460.noarch                        45/74"
+    ],
+    [
+      0.002467,
+      " \r\n  Verifying  : python-oslo-db-4.7.0-1.el7~mos2.noarch                     46/74"
+    ],
+    [
+      0.002050,
+      " \r\n  Verifying  : nailgun-mcagents-9.0.0-1.mos750.noarch                     47/74"
+    ],
+    [
+      0.006275,
+      " \r\n  Verifying  : rabbitmq-server-3.6.1-6.el7~mos1.noarch                    48/74"
+    ],
+    [
+      0.000281,
+      " \r\n  Verifying  : python-oslo-concurrency-3.7.0-1.el7~mos2.noarch            49/74 \r\n  Verifying  : fuel-library9.0-9.0.0-1.mos8460.noarch                     50/74 \r\n  Verifying  : fuel-ui-9.0.0-1.mos2717.noarch                             51/74"
+    ],
+    [
+      0.000432,
+      " \r\n  Verifying  : python-neutronclient-4.1.2-2.el7~mos7.noarch               52/74"
+    ],
+    [
+      0.009227,
+      " \r\n  Verifying  : ironic-fa-bootstrap-configs-9.0.0-1.mos285.noarch          53/74 \r\n  Verifying  : 1:python-novaclient-3.3.1-2.el7~mos1.noarch                54/74 \r\n  Verifying  : 1:openstack-keystone-9.0.2-1.el7~mos3.noarch               55/74 \r\n  Verifying  : fuelmenu-9.0.0-1.mos274.noarch                             56/74 \r\n  Verifying  : python-oslo-log-3.3.0-1.el7~mos4.noarch                    57/74 \r\n  Verifying  : python-cinderclient-1.6.0-1.el7~mos3.noarch                58/74 \r\n  Verifying  : fuel-ostf-9.0.0-1.mos936.noarch                            59/74 \r\n  Verifying  : python-oslo-messaging-4.6.1-2.el7~mos7.noarch              60/74 \r\n  Verifying  : fuel-provisioning-scripts-9.0.0-1.mos8743.noarch           61/74"
+    ],
+    [
+      0.000185,
+      " \r\n  Verifying  : fuel-openstack-metadata-9.0.0-1.mos8743.noarch             62/74"
+    ],
+    [
+      0.007885,
+      " \r\n  Verifying  : rsync-3.0.9-17.el7.x86_64                                  63/74 \r\n  Verifying  : fuel-bootstrap-cli-9.0.0-1.mos285.noarch                   64/74 \r\n  Verifying  : python-pycadf-1.1.0-1.el7~mos1.noarch                      65/74 \r\n  Verifying  : cobbler-2.6.9-1.el7~mos10.noarch                           66/74 \r\n  Verifying  : 1:nginx-1.6.3-6.el7~mos1.x86_64                            67/74 \r\n  Verifying  : python-packetary-9.0.0-1.mos140.noarch                     68/74"
+    ],
+    [
+      0.004172,
+      " \r\n  Verifying  : fuel-setup-9.0.0-1.mos6349.noarch                          69/74 \r\n  Verifying  : network-checker-9.0.0-1.mos74.x86_64                       70/74 \r\n  Verifying  : fuel-notify-9.0.0-1.mos8460.noarch                         71/74"
+    ],
+    [
+      0.001580,
+      " \r\n  Verifying  : python-oslo-service-1.8.0-2.el7~mos2.noarch                72/74"
+    ],
+    [
+      0.019576,
+      " \r\n  Verifying  : cobbler-web-2.6.9-1.el7~mos10.noarch                       73/74 \r\n  Verifying  : fuel-mirror-9.0.0-1.mos140.noarch                          74/74"
+    ],
+    [
+      0.246113,
+      " \r\n\r\nUpdated:\r\n  cobbler.noarch 0:2.6.9-1.el7~mos11                                            \r\n  cobbler-web.noarch 0:2.6.9-1.el7~mos11                                        \r\n  fuel.noarch 0:9.0.0-1.mos6357                                                 \r\n  fuel-agent.noarch 0:9.0.0-1.mos291                                            \r\n  fuel-bootstrap-cli.noarch 0:9.0.0-1.mos291                                    \r\n  fuel-library9.0.noarch 0:9.0.0-1.mos8606                                      \r\n  fuel-migrate.noarch 0:9.0.0-1.mos8606                                         \r\n  fuel-mirror.noarch 0:9.0.0-1.mos154                                           \r\n  fuel-misc.noarch 0:9.0.0-1.mos8606                                            \r\n  fuel-notify.noarch 0:9.0.0-1.mos8606                                          \r\n  fuel-openstack-metadata.noarch 0:9.0.0-1.mos8861                              \r\n  fuel-ostf.noarch 0:9.0.0-1.mos946                                             \r\n  fuel-provisioning-scripts.noarch 0:9.0.0-1.mos8861                            \r\n  fuel-setup.noarch 0:9.0.0-1.mos6357                                           \r\n  fuel-ui.noarch 0:9.0.0-1.mos2814                                              \r\n  fuelmenu.noarch 0:9.0.0-1.mos275                                              \r\n  ironic-fa-bootstrap-configs.noarch 0:9.0.0-1.mos291                           \r\n  nailgun-mcagents.noarch 0:9.0.0-1.mos774                                      \r\n  network-checker.x86_64 0:9.0.0-1.mos77                                        \r\n  nginx.x86_64 1:1.11.1-1.el7~mos0                                              \r\n  openstack-keystone.noarch 1:9.0.2-1.el7~mos6                                  \r\n  python-cinderclient.noarch 0:1.6.0-1.el7~mos4                                 \r\n  python-keystone.noarch 1:9.0.2-1.el7~mos6                                     \r\n  python-muranoclient.noarch 0:0.8.6-1.el7~mos6                                 \r\n  python-neutronclient.noarch 0:4.1.2-2.el7~mos13                               \r\n  python-novaclient.noarch 1:3.3.1-2.el7~mos3                                   \r\n  python-openstackclient.noarch 1:2.2.0-1.el7~mos2                              \r\n  python-oslo-concurrency.noarch 0:3.7.1-1.el7~mos0                             \r\n  python-oslo-db.noarch 0:4.7.0-1.el7~mos4                                      \r\n  python-oslo-log.noarch 0:3.3.0-1.el7~mos5                                     \r\n  python-oslo-messaging.noarch 0:4.6.1-2.el7~mos9                               \r\n  python-oslo-service.noarch 0:1.8.0-2.el7~mos3                                 \r\n  python-packetary.noarch 0:9.0.0-1.mos154                                      \r\n  python-pycadf.noarch 0:1.1.0-1.el7~mos2                                       \r\n  python-saharaclient.noarch 0:0.14.1-2.el7~mos0                                \r\n  rabbitmq-server.noarch 0:3.6.5-1.el7~mos1                                     \r\n  rsync.x86_64 0:3.1.0-6.el7~mos0                                               \r\n\r\nComplete!\r\n"
+    ],
+    [
+      0.012299,
+      "+ systemctl daemon-reload\r\n"
+    ],
+    [
+      0.192378,
+      "+ echo '\u003cSTAGE\u003e: Puppet...'\r\n\u003cSTAGE\u003e: Puppet...\r\n+ bash -x /etc/puppet/modules/fuel/examples/deploy.sh\r\n+ TASKS='\r\nhiera\r\nhost\r\ncobbler\r\npostgresql\r\nrabbitmq\r\nmcollective\r\nastute\r\nkeystone\r\nkeystone_token_disable\r\nnailgun\r\nostf\r\nnginx_repo\r\nnginx_services\r\nclient\r\nrsyslog\r\npuppetsync\r\n'\r\n+ for task in '$TASKS'\r\n+ cat\r\n"
+    ],
+    [
+      0.000025,
+      "##################################\r\nDEPLOYMENT TASK: hiera\r\n##################################\r\n+ puppet apply -d -v --color false --detailed-exitcodes /etc/puppet/modules/fuel/examples/hiera.pp\r\n"
+    ],
+    [
+      0.819087,
+      "Debug: Runtime environment: puppet_version=3.8.5, ruby_version=2.0.0, run_mode=user, default_encoding=UTF-8\r\nDebug: Evicting cache entry for environment 'production'\r\nDebug: Caching environment 'production' (ttl = 0 sec)\r\n"
+    ],
+    [
+      0.011540,
+      "Debug: Evicting cache entry for environment 'production'\r\n"
+    ],
+    [
+      2.000000,
+      "#..."
+    ],
+    [
+      1.858597,
+      "\r\n"
+    ],
+    [
+      2.000000,
+      "#Some output of puppet apply was removed from the record"
+    ],
+    [
+      1.858597,
+      "\r\n"
+    ],
+    [
+      0.036001,
+      "+ PUPPET_RUN=2\r\n+ [[ 2 -eq 1 ]]\r\n+ [[ 2 -gt 2 ]]\r\n+ echo 'Deployment task has succeeded: puppetsync with exit code: 2'\r\nDeployment task has succeeded: puppetsync with exit code: 2\r\n"
+    ],
+    [
+      0.000510,
+      "+ exit 0\r\n+ echo '\u003cSTAGE\u003e: Services...'\r\n\u003cSTAGE\u003e: Services...\r\n+ SERVICES='\r\nastute\r\ncobblerd\r\nmcollective\r\nnailgun\r\nnginx\r\nopenstack-keystone\r\nostf\r\nrabbitmq-server\r\noswl_flavor_collectord\r\noswl_image_collectord\r\noswl_keystone_user_collectord\r\noswl_tenant_collectord\r\noswl_vm_collectord\r\noswl_volume_collectord\r\nreceiverd\r\nstatsenderd\r\nassassind\r\n'\r\n+ echo 'Restarting postgresql...'\r\nRestarting postgresql...\r\n+ systemctl restart postgresql\r\n"
+    ],
+    [
+      2.000000,
+      "+ sleep 32\r\n"
+    ],
+    [
+      2.000000,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting astute...'\r\nRestarting astute...\r\n+ systemctl restart astute\r\n"
+    ],
+    [
+      0.265136,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting cobblerd...'\r\nRestarting cobblerd...\r\n+ systemctl restart cobblerd\r\n"
+    ],
+    [
+      0.045021,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting mcollective...'\r\nRestarting mcollective...\r\n+ systemctl restart mcollective\r\n"
+    ],
+    [
+      0.611299,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting nailgun...'\r\nRestarting nailgun...\r\n+ systemctl restart nailgun\r\n"
+    ],
+    [
+      1.126408,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting nginx...'\r\nRestarting nginx...\r\n+ systemctl restart nginx\r\n"
+    ],
+    [
+      0.054386,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting openstack-keystone...'\r\nRestarting openstack-keystone...\r\n+ systemctl restart openstack-keystone\r\n"
+    ],
+    [
+      2.000000,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting ostf...'\r\nRestarting ostf...\r\n+ systemctl restart ostf\r\n"
+    ],
+    [
+      0.052398,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting rabbitmq-server...'\r\nRestarting rabbitmq-server...\r\n"
+    ],
+    [
+      0.000431,
+      "+ systemctl restart rabbitmq-server\r\n"
+    ],
+    [
+      2.000000,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_flavor_collectord...'\r\nRestarting oswl_flavor_collectord...\r\n+ systemctl restart oswl_flavor_collectord\r\n"
+    ],
+    [
+      0.044183,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_image_collectord...'\r\nRestarting oswl_image_collectord...\r\n+ systemctl restart oswl_image_collectord\r\n"
+    ],
+    [
+      0.041776,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_keystone_user_collectord...'\r\nRestarting oswl_keystone_user_collectord...\r\n+ systemctl restart oswl_keystone_user_collectord\r\n"
+    ],
+    [
+      0.109472,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_tenant_collectord...'\r\nRestarting oswl_tenant_collectord...\r\n+ systemctl restart oswl_tenant_collectord\r\n"
+    ],
+    [
+      0.233695,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_vm_collectord...'\r\nRestarting oswl_vm_collectord...\r\n+ systemctl restart oswl_vm_collectord\r\n+ for service in '$SERVICES'\r\n+ echo 'Restarting oswl_volume_collectord...'\r\nRestarting oswl_volume_collectord...\r\n+ systemctl restart oswl_volume_collectord\r\n"
+    ],
+    [
+      0.080496,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting receiverd...'\r\nRestarting receiverd...\r\n+ systemctl restart receiverd\r\n"
+    ],
+    [
+      0.090653,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting statsenderd...'\r\nRestarting statsenderd...\r\n+ systemctl restart statsenderd\r\n"
+    ],
+    [
+      0.082508,
+      "+ for service in '$SERVICES'\r\n+ echo 'Restarting assassind...'\r\nRestarting assassind...\r\n+ systemctl restart assassind\r\n"
+    ],
+    [
+      0.100536,
+      "+ echo 'Rebuilding bootstrap images'\r\nRebuilding bootstrap images\r\n+ fuel-bootstrap build --activate\r\n"
+    ],
+    [
+      2.000000,
+      "Try to build image with data:\r\nbootstrap:\r\n  certs: null\r\n  container: {format: tar.gz, meta_file: metadata.yaml}\r\n  extend_kopts: biosdevname=0 net.ifnames=1 debug ignore_loglevel log_buf_len=10M\r\n    print_fatal_signals=1 LOGLEVEL=8\r\n  extra_files: [/usr/share/fuel_bootstrap_cli/files/trusty]\r\n  label: f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94\r\n  modules:\r\n  - {mask: kernel, name: kernel, uri: 'http://127.0.0.1:8080/bootstraps/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94/vmlinuz'}\r\n  - {compress_format: xz, mask: initrd, name: initrd, uri: 'http://127.0.0.1:8080/bootstraps/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94/initrd.img'}\r\n  - \u0026id001 {compress_format: xz, container: raw, format: ext4, mask: rootfs, name: rootfs,\r\n    uri: 'http://127.0.0.1:8080/bootstraps/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94/root.squashfs'}\r\n  post_script_file: null\r\n  root_ssh_authorized_file: /root/.ssh/id_rsa.pub\r\n  uuid: f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94\r\ncodename: trusty\r\nhashed_root_password: null\r\nimage_data:\r\n  /: *id001\r\noutput: /tmp/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94.tar.gz\r\npackages: [squashfs-tools, nailgun-agent, nailgun-mcagents, live-boot, openssh-server,\r\n  i40e-dkms, vim, fuel-agent, mcollective, puppet, xz-utils, msmtp-mta, wget, hpsa-dkms,\r\n  multipath-tools-boot, multipath-tools, hwloc, openssh-client, mc, ntp, linux-firmware,\r\n  linux-firmware-nonfree, network-checker, live-boot-initramfs-tools, linux-headers-generic,\r\n  daemonize, linux-image-generic-lts-trusty, ubuntu-minimal]\r\nproxies: {}\r\nrepos:\r\n- {name: ubuntu, priority: null, section: main universe multiverse, suite: trusty,\r\n  type: deb, uri: 'http://archive.ubuntu.com/ubuntu'}\r\n- {name: ubuntu-updates, priority: null, section: main universe multiverse, suite: trusty-updates,\r\n  type: deb, uri: 'http://archive.ubuntu.com/ubuntu'}\r\n- {name: ubuntu-security, priority: null, section: main universe multiverse, suite: trusty-security,\r\n  type: deb, uri: 'http://archive.ubuntu.com/ubuntu'}\r\n- {name: mos, priority: 1050, section: main restricted, suite: mos9.0, type: deb,\r\n  uri: 'http://127.0.0.1:8080/ubuntu/x86_64'}\r\n- {name: mos-updates, priority: 1050, section: main restricted, suite: mos9.0-updates,\r\n  type: deb, uri: 'http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0'}\r\n- {name: mos-security, priority: 1050, section: main restricted, suite: mos9.0-security,\r\n  type: deb, uri: 'http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0'}\r\n- {name: mos-holdback, priority: 1100, section: main restricted, suite: mos9.0-holdback,\r\n  type: deb, uri: 'http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0'}\r\nroot_password: null\r\n\r\n"
+    ],
+    [
+      0.117251,
+      "Build process is in progress. Usually it takes 15-20 minutes. It depends on your internet connection and hardware performance.\r\n"
+    ],
+    [
+      0.004150,
+      "--- Building bootstrap image (do_mkbootstrap) ---\r\n"
+    ],
+    [
+      0.012119,
+      "*** Preparing image space ***\r\n"
+    ],
+    [
+      2.000000,
+      "Installing BASE operating system into image\r\n"
+    ],
+    [
+      2.000000,
+      "Starting new HTTP connection (1): 127.0.0.1\r\n"
+    ],
+    [
+      0.017320,
+      "Starting new HTTP connection (1): mirror.fuel-infra.org\r\n"
+    ],
+    [
+      0.366897,
+      "Starting new HTTP connection (1): mirror.fuel-infra.org\r\n"
+    ],
+    [
+      0.028828,
+      "Starting new HTTP connection (1): mirror.fuel-infra.org\r\n"
+    ],
+    [
+      2.000000,
+      "LVM configuration /tmp/tmpV4Pn90.fuel-agent-image/etc/lvm/lvm.conf updated. Option devices/preferred_names gets new value: ['^/dev/mapper/']\r\n"
+    ],
+    [
+      0.068889,
+      "Building initramfs\r\n"
+    ],
+    [
+      2.000000,
+      "Building squashfs\r\n"
+    ],
+    [
+      2.000000,
+      "squashfs_image clean-up\r\n"
+    ],
+    [
+      0.921069,
+      "Creating archive: /tmp/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94.tar.gz\r\n"
+    ],
+    [
+      2.000000,
+      "--- Building bootstrap image END (do_mkbootstrap) ---\r\nCleanup chroot\r\n"
+    ],
+    [
+      0.611042,
+      "Try extract /tmp/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94.tar.gz to /tmp/tmpnm0eLP\r\n"
+    ],
+    [
+      2.000000,
+      "Starting new HTTP connection (1): 10.109.0.2\r\n"
+    ],
+    [
+      0.017166,
+      "Starting new HTTP connection (1): 10.109.0.2\r\n"
+    ],
+    [
+      0.952432,
+      "Starting new HTTP connection (1): 10.109.0.2\r\n"
+    ],
+    [
+      0.259349,
+      "Starting new HTTP connection (1): 10.109.0.2\r\n"
+    ],
+    [
+      0.597298,
+      "Bootstrap image f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94 has been built: /tmp/f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94.tar.gz\r\nBootstrap image f6cb0981-fc9b-41d7-a1fa-fdfd03c8bd94 has been activated.\r\n"
+    ],
+    [
+      0.069459,
+      "+ echo\r\n\r\n+ echo\r\n\r\n+ echo 'Master node update is \u003csuccessfully complete\u003e (log: /var/log/puppet/update_master_node.log )'\r\nMaster node update is \u003csuccessfully complete\u003e (log: /var/log/puppet/update_master_node.log )\r\n+ exit 0\r\n"
+    ],
+    [
+      0.010771,
+      "\u001b]0;root@nailgun:~\u0007"
+    ],
+    [
+      0.000097,
+      "[root@nailgun ~]# "
+    ],
+    [
+      2.000000,
+      "#The update of the Fuel Master node to 9.1 was completed"
+    ]
+  ]
+}
