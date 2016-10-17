@@ -169,3 +169,5 @@ COMPUTE_PREUPGRADE_PACKAGES = {
 
 ASTUTE_YAML = "/etc/fuel/astute.yaml"
 CINDER_CONF = "/etc/cinder/cinder.conf"
+
+CEPH_RELEASES = {'mitaka-9.0': 'hammer'}
