@@ -1,0 +1,45 @@
+# GROUPS
+- id: ceph-osd
+  type: group
+  role: [ceph-osd]
+  fault_tolerance: 0
+
+# TASKS
+- id: restart_ceph_osd
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [upgrade_ceph_packages]
+  cross-depends:
+    - name: upgrade_ceph_packages
+      role: ceph-osd
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/restart_ceph_osd.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: unset_noout
+  type: puppet
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [restart_ceph_osd]
+  cross-depends:
+    - name: restart_ceph_osd
+      role: ceph-osd
+  required_for: []
+  parameters:
+    puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/unset_noout.pp
+    puppet_modules: /etc/fuel/octane/puppet
+    timeout: 600
+
+- id: remove_hiera_override
+  type: shell
+  version: 2.1.0
+  groups: [ceph-osd]
+  requires: [unset_noout]
+  required_for: []
+  parameters:
+    cmd: rm /etc/hiera/override/common.yaml || true
+    timeout: 60
+
