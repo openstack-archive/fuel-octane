@@ -169,3 +169,7 @@ COMPUTE_PREUPGRADE_PACKAGES = {
 
 ASTUTE_YAML = "/etc/fuel/astute.yaml"
 CINDER_CONF = "/etc/cinder/cinder.conf"
+
+CEPH_RELEASES = {'kilo-7.0': 'firefly',
+                 'liberty-8.0': 'hammer',
+                 'mitaka-9.0': 'hammer'}
