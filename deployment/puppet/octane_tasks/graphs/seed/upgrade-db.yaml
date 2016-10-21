@@ -86,7 +86,8 @@
   requires: [rsync_octane, db_sync]
   required_for: []
   condition:
-    yaql_exp: "$.upgrade.relation_info.orig_cluster_version =~ '[6-7]\.[0-1]' and $.upgrade.relation_info.seed_cluster_version =~ '9\.[1-9]'"
+    # Double slashes so that Python's YAML parser doesn't try to escape \.
+    yaql_exp: "$.upgrade.relation_info.orig_cluster_version =~ '[6-7]\\.[0-1]' and $.upgrade.relation_info.seed_cluster_version =~ '9\\.[1-9]'"
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/neutron_migrations_for_fuel_8.pp
     puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
