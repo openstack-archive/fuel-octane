@@ -62,6 +62,27 @@ def upgrade_db(orig_id, seed_id, db_role_name):
         db.cinder_volume_update_host(orig_env, seed_env)
 
 
+def add_upgrade_attrs_to_settings(orig_env, seed_env):
+    upgrade_hash = {
+        'relation_info': {
+            'orig_cluster_version': orig_env['fuel_version'],
+            'seed_cluster_version': seed_env['fuel_version']
+        }
+    }
+
+    orig_attrs = orig_env.get_settings_data()
+    orig_upgrade = orig_attrs['editable']['common'].get('upgrade', {})
+    orig_upgrade.update(upgrade_hash)
+    orig_attrs['editable']['common']['upgrade'] = orig_upgrade
+    orig_env.set_settings_data(orig_attrs)
+
+    seed_attrs = seed_env.get_settings_data()
+    seed_upgrade = seed_attrs['editable']['common'].get('upgrade', {})
+    seed_upgrade.update(upgrade_hash)
+    seed_attrs['editable']['common']['upgrade'] = seed_upgrade
+    seed_env.set_settings_data(seed_attrs)
+
+
 def upgrade_db_with_graph(orig_id, seed_id):
     """Upgrade db using deployment graphs."""
     # Upload all graphs
