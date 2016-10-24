@@ -10,6 +10,18 @@
   fault_tolerance: 0
 
 # TASKS
+- id: add_hiera_override
+  type: upload_file
+  version: 2.1.0
+  groups: [primary-controller, controller]
+  requires: []
+  required_for: []
+  parameters:
+    path: /etc/hiera/override/common.yaml
+    data:
+      yaql_exp: >
+        ({"upgrade" => $.upgrade}.toYaml())
+
 - id: rsync_octane
   type: sync
   version: 2.1.0
@@ -38,7 +50,7 @@
   type: puppet
   version: 2.1.0
   groups: [primary-controller, controller]
-  requires: [rsync_octane, delete_fuel_resources]
+  requires: [rsync_octane, delete_fuel_resources, add_hiera_override]
   required_for: []
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/stop_controller_services.pp
@@ -91,3 +103,13 @@
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/neutron_migrations_for_fuel_8.pp
     puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
     timeout: 360
+
+- id: remove_hiera_override
+  type: shell
+  version: 2.1.0
+  groups: [primary-controller, controller]
+  requires: [neutron_migrations_for_fuel_8, stop_controller_services]
+  required_for: []
+  parameters:
+    cmd: rm /etc/hiera/override/common.yaml || true
+    timeout: 60
