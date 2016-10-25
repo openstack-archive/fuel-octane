@@ -5,6 +5,18 @@
   fault_tolerance: 0
 
 # TASKS
+- id: add_hiera_override
+  type: upload_file
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: []
+  required_for: []
+  parameters:
+    path: /etc/hiera/override/common.yaml
+    data:
+      yaql_exp: >
+        ({"upgrade" => $.upgrade}.toYaml())
+
 - id: rsync_octane
   type: sync
   version: 2.1.0
@@ -20,7 +32,7 @@
   type: puppet
   version: 2.1.0
   groups: [primary-controller]
-  requires: [rsync_octane]
+  requires: [add_hiera_override, rsync_octane]
   required_for: []
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/start_controller_services.pp
