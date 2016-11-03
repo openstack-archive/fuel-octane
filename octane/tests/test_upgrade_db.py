@@ -126,11 +126,17 @@ def test_upgrade_db_with_graph(mocker, calls, graph_names, catch):
     if catch is not None:
         expected_exception = results[catch]
 
+    mock_settings_hash = {'editable': {'common': {}}}
     mocker.patch("octane.util.deployment.upload_graphs")
     mocker.patch("octane.util.deployment.execute_graph_and_wait",
                  side_effect=execute_graph)
     mocker.patch("octane.util.deployment.get_cluster_graph_names",
                  return_value=graph_names)
+    mocker.patch("fuelclient.objects.Environment.get_settings_data",
+                 return_value=mock_settings_hash)
+    mocker.patch("fuelclient.objects.Environment.set_settings_data")
+    mocker.patch("fuelclient.objects.BaseObject.data",
+                 return_value=mock_settings_hash)
 
     if expected_exception is not None:
         with pytest.raises(ExecutionError) as excinfo:
