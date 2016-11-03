@@ -57,11 +57,33 @@ def upgrade_control_plane(orig_id, seed_id):
     seed_env.delete_facts("deployment")
 
 
+def add_upgrade_attrs_to_settings(orig_env, seed_env):
+    upgrade_hash = {
+        'relation_info': {
+            'orig_cluster_version': orig_env.data['fuel_version'],
+            'seed_cluster_version': seed_env.data['fuel_version']
+        }
+    }
+
+    orig_attrs = orig_env.get_settings_data()
+    orig_upgrade = orig_attrs['editable']['common'].get('upgrade', {})
+    orig_upgrade.update(upgrade_hash)
+    orig_attrs['editable']['common']['upgrade'] = orig_upgrade
+    orig_env.set_settings_data(orig_attrs)
+
+    seed_attrs = seed_env.get_settings_data()
+    seed_upgrade = seed_attrs['editable']['common'].get('upgrade', {})
+    seed_upgrade.update(upgrade_hash)
+    seed_attrs['editable']['common']['upgrade'] = seed_upgrade
+    seed_env.set_settings_data(seed_attrs)
+
+
 def upgrade_control_plane_with_graph(orig_id, seed_id):
     """Switch controlplane using deployment graphs"""
 
     orig_env = environment_obj.Environment(orig_id)
     seed_env = environment_obj.Environment(seed_id)
+    add_upgrade_attrs_to_settings(orig_env, seed_env)
 
     deploy.upload_graphs(orig_id, seed_id)
 
