@@ -27,9 +27,17 @@ class LogsArchivator(base.Base):
     def restore(self):
         domain = helpers.get_astute_dict()["DNS_DOMAIN"]
         dirname = "/var/log/remote/"
+
+        pairs = []
+
         with fuel_client.set_auth_context(self.context):
-            pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
-                     for n in objects.Node.get_all()]
+            for node in objects.Node.get_all():
+                fqdn = node.data["meta"]["system"]["fqdn"]
+                # log creation not required for nodes in bootstrap
+                if fqdn.startswith('bootstrap'):
+                    continue
+                pairs.append((fqdn, node.data["ip"]))
+
         subprocess.call(["systemctl", "stop", "rsyslog"])
         try:
             for fqdn, ip_addr in pairs:
