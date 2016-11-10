@@ -30,6 +30,10 @@ class LogsArchivator(base.Base):
         with fuel_client.set_auth_context(self.context):
             pairs = [(n.data["meta"]["system"]["fqdn"], n.data["ip"])
                      for n in objects.Node.get_all()]
+
+        # bootstrap nodes not uniq and log creation not required
+        pairs = [(f, i) for f, i in pairs if not f.startswith('bootstrap')]
+
         subprocess.call(["systemctl", "stop", "rsyslog"])
         try:
             for fqdn, ip_addr in pairs:
