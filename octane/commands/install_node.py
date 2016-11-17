@@ -52,9 +52,9 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.info("New disk info generated: %s", new_disks)
         node.upload_node_attribute('disks', new_disks)
     else:
-        LOG.warn("Using default volumes for node %s", node)
-        LOG.warn("To keep custom volumes layout, change DEFAULT_DISKS const "
-                 "in magic_consts.py module")
+        LOG.warning("Using default volumes for node %s", node)
+        LOG.warning("To keep custom volumes layout, change DEFAULT_DISKS const"
+                    "in magic_consts.py module")
 
     if not magic_consts.DEFAULT_NETS:
         LOG.info("Updating node %s network settings with fixture: %s",
@@ -66,7 +66,7 @@ def update_node_settings(node, disks_fixture, ifaces_fixture):
         LOG.info("New interfaces info generated: %s", new_ifaces)
         node.upload_node_attribute('interfaces', new_ifaces)
     else:
-        LOG.warn("Using default networks for node %s", node)
+        LOG.warning("Using default networks for node %s", node)
 
 
 class NoSuchNetwork(Exception):
