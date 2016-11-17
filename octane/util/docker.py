@@ -124,7 +124,7 @@ def apply_patches(container, prefix, *patches, **kwargs):
     files = [os.path.join(prefix, f)
              for f in patch.get_filenames_from_patches(prefix, *patches)]
     if not files:
-        LOG.warn("Nothing to patch!")
+        LOG.warning("Nothing to patch!")
         return
     with tempfile.temp_dir(prefix='octane_docker_patches.') as tempdir:
         get_files_from_docker(container, files, tempdir)

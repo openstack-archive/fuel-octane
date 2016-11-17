@@ -51,8 +51,8 @@ class ComputeInstall(install.InstallHandler):
             return
         bup_file_path = get_iscsi_bup_file_path(self.node)
         if not os.path.exists(bup_file_path):
-            LOG.warn("Backup iscsi configuration is not present for "
-                     "compute node %s" % str(self.node.id))
+            LOG.warning("Backup iscsi configuration is not present for "
+                        "compute node %s" % str(self.node.id))
             return
         ssh.sftp(self.node).put(bup_file_path, magic_consts.ISCSI_CONFIG_PATH)
         for service in ["open-iscsi", "multipath-tools", "nova-compute"]:
