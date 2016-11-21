@@ -82,3 +82,24 @@
   parameters:
     cmd: rm /etc/hiera/override/common.yaml || true
     timeout: 60
+
+- id: store_cinder_current_host
+  type: shell
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [mysqldump_upload_to_master]
+  required_for: []
+  parameters:
+    cmd: bash /etc/fuel/octane/puppet/octane_tasks/files/store_current_host.sh /tmp/cinder_current_host
+    timeout: 60
+
+- id: cinder_current_host_upload_to_master
+  type: sync
+  version: 2.1.0
+  groups: [primary-controller]
+  requires: [store_cinder_current_host]
+  required_for: []
+  parameters:
+    src: /tmp/cinder_current_host
+    dst: rsync://{MASTER_IP}:/octane_data/
+    timeout: 180
