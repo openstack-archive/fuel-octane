@@ -13,4 +13,4 @@ fi
 
 CINDER_BACKEND=`bash ${DIR}/fetch_puppet_resource_param.sh cinder_config RBD-backend/volume_backend_name value`
 
-echo "export NEW_HOST=\"${CINDER_HOST}#${CINDER_BACKEND}\"" > ${STORE_PATH}
+echo "export NEW_HOST=\"${CINDER_HOST}@${CINDER_BACKEND}#${CINDER_BACKEND}\"" > ${STORE_PATH}
