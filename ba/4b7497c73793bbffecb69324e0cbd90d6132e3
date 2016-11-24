@@ -1,0 +1,8 @@
+Code-Review+2: Roman Sokolkov <rsokolkov@mirantis.com>
+Workflow+1: Roman Sokolkov <rsokolkov@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 24 Nov 2016 09:40:50 +0000
+Reviewed-on: https://review.openstack.org/401931
+Project: openstack/fuel-octane
+Branch: refs/heads/master
