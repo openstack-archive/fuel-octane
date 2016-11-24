@@ -90,7 +90,7 @@
     puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
     timeout: 360
 
-# Should be applied only on 6.0-7.0 -> 9.1+
+# Should be applied only on 6.0-7.0 -> 9.0+
 - id: neutron_migrations_for_fuel_8
   type: puppet
   version: 2.1.0
@@ -99,7 +99,7 @@
   required_for: []
   condition:
     # Double slashes so that Python's YAML parser doesn't try to escape \.
-    yaql_exp: "$.upgrade.relation_info.orig_cluster_version =~ '[6-7]\\.[0-1]' and $.upgrade.relation_info.seed_cluster_version =~ '9\\.[1-9]'"
+    yaql_exp: "$.upgrade.relation_info.orig_cluster_version =~ '[6-7]\\.[0-1]' and $.upgrade.relation_info.seed_cluster_version =~ '9\\.[0-9]'"
   parameters:
     puppet_manifest: /etc/fuel/octane/puppet/octane_tasks/modular/neutron_migrations_for_fuel_8.pp
     puppet_modules:  /etc/fuel/octane/puppet:/etc/puppet/modules
