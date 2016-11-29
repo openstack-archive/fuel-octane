@@ -27,6 +27,7 @@ Requires:    python-stevedore
 Requires:    python-fuelclient
 Requires:    python-cliff
 Requires:    fuel-nailgun-extension-cluster-upgrade
+Requires:    fuel-nailgun-extension-converted-serializers
 Requires:    puppet
 Requires:    rsync
 
