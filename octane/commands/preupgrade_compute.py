@@ -154,14 +154,14 @@ class PreupgradeComputeCommand(cmd.Command):
             help="IDs of compute nodes to be preupgraded",
             nargs="+")
         parser.add_argument(
-            '--with-graph', action='store_true',
-            help='EXPERIMENTAL: Use Fuel deployment graphs'
-                 ' instead of python-based commands.')
+            '--without-graph', action='store_true',
+            help='EXPERIMENTAL: Use python-based commands'
+                 ' instead of Fuel deployment graphs.')
         return parser
 
     def take_action(self, parsed_args):
-        if parsed_args.with_graph:
+        if parsed_args.without_graph:
+            preupgrade_compute(parsed_args.release_id, parsed_args.node_ids)
+        else:
             preupgrade_compute_with_graph(parsed_args.release_id,
                                           parsed_args.node_ids)
-        else:
-            preupgrade_compute(parsed_args.release_id, parsed_args.node_ids)
