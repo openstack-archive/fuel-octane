@@ -24,7 +24,8 @@ from octane.util import ssh
 @pytest.mark.parametrize("admin_pswd", [None, "pswd"])
 def test_osd_cmd_upgrade(
         mocker, octane_app, orig_env_id, seed_env_id, admin_pswd):
-    upgrade_osd_mock = mocker.patch("octane.commands.osd_upgrade.upgrade_osd")
+    upgrade_osd_mock = mocker.patch(
+        "octane.commands.osd_upgrade.upgrade_osd_with_graph")
     params = ["upgrade-osd"]
     if admin_pswd:
         params += ["--admin-password", admin_pswd]

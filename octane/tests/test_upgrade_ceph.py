@@ -18,7 +18,7 @@ from octane.handlers.upgrade import ceph_osd
 
 
 def test_parser(mocker, octane_app):
-    m = mocker.patch('octane.commands.upgrade_ceph.upgrade_ceph')
+    m = mocker.patch('octane.commands.upgrade_ceph.upgrade_ceph_with_graph')
     octane_app.run(["upgrade-ceph", "1", "2"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
