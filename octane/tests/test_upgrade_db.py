@@ -18,7 +18,8 @@ from octane.commands import upgrade_db
 
 def test_parser(mocker, octane_app):
     m = mocker.patch('octane.commands.upgrade_db.upgrade_db')
-    octane_app.run(["upgrade-db", "1", "2", "--db_role_name", "3"])
+    octane_app.run([
+        "upgrade-db", "--without-graph", "1", "2", "--db_role_name", "3"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2, '3')
@@ -26,18 +27,10 @@ def test_parser(mocker, octane_app):
 
 def test_parser_with_graph(mocker, octane_app):
     m = mocker.patch("octane.commands.upgrade_db.upgrade_db_with_graph")
-    octane_app.run(["upgrade-db", "--with-graph", "1", "2"])
+    octane_app.run(["upgrade-db", "1", "2"])
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
     m.assert_called_once_with(1, 2)
-
-
-def test_parser_exclusive_group(mocker, octane_app):
-    mocker.patch("octane.commands.upgrade_db.upgrade_db")
-    mocker.patch("octane.commands.upgrade_db.upgrade_db_with_graph")
-    with pytest.raises(AssertionError):
-        octane_app.run(["upgrade-db", "--with-graph", "--db_role_name", "db",
-                        "1", "2"])
 
 
 @pytest.mark.parametrize(("calls", "graph_names", "catch"), [
