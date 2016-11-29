@@ -262,27 +262,31 @@ class UpgradeOSDCommand(cmd.Command):
             type=int,
             metavar='SEED_ENV_ID',
             help="ID of seed environment")
-        parser.add_argument(
+        group = parser.add_argument_group()
+        group.add_argument(
             "--admin-password",
             type=str,
             action="store",
             dest="admin_password",
-            required=True,
-            help="Fuel admin password")
-        parser.add_argument(
-            '--with-graph', action='store_true',
-            help='EXPERIMENTAL: Use Fuel deployment graphs'
-                 ' instead of python-based commands.')
+            help="Fuel admin password",
+            required=False)
+        group.add_argument(
+            '--without-graph', action='store_true',
+            help='EXPERIMENTAL: Use python-based commands'
+                 ' instead of Fuel deployment graphs.',
+            required=False)
         return parser
 
     def take_action(self, parsed_args):
-        if parsed_args.with_graph:
-            upgrade_osd_with_graph(
-                parsed_args.orig_env_id,
-                parsed_args.seed_env_id)
-        else:
+        assert bool(parsed_args.admin_password) == parsed_args.without_graph, \
+            'Admin password required only for not graph upgrade'
+        if parsed_args.without_graph:
             upgrade_osd(
                 parsed_args.orig_env_id,
                 parsed_args.seed_env_id,
                 'admin',
                 parsed_args.admin_password)
+        else:
+            upgrade_osd_with_graph(
+                parsed_args.orig_env_id,
+                parsed_args.seed_env_id)

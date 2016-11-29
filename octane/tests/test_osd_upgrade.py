@@ -22,9 +22,13 @@ from octane.util import ssh
 @pytest.mark.parametrize("orig_env_id", [None, 1])
 @pytest.mark.parametrize("seed_env_id", [None, 2])
 @pytest.mark.parametrize("admin_pswd", [None, "pswd"])
-def test_osd_cmd_upgrade(
-        mocker, octane_app, orig_env_id, seed_env_id, admin_pswd):
-    upgrade_osd_mock = mocker.patch("octane.commands.osd_upgrade.upgrade_osd")
+@pytest.mark.parametrize("without_graph", [True, False])
+def test_osd_cmd_upgrade(mocker, octane_app, orig_env_id, seed_env_id,
+                         admin_pswd, without_graph):
+    upgrade_osd_mock = mocker.patch(
+        "octane.commands.osd_upgrade.upgrade_osd_with_graph")
+    upgrade_osd_mock_without_graph = mocker.patch(
+        "octane.commands.osd_upgrade.upgrade_osd")
     params = ["upgrade-osd"]
     if admin_pswd:
         params += ["--admin-password", admin_pswd]
@@ -32,10 +36,15 @@ def test_osd_cmd_upgrade(
         params += [str(orig_env_id)]
     if seed_env_id:
         params += [str(seed_env_id)]
-    if orig_env_id and seed_env_id and admin_pswd:
+    if without_graph:
+        params += ['--without-graph']
+    if orig_env_id and seed_env_id and (bool(admin_pswd) == without_graph):
         octane_app.run(params)
-        upgrade_osd_mock.assert_called_once_with(
-            orig_env_id, seed_env_id, "admin", admin_pswd)
+        if without_graph:
+            upgrade_osd_mock_without_graph.assert_called_once_with(
+                orig_env_id, seed_env_id, "admin", admin_pswd)
+        else:
+            upgrade_osd_mock.assert_called_once_with(orig_env_id, seed_env_id)
         return
     with pytest.raises(AssertionError):
         octane_app.run(params)

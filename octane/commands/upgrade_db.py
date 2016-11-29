@@ -117,22 +117,23 @@ class UpgradeDBCommand(cmd.Command):
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
 
-        group = parser.add_mutually_exclusive_group()
+        group = parser.add_argument_group()
         group.add_argument(
             '--db_role_name', type=str, metavar='DB_ROLE_NAME',
             default="controller", help="Set not standard role name for DB "
                                        "(default controller).")
         group.add_argument(
-            '--with-graph', action='store_true',
-            help="EXPERIMENTAL: Use Fuel deployment graphs"
-                 " instead of python-based commands.")
+            '--without-graph', action='store_true',
+            help="EXPERIMENTAL: Use python-based commands"
+                 " instead of Fuel deployment graphs.")
 
         return parser
 
     def take_action(self, parsed_args):
-        # Execute alternative approach if requested
-        if parsed_args.with_graph:
-            upgrade_db_with_graph(parsed_args.orig_id, parsed_args.seed_id)
-        else:
+        assert bool(parsed_args.db_role_name) == parsed_args.without_graph, \
+            "DB role required only for without graph update"
+        if parsed_args.without_graph:
             upgrade_db(parsed_args.orig_id, parsed_args.seed_id,
                        parsed_args.db_role_name)
+        else:
+            upgrade_db_with_graph(parsed_args.orig_id, parsed_args.seed_id)
