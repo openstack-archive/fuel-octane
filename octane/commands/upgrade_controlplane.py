@@ -139,15 +139,15 @@ class UpgradeControlPlaneCommand(cmd.Command):
             'seed_id', type=int, metavar='SEED_ID',
             help="ID of seed environment")
         parser.add_argument(
-            '--with-graph', action='store_true',
-            help='EXPERIMENTAL: Use Fuel deployment graphs'
-                 ' instead of python-based commands.')
+            '--without-graph', action='store_true',
+            help='EXPERIMENTAL: Use python-based commands'
+                 ' instead of Fuel deployment graphs.')
         return parser
 
     def take_action(self, parsed_args):
-        if parsed_args.with_graph:
+        if parsed_args.without_graph:
+            upgrade_control_plane(parsed_args.orig_id, parsed_args.seed_id)
+        else:
             upgrade_control_plane_with_graph(
                 parsed_args.orig_id,
                 parsed_args.seed_id)
-        else:
-            upgrade_control_plane(parsed_args.orig_id, parsed_args.seed_id)

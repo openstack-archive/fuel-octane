@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import argparse
 import contextlib
 import json
 import logging
@@ -256,33 +257,45 @@ class UpgradeOSDCommand(cmd.Command):
             'orig_env_id',
             type=int,
             metavar='ORIG_ENV_ID',
-            help="ID of orig environment")
+            help="ID of orig environment",
+            required=True)
         parser.add_argument(
             'seed_env_id',
             type=int,
             metavar='SEED_ENV_ID',
-            help="ID of seed environment")
-        parser.add_argument(
+            help="ID of seed environment",
+            required=True)
+        group = parser.add_argument_group()
+        group.add_argument(
             "--admin-password",
             type=str,
             action="store",
             dest="admin_password",
-            required=True,
-            help="Fuel admin password")
-        parser.add_argument(
-            '--with-graph', action='store_true',
-            help='EXPERIMENTAL: Use Fuel deployment graphs'
-                 ' instead of python-based commands.')
+            help="Fuel admin password",
+            required=False)
+        group.add_argument(
+            '--without-graph', action='store_true',
+            help='EXPERIMENTAL: Use python-based commands'
+                 ' instead of Fuel deployment graphs.',
+            required=False)
         return parser
 
     def take_action(self, parsed_args):
-        if parsed_args.with_graph:
-            upgrade_osd_with_graph(
-                parsed_args.orig_env_id,
-                parsed_args.seed_env_id)
-        else:
+        if parsed_args.admin_password and not parsed_args.without_graph:
+            raise argparse.ArgumentError(
+                'admin_password',
+                'Admin password required only for not graph upgrade')
+        if not parsed_args.admin_password and parsed_args.without_graph:
+            raise argparse.ArgumentError(
+                'without_graph',
+                'Admin password required for not graph upgrade')
+        if parsed_args.without_graph:
             upgrade_osd(
                 parsed_args.orig_env_id,
                 parsed_args.seed_env_id,
                 'admin',
                 parsed_args.admin_password)
+        else:
+            upgrade_osd_with_graph(
+                parsed_args.orig_env_id,
+                parsed_args.seed_env_id)

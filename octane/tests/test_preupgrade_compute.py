@@ -22,7 +22,8 @@ from octane import magic_consts
     (["preupgrade-compute", "1", "1"], 1, [1]),
 ])
 def test_parser(mocker, octane_app, cmd, release_id, node_ids):
-    m = mocker.patch("octane.commands.preupgrade_compute.preupgrade_compute")
+    m = mocker.patch(
+        "octane.commands.preupgrade_compute.preupgrade_compute_with_graph")
     octane_app.run(cmd)
     assert not octane_app.stdout.getvalue()
     assert not octane_app.stderr.getvalue()
