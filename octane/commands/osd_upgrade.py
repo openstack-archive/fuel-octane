@@ -209,7 +209,7 @@ def upgrade_osd(orig_env_id, seed_env_id, user, password):
         return
     controller = env.get_one_controller(seed_env)
     if is_same_versions_on_mon_and_osd(controller):
-        LOG.warn("MONs and OSDs have the same version, nothing to upgrade.")
+        LOG.warning("MONs and OSDs have the same version, nothing to upgrade.")
         return
     hostnames = [n.data['hostname'] for n in nodes]
     with applied_repos(nodes, preference_priority + 1, seed_repos):
