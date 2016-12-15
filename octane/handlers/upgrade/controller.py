@@ -68,8 +68,8 @@ class ControllerUpgrade(upgrade.UpgradeHandler):
             try:
                 ssh.call(['ip', 'route', 'delete', 'default'], node=self.node)
             except subprocess.CalledProcessError as exc:
-                LOG.warn("Cannot delete default route at node %s: %s",
-                         self.node.id, exc.args[0])
+                LOG.warning("Cannot delete default route at node %s: %s",
+                            self.node.id, exc.args[0])
             LOG.info("Set default route at node %s: %s",
                      self.node.id, self.gateway)
             ssh.call(['ip', 'route', 'add', 'default', 'via', self.gateway],

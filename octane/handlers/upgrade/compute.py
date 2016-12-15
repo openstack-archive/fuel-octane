@@ -47,8 +47,8 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 ["nova", "service-enable", call_host, "nova-compute"],
                 controller, False)
         except subprocess.CalledProcessError as exc:
-            LOG.warn("Cannot start service 'nova-compute' on {0} "
-                     "by reason: {1}. Try again".format(
+            LOG.warning("Cannot start service 'nova-compute' on {0} "
+                        "by reason: {1}. Try again".format(
                          self.node.data['fqdn'], exc))
             call_host = self.node.data['fqdn'].split('.', 1)[0]
             nova.run_nova_cmd(
@@ -76,7 +76,7 @@ class ComputeUpgrade(upgrade.UpgradeHandler):
                 "command again".format(hostname=node_fqdn))
 
         if node_fqdn in disabled_computes:
-            LOG.warn("Node {0} already disabled".format(node_fqdn))
+            LOG.warning("Node {0} already disabled".format(node_fqdn))
         else:
             nova.run_nova_cmd(
                 ["nova", "service-disable", node_fqdn, "nova-compute"],
