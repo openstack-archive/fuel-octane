@@ -14,10 +14,11 @@ from __future__ import absolute_import
 
 import contextlib
 import io
-import logging
 import os.path
 import tarfile
 import time
+
+from oslo_log import log as logging
 
 from octane.util import patch
 from octane.util import subprocess

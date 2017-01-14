@@ -10,12 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import requests
 import urlparse
 import yaml
 
 from keystoneclient import v2_0
+from oslo_log import log as logging
 
 from octane.handlers.backup_restore import base
 from octane import magic_consts

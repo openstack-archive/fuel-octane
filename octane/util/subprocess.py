@@ -15,12 +15,13 @@ from __future__ import absolute_import
 import contextlib
 import functools
 import io
-import logging
 import os
 import pipes
 import re
 import subprocess
 import threading
+
+from oslo_log import log as logging
 
 from octane.util import tempfile
 

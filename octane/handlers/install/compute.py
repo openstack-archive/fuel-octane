@@ -10,8 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os.path
+
+from oslo_log import log as logging
 
 from octane.handlers import install
 from octane import magic_consts

@@ -12,7 +12,6 @@
 
 import copy
 import json
-import logging
 import os.path
 import shutil
 import time
@@ -20,6 +19,7 @@ import uuid
 import yaml
 
 from distutils import version
+from oslo_log import log as logging
 
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj

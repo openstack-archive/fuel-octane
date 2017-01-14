@@ -11,11 +11,11 @@
 # under the License.
 
 import contextlib
-import logging
 import os
 import tarfile
 
 from cliff import command
+from oslo_log import log as logging
 
 from octane.handlers import backup_restore
 

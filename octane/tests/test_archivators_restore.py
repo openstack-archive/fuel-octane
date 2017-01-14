@@ -10,12 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import io
-import logging
 import mock
 import os
 import pytest
 
 from keystoneclient.v2_0 import Client as keystoneclient
+from oslo_log import log as logging
 
 from octane.handlers import backup_restore
 from octane.handlers.backup_restore import admin_networks

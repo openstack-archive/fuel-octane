@@ -12,12 +12,12 @@
 
 import contextlib
 import json
-import logging
 import operator
 import os
 import time
 
 from cliff import command as cmd
+from oslo_log import log as logging
 
 from fuelclient.objects import environment as env_obj
 from fuelclient.objects import release as rel_obj

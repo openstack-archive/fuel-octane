@@ -10,10 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os
 import re
 import subprocess
+
+from oslo_log import log as logging
 
 from octane import magic_consts
 from octane.util import ssh

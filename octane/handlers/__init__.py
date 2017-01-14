@@ -11,9 +11,10 @@
 # under the License.
 
 import functools
-import logging
 
 import stevedore
+
+from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 

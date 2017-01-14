@@ -10,9 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os.path
 import time
+
+from oslo_log import log as logging
 
 from fuelclient.v1 import graph
 from octane import magic_consts

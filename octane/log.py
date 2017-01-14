@@ -10,9 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import string
 import sys
+
+from oslo_log import log as logging
 
 if sys.version_info < (2, 7):
     import functools

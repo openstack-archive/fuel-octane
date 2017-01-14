@@ -11,11 +11,12 @@
 # under the License.
 
 import functools
-import logging
 import shutil
 import socket
 import sys
 import time
+
+from oslo_log import log as logging
 
 from distutils import version
 from octane.util import helpers

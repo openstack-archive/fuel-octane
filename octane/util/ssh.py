@@ -12,7 +12,6 @@
 
 import contextlib
 import io
-import logging
 import os
 import pipes
 import random
@@ -21,6 +20,8 @@ import threading
 
 import paramiko
 from paramiko import channel
+
+from oslo_log import log as logging
 
 from octane import magic_consts
 from octane.util import subprocess

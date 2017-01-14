@@ -7,5 +7,5 @@ python-fuelclient  # It pulls following libs:
 #cliff
 #requests
 #stevedore
-
+oslo.log>=3.11.0 # Apache-2.0
 paramiko

@@ -11,9 +11,9 @@
 # under the License.
 
 import itertools
-import logging
 import os.path
 
+from oslo_log import log as logging
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj

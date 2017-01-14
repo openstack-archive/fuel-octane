@@ -10,7 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
+from oslo_log import log as logging
 
 from octane.handlers.backup_restore import base
 from octane.util import fuel_bootstrap

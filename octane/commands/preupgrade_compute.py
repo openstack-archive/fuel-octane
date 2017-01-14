@@ -10,9 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import collections
-import logging
 
 from cliff import command as cmd
+from oslo_log import log as logging
 
 from fuelclient import objects
 

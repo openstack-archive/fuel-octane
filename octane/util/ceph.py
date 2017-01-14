@@ -10,7 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
+from oslo_log import log as logging
 
 from octane.util import env as env_util
 from octane.util import ssh

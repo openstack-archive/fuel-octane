@@ -11,7 +11,6 @@
 # under the License.
 
 import hashlib
-import logging
 import os
 import tarfile
 import tempfile
@@ -19,6 +18,7 @@ import uuid
 import yaml
 
 from cliff import command
+from oslo_log import log as logging
 
 from octane import magic_consts
 from octane.util import patch

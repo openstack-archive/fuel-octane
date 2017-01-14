@@ -12,7 +12,7 @@
 
 from __future__ import print_function
 
-import logging
+from oslo_log import log as logging
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj

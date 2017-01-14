@@ -10,13 +10,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os.path
 import shutil
 import time
 
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
+from oslo_log import log as logging
 
 from octane import magic_consts
 from octane.util import db

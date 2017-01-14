@@ -10,11 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
+from oslo_log import log as logging
 
 from octane.util import deployment as deploy
 from octane.util import env as env_util

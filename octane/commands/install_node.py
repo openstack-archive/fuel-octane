@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from octane.handlers.upgrade import controller as controller_upgrade
 from octane.helpers.node_attributes import copy_disks
 from octane.helpers.node_attributes import copy_ifaces
@@ -23,6 +21,7 @@ from octane.util import node as node_util
 from cliff import command as cmd
 from fuelclient.objects import environment as environment_obj
 from fuelclient.objects import node as node_obj
+from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 
