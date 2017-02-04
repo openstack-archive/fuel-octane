@@ -71,11 +71,11 @@ class AstuteArchivator(base.PathArchivator):
             )
 
     def get_backup_dict(self):
-        return yaml.load(self.archive.extractfile(self.name))
+        return yaml.safe_load(self.archive.extractfile(self.name))
 
     def get_current_dict(self):
         with open(self.path, "r") as current:
-            return yaml.load(current)
+            return yaml.safe_load(current)
 
     def pre_restore_check(self):
         backup = self.get_backup_dict()

@@ -53,7 +53,7 @@ def calculate_md5(filename):
 
 def _mk_metadata(src, dst, root_fs_path):
     with open(src) as fd:
-        metadata = yaml.load(fd)
+        metadata = yaml.safe_load(fd)
 
     uuid_val = metadata["uuid"]
     my_uuid_val = str(uuid.uuid1())

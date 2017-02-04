@@ -257,7 +257,7 @@ def get_astute_yaml(env, node=None):
         node = get_one_controller(env)
     with ssh.sftp(node).open('/etc/astute.yaml') as f:
         data = f.read()
-    return yaml.load(data)
+    return yaml.safe_load(data)
 
 
 def get_admin_password(env, node=None):

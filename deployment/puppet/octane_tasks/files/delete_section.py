@@ -21,7 +21,7 @@ subsection = sys.argv[3]
 
 try:
     with open(target_file,'r+') as f:
-        data = yaml.load(f)
+        data = yaml.safe_load(f)
         del data[section][subsection]
 
     with open(target_file,'w+') as f:
