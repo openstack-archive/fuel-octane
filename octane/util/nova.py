@@ -40,7 +40,7 @@ def run_nova_cmd(cmd, node, output=True):
 def nova_stdout_parser(cmd_stdout):
     """Parse nova cmd stdout
 
-    Return list of dicts ther keys are the header of the cmd out table.
+    Return list of dicts their keys are the header of the cmd out table.
     """
     results = []
     headers = None
