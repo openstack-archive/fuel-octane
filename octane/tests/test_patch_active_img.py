@@ -58,7 +58,7 @@ def test_mk_metadata(mocker, mock_open, src, dst, root_fs_path):
             }
         }
     }
-    load_mock = mocker.patch("yaml.load", return_value=data)
+    load_mock = mocker.patch("yaml.safe_load", return_value=data)
     dump_mock = mocker.patch("yaml.dump")
     uuid_mock = mocker.patch("uuid.uuid1", return_value="my_generated_uuid")
     results = data.copy()

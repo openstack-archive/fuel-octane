@@ -33,7 +33,7 @@ def get_astute_dict():
 
 def load_yaml(filename):
     with open(filename, "r") as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 def iterate_parameters(fp):

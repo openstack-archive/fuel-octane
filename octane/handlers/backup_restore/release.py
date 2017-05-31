@@ -34,7 +34,7 @@ class ReleaseArchivator(base.Base):
             return (release['version'], release['name'])
 
         with open(magic_consts.OPENSTACK_FIXTURES) as f:
-            fixtures = yaml.load(f)
+            fixtures = yaml.safe_load(f)
         loaded_existing_releases = self.__get_request("/api/v1/releases/")
         existing_releases = set(map(get_release_key, loaded_existing_releases))
         releases = self.extend_fixtures(fixtures)

@@ -243,7 +243,7 @@ def test_repos_backup(
         mocker, mock_open, cls, name, ipaddr,
         attributes, archive_add_list):
     yaml_mocker = mocker.patch(
-        "yaml.load",
+        "yaml.safe_load",
         return_value={"ADMIN_NETWORK": {"ipaddress": "127.0.0.1"}})
     mocker.patch.object(cls, '_get_attributes', return_value=attributes)
 
