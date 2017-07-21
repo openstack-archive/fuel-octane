@@ -18,7 +18,6 @@ environments that it manages. This version of the toolset supports
 upgrade from versions 7.0 and 8.0 to version 9.1.
 
 * Free software: Apache license
-* Documentation: http://docs.openstack.org/developer/octane
 * Source: http://git.openstack.org/cgit/stackforge/octane
 * Bugs: http://bugs.launchpad.net/octane
 
