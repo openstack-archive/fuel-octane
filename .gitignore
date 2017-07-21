@@ -1,8 +1,7 @@
 *.py[cod]
 
 # Packages
-*.egg
-*.egg-info
+*.egg*
 dist
 build
 .eggs
