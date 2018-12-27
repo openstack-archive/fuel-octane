@@ -25,7 +25,7 @@ upgrade from versions 7.0 and 8.0 to version 9.1.
 Features
 --------
 
-* Backup the Fuel Master node configuraiton, OpenStack release bundles,
+* Backup the Fuel Master node configuration, OpenStack release bundles,
   metadata of environments and target nodes
 
 * Restore metadata of the Fuel Master node, environments and target nodes
