@@ -2,7 +2,7 @@
 # == Class: octane_tasks::rsync_octane_section
 #
 # This class adds two section to rsyncd.conf for Octane:
-#   Code with with ready only access.
+#   Code with ready only access.
 #   Data with read and write access.
 class octane_tasks::rsync_octane_section {
   augeas { 'rsync_octane_section_code':
