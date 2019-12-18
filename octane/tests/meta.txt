@@ -1,4 +1,0 @@
-#!/bin/sh
-set -x 
-/usr/sbin/resize2fs /dev/vda1
-/usr/bin/screen -dmS test3 sh -c "while true;do dd if=/dev/urandom of=testfile bs=100k count=10 2>> text.txt; date >> text.txt ; echo $? >> text.txt;done; exec sh"

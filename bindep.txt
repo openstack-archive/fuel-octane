@@ -1,6 +1,0 @@
-# Due to the problem with the new version of cryptography==1.4 we have
-# to add these binary dependencies.
-libffi-dev [platform:dpkg]
-libssl-dev [platform:dpkg]
-libffi-devel [platform:rpm]
-openssl-devel [platform:rpm]

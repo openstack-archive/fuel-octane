@@ -1,6 +1,0 @@
-[run]
-branch = True
-source = octane
-
-[report]
-ignore_errors = True
